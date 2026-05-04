@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timesheet Calculator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --surface: #f8f9fb;
+    --surface2: #eef0f5;
+    --border: #d1d5de;
+    --accent: #16a34a;
+    --accent2: #2563eb;
+    --accent3: #d97706;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --red: #dc2626;
+    --purple: #7c3aed;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+  .logo span { color: var(--text-muted); }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 3px;
+  }
+  .tab-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+  }
+  .tab-btn.active {
+    background: var(--accent);
+    color: #000;
+  }
+  .tab-btn:not(.active):hover { color: var(--text); background: var(--border); }
+
+
+
+  /* MAIN LAYOUT */
+  main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ─── TIMESHEET PANEL ─── */
+  .ts-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .ts-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .ts-title strong { color: var(--text); font-size: 18px; display: block; margin-top: 2px; letter-spacing: 0; text-transform: none; font-family: 'IBM Plex Sans', sans-serif; }
+
+  /* Section headers */
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 6px 0 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* ─── TIMESHEET TABLE ─── */
+  .ts-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 24px;
+  }
+  .ts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 900px;
+  }
+  .ts-table thead th {
+    background: var(--surface2);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 2px solid var(--border);
+    border-right: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .ts-table thead th:last-child { border-right: none; }
+  .ts-table thead th.group-time { color: var(--accent2); }
+  .ts-table thead th.group-checks { color: var(--accent3); }
+  .ts-table thead th.group-enf { color: var(--purple); }
+  .ts-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .ts-table tbody tr:last-child { border-bottom: none; }
+  .ts-table tbody tr:hover { background: #ffffff05; }
+  .ts-table td { padding: 5px 7px; border-right: 1px solid var(--border); vertical-align: middle; }
+  .ts-table td:last-child { border-right: none; }
+  .td-day {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    background: var(--surface);
+    width: 100px;
+  }
+  .td-hours {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    text-align: right;
+    white-space: nowrap;
+    width: 58px;
+  }
+  .checks-inline { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* Day card grid - UNUSED BUT KEPT */
+  .day-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .day-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .day-card:focus-within { border-color: var(--accent2); }
+
+  .day-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .day-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--accent2);
+  }
+  .day-status-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+  }
+  .badge-working { background: #14532d; color: #4ade80; }
+  .badge-cancelled { background: #450a0a; color: #f87171; }
+  .badge-nwd { background: #1c1917; color: #78716c; }
+  .badge-standby { background: #1e1b4b; color: #a78bfa; }
+  .badge-empty { background: #1e2230; color: #475569; }
+
+  .day-card-body { padding: 12px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .field-group { display: flex; flex-direction: column; gap: 4px; }
+  .field-group.full { grid-column: 1 / -1; }
+  .field-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  select, input[type="time"], input[type="text"], input[type="number"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 6px 8px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  select:focus, input:focus { border-color: var(--accent2); }
+  select option { background: var(--surface2); }
+
+  /* Checks row */
+  .checks-row {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .check-item input[type="checkbox"] {
+    width: 14px; height: 14px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .check-item:hover { color: var(--text); }
+
+  /* Enforcement */
+  .enforcement-row {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
+
+  /* ─── OUTCOME PANEL ─── */
+  .outcome-header {
+    margin-bottom: 20px;
+  }
+
+  .outcome-grid {
+    display: grid;
+    grid-template-columns: 160px repeat(7, 1fr);
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .og-cell {
+    padding: 8px 10px;
+    font-size: 11px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+  }
+  .og-cell:nth-child(8n) { border-right: none; }
+
+  .og-header {
+    background: var(--surface2);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    justify-content: center;
+  }
+  .og-header.day-col { color: var(--accent2); }
+
+  .og-section-header {
+    background: var(--surface);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    grid-column: 1 / -1;
+    border-right: none;
+    padding: 6px 10px;
+  }
+
+  .og-row-label {
+    background: var(--surface);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .og-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text);
+    background: var(--bg);
+    word-break: break-word;
+    line-height: 1.4;
+  }
+  .og-value.empty { color: var(--border); }
+  .og-value.highlight { color: var(--accent); }
+  .og-value.highlight-b { color: var(--accent2); }
+
+  /* Totals strip */
+  .totals-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .total-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .total-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .total-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .total-unit { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .day-grid { grid-template-columns: 1fr; }
+    .outcome-grid { grid-template-columns: 100px repeat(7, 1fr); font-size: 9px; }
+    .og-cell { padding: 5px 6px; }
+    main { padding: 12px; }
+    header { padding: 0 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">TIMESHEET <span>// WEEKLY CALCULATOR</span></div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('timesheet')">TIMESHEET</button>
+    <button class="tab-btn" onclick="switchTab('outcome')">OUTCOME</button>
+    <button class="tab-btn" onclick="switchTab('codes')">CODES</button>
+  </div>
+</header>
+
+
+
+<main>
+  <!-- ═══════════════ TIMESHEET PANEL ═══════════════ -->
+  <div class="panel active" id="panel-timesheet">
+    <div class="ts-header">
+      <div class="ts-title">Weekly Schedule
+        <strong>Timesheet</strong>
+      </div>
+    </div>
+
+    <div class="section-label">Daily Entries</div>
+    <div class="ts-table-wrap">
+      <table class="ts-table">
+        <thead>
+          <tr>
+            <th>Day</th>
+            <th>Plant</th>
+            <th>Plant Status</th>
+            <th>Status / Type</th>
+            <th class="group-time">Arrival</th>
+            <th class="group-time">Departure</th>
+            <th class="group-time">SOR</th>
+            <th class="group-checks">Sampling</th>
+            <th class="group-checks">C&amp;D</th>
+            <th class="group-checks">SHA</th>
+            <th class="group-checks">TB</th>
+            <th class="group-checks">AI Zone</th>
+            <th class="group-enf">Enforcement</th>
+            <th class="group-enf">In Hours</th>
+            <th class="group-enf">Out Hours</th>
+          </tr>
+        </thead>
+        <tbody id="tsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════ OUTCOME PANEL ═══════════════ -->
+  <div class="panel" id="panel-outcome">
+    <div class="outcome-header">
+      <div class="ts-title">Computed Results
+        <strong>Outcome</strong>
+      </div>
+    </div>
+
+    <div class="section-label">Weekly Totals</div>
+    <div class="totals-strip" id="totalsStrip"></div>
+
+    <div class="section-label">OV Assignments</div>
+    <div class="outcome-grid" id="ovGrid"></div>
+
+    <div class="section-label">MHI Assignments</div>
+    <div class="outcome-grid" id="mhiGrid"></div>
+
+    <div class="section-label">Out of Work Activities</div>
+    <div class="outcome-grid" id="enfGrid"></div>
+  </div>
+
+  <!-- ═══════════════ CODES PANEL ═══════════════ -->
+  <div class="panel" id="panel-codes">
+    <!-- Lock screen -->
+    <div id="codesLock" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;gap:16px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-muted);letter-spacing:0.1em">ENTER PASSWORD</div>
+      <div style="display:flex;gap:8px">
+        <input type="password" id="codesPin" maxlength="4" placeholder="••••"
+          style="width:100px;text-align:center;font-size:20px;letter-spacing:0.3em;padding:10px"
+          onkeydown="if(event.key==='Enter')checkPin()">
+        <button onclick="checkPin()" style="font-family:'IBM Plex Mono',monospace;font-size:12px;padding:10px 18px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:4px;cursor:pointer;">ENTER</button>
+      </div>
+      <div id="pinError" style="color:var(--red);font-size:11px;font-family:'IBM Plex Mono',monospace;display:none">INCORRECT PASSWORD</div>
+    </div>
+    <!-- Codes editor (hidden until unlocked) -->
+    <div id="codesEditor" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="ts-title">Code Tables<strong>Edit Codes</strong></div>
+        <div style="display:flex;gap:8px">
+          <button onclick="saveCodesEdit()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 16px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:4px;cursor:pointer;">Save Changes</button>
+          <button onclick="lockCodes()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 16px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:4px;cursor:pointer;">Lock</button>
+        </div>
+      </div>
+
+      <div class="section-label">OV Codes</div>
+      <div class="ts-table-wrap" style="margin-bottom:24px">
+        <table class="ts-table" id="ovCodesTable">
+          <thead><tr>
+            <th>Day</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
+            <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th><th>GWAG</th>
+            <th>GAVI</th><th>INSP</th><th>HLVI</th><th>GNTB</th><th>GFSA</th><th></th>
+          </tr></thead>
+          <tbody id="ovCodesBody"></tbody>
+        </table>
+      </div>
+
+      <div class="section-label">MHI Codes</div>
+      <div class="ts-table-wrap">
+        <table class="ts-table" id="mhiCodesTable">
+          <thead><tr>
+            <th>Day</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
+            <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th>
+            <th>INSP</th><th>GNTB</th><th>GFSA</th><th></th>
+          </tr></thead>
+          <tbody id="mhiCodesBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────
+const DAYS = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'];
+
+const PLANTS = ['','2172','2690','4015','4133','4138','4392','8072','8145','8165','NWD','Standby'];
+const STATUSES = ['','Working','Cancelled'];
+const OV_TYPES = ['OV','Lairage OV','Inside OV','OV Afternoon','OV Morning','OV Only','TB OV'];
+const MHI_TYPES = ['MHI','MHI1','MHI2'];
+
+// Valid statuses per plant (exact from OV CODES + MHI CODES sheets)
+const PLANT_STATUSES = {
+  '2172': ['Inside OV', 'Lairage OV', 'MHI'],
+  '2690': ['OV', 'MHI'],
+  '4015': ['OV', 'MHI'],
+  '4133': ['OV', 'MHI'],
+  '4138': ['OV Only'],
+  '4392': ['OV Only'],
+  '8072': ['OV', 'TB OV', 'MHI1', 'MHI2'],
+  '8145': ['OV Afternoon', 'OV', 'OV Morning', 'MHI'],
+  '8165': ['OV', 'MHI'],
+  'NWD': ['NWD'],
+  'Standby': ['Standby'],
+};
+
+// OV CODES lookup: { plant: { status: { arrival, departure, codes: {BREAK,GBPS,GSRM,GPAS,GWAG,INSP,HLVI,GNTB,GFSA,IENF,NENF} } } }
+// OV_CODES: keyed by 'DAY_plant_status' or 'plant_status'
+// Columns: arr, dep, BREAK, GBPS, GSRM, GPAS, GWAG, INSP, GAVI, HLVI, GNTB, GFSA
+const OV_CODES = {
+  '2172': {
+    'Inside OV':           { arr:'08:00', dep:'18:00', BREAK:0.5,  GBPS:0.5,  GSRM:null, GPAS:null, GWAG:0.75, INSP:null, GAVI:null, HLVI:9,   GNTB:0.5, GFSA:0.5 },
+    'Lairage OV':          { arr:'06:30', dep:'17:30', BREAK:0.5,  GBPS:0.5,  GSRM:null, GPAS:0.5,  GWAG:0.75, INSP:9.5,  GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+  },
+  '2690': {
+    'OV':                  { arr:'07:00', dep:'16:00', BREAK:0.5,  GBPS:0.5,  GSRM:0.5,  GPAS:0.25, GWAG:0.75, INSP:7.25, GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+  },
+  '4015': {
+    'OV':                  { arr:'07:00', dep:'18:00', BREAK:0.5,  GBPS:0.5,  GSRM:null, GPAS:null, GWAG:0.75, INSP:10,   GAVI:0.5,  HLVI:null, GNTB:0.5, GFSA:0.5 },
+  },
+  '4133': {
+    'OV':                  { arr:'05:30', dep:'15:30', BREAK:0.5,  GBPS:0.25, GSRM:0.25, GPAS:null, GWAG:0.75, INSP:9,    GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+    'THURSDAY_OV':         { arr:'05:30', dep:'16:30', BREAK:0.5,  GBPS:0.25, GSRM:0.25, GPAS:null, GWAG:0.75, INSP:10,   GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+    'FRIDAY_OV':           { arr:'05:30', dep:'16:30', BREAK:0.5,  GBPS:0.25, GSRM:0.25, GPAS:null, GWAG:0.75, INSP:10,   GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+  },
+  '4138': {
+    'OV Only':             { arr:'07:00', dep:'10:00', BREAK:null, GBPS:0.5,  GSRM:0.5,  GPAS:0.25, GWAG:0.75, INSP:1.75, GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+  },
+  '4392': {
+    'OV Only':             { arr:'07:30', dep:'11:00', BREAK:null, GBPS:0.25, GSRM:0.5,  GPAS:0.25, GWAG:0.75, INSP:2.5,  GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+  },
+  '8072': {
+    'OV':                  { arr:'07:00', dep:'15:00', BREAK:0.5,  GBPS:0.5,  GSRM:null, GPAS:0.25, GWAG:0.75, INSP:6.75, GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+    'FRIDAY_OV':           { arr:'06:30', dep:'14:00', BREAK:0.5,  GBPS:0.25, GSRM:null, GPAS:null, GWAG:0.75, INSP:6.75, GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+    'MONDAY_TB OV':        { arr:'09:00', dep:'16:00', BREAK:0.5,  GBPS:null, GSRM:null, GPAS:null, GWAG:0.75, INSP:null, GAVI:null, HLVI:null, GNTB:6.5, GFSA:0.5 },
+    'TUESDAY_TB OV':       { arr:'10:00', dep:'16:00', BREAK:0.5,  GBPS:null, GSRM:null, GPAS:null, GWAG:0.75, INSP:null, GAVI:null, HLVI:null, GNTB:5.5, GFSA:0.5 },
+    'THURSDAY_TB OV':      { arr:'09:00', dep:'16:00', BREAK:0.5,  GBPS:null, GSRM:null, GPAS:null, GWAG:0.75, INSP:null, GAVI:null, HLVI:null, GNTB:6.5, GFSA:0.5 },
+  },
+  '8145': {
+    'MONDAY_OV Afternoon': { arr:'15:00', dep:'20:30', BREAK:0.5,  GBPS:0.5,  GSRM:0.5,  GPAS:null, GWAG:0.75, INSP:4,    GAVI:null, HLVI:null, GNTB:0.5, GFSA:0.75 },
+    'WEDNESDAY_OV':        { arr:'08:00', dep:'17:00', BREAK:null, GBPS:0.5,  GSRM:0.5,  GPAS:0.5,  GWAG:0.75, INSP:7.5,  GAVI:null, HLVI:null, GNTB:0.5, GFSA:0.5 },
+    'MONDAY_OV Morning':   { arr:'07:30', dep:'15:00', BREAK:0.5,  GBPS:null, GSRM:0.5,  GPAS:null, GWAG:0.75, INSP:6.5,  GAVI:null, HLVI:null, GNTB:0.5, GFSA:0.5 },
+  },
+  '8165': {
+    'MONDAY_OV':           { arr:'06:45', dep:'18:00', BREAK:0.5,  GBPS:0.25, GSRM:1,    GPAS:0.5,  GWAG:0.75, INSP:9,    GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+    'TUESDAY_OV':          { arr:'06:45', dep:'17:00', BREAK:0.5,  GBPS:0.25, GSRM:1,    GPAS:0.5,  GWAG:0.75, INSP:8,    GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+    'WEDNESDAY_OV':        { arr:'06:45', dep:'17:00', BREAK:0.5,  GBPS:0.25, GSRM:1,    GPAS:0.5,  GWAG:0.75, INSP:8,    GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+    'THURSDAY_OV':         { arr:'06:45', dep:'16:00', BREAK:0.5,  GBPS:0.25, GSRM:1,    GPAS:0.5,  GWAG:0.75, INSP:7,    GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+    'FRIDAY_OV':           { arr:'06:45', dep:'13:00', BREAK:0.5,  GBPS:0.25, GSRM:1,    GPAS:0.5,  GWAG:0.75, INSP:4,    GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+  },
+}
+
+// MHI_CODES
+const MHI_CODES = {
+  '2172': {
+    'MHI':           { arr:'07:00', dep:'17:30', BREAK:0.5,  GBPS:null, GSRM:null, GPAS:null, INSP:9.5,  GNTB:null, GFSA:null },
+  },
+  '2690': {
+    'MHI':           { arr:'07:00', dep:'11:00', BREAK:null, GBPS:null, GSRM:0.25, GPAS:null, INSP:3.75, GNTB:null, GFSA:null },
+  },
+  '4015': {
+    'MHI':           { arr:'07:30', dep:'18:00', BREAK:0.5,  GBPS:null, GSRM:null, GPAS:null, INSP:10,   GNTB:null, GFSA:null },
+  },
+  '4133': {
+    'MHI':           { arr:'06:00', dep:'15:15', BREAK:0.5,  GBPS:null, GSRM:0.5,  GPAS:null, INSP:8.25, GNTB:null, GFSA:null },
+    'THURSDAY_MHI':  { arr:'06:00', dep:'16:15', BREAK:0.5,  GBPS:null, GSRM:0.5,  GPAS:null, INSP:9.25, GNTB:null, GFSA:null },
+    'FRIDAY_MHI':    { arr:'06:00', dep:'16:15', BREAK:0.5,  GBPS:null, GSRM:0.5,  GPAS:null, INSP:9.25, GNTB:null, GFSA:null },
+  },
+  '4138': {
+    'OV Only':       { arr:'10:00', dep:'17:00', BREAK:0.5,  GBPS:null, GSRM:null, GPAS:null, INSP:6.5,  GNTB:null, GFSA:null },
+  },
+  '4392': {
+    'OV Only':       { arr:'11:00', dep:'15:30', BREAK:0.5,  GBPS:null, GSRM:null, GPAS:null, INSP:4,    GNTB:null, GFSA:null },
+  },
+  '8072': {
+    'MHI1':          { arr:'07:15', dep:'14:45', BREAK:0.5,  GBPS:null, GSRM:0.5,  GPAS:null, INSP:6.5,  GNTB:null,  GFSA:null },
+    'TUESDAY_MHI1':  { arr:'10:00', dep:'16:00', BREAK:0.5,  GBPS:null, GSRM:null, GPAS:null, INSP:null, GNTB:5.5,   GFSA:null },
+    'FRIDAY_MHI1':   { arr:'07:00', dep:'14:00', BREAK:0.5,  GBPS:null, GSRM:null, GPAS:null, INSP:6.5,  GNTB:null,  GFSA:null },
+    'MONDAY_MHI2':   { arr:'10:30', dep:'15:00', BREAK:0.5,  GBPS:null, GSRM:0.25, GPAS:null, INSP:3.75, GNTB:null,  GFSA:null },
+    'TUESDAY_MHI2':  { arr:'10:30', dep:'15:00', BREAK:0.5,  GBPS:null, GSRM:0.25, GPAS:null, INSP:3.75, GNTB:null,  GFSA:null },
+    'WEDNESDAY_MHI2':{ arr:'10:30', dep:'15:00', BREAK:0.5,  GBPS:null, GSRM:0.5,  GPAS:null, INSP:3.5,  GNTB:null,  GFSA:null },
+    'THURSDAY_MHI2': { arr:'09:00', dep:'16:00', BREAK:0.5,  GBPS:null, GSRM:null, GPAS:null, INSP:null, GNTB:6.5,   GFSA:null },
+    'MHI2':          { arr:'10:30', dep:'15:00', BREAK:0.5,  GBPS:null, GSRM:0.25, GPAS:null, INSP:3.75, GNTB:null,  GFSA:null },
+  },
+  '8145': {
+    'MONDAY_MHI':    { arr:'08:15', dep:'14:00', BREAK:0.5,  GBPS:null, GSRM:0.25, GPAS:null, INSP:5,    GNTB:null,  GFSA:null },
+    'MHI':           { arr:'08:15', dep:'14:00', BREAK:0.5,  GBPS:null, GSRM:0.25, GPAS:null, INSP:5,    GNTB:null,  GFSA:null },
+  },
+  '8165': {
+    'MONDAY_MHI':    { arr:'07:00', dep:'18:00', BREAK:0.5,  GBPS:0.25, GSRM:0.75, GPAS:null, INSP:9.5,  GNTB:null,  GFSA:null },
+    'TUESDAY_MHI':   { arr:'07:00', dep:'18:00', BREAK:0.5,  GBPS:0.25, GSRM:0.75, GPAS:null, INSP:9.5,  GNTB:null,  GFSA:null },
+    'WEDNESDAY_MHI': { arr:'07:00', dep:'17:00', BREAK:0.5,  GBPS:0.25, GSRM:0.75, GPAS:null, INSP:8.5,  GNTB:null,  GFSA:null },
+    'THURSDAY_MHI':  { arr:'07:00', dep:'16:00', BREAK:0.5,  GBPS:0.25, GSRM:0.75, GPAS:null, INSP:7.5,  GNTB:null,  GFSA:null },
+    'FRIDAY_MHI':    { arr:'07:00', dep:'13:00', BREAK:0.5,  GBPS:0.25, GSRM:0.75, GPAS:null, INSP:4.5,  GNTB:null,  GFSA:null },
+    'MHI':           { arr:'07:00', dep:'18:00', BREAK:0.5,  GBPS:0.25, GSRM:0.75, GPAS:null, INSP:9.5,  GNTB:null,  GFSA:null },
+  },
+};
+
+function lookupOV(day, plant, status) {
+  const p = OV_CODES[String(plant)];
+  if (!p) return null;
+  return p[day + '_' + status] || p[status] || null;
+}
+
+function lookupMHI(day, plant, status) {
+  const p = MHI_CODES[String(plant)];
+  if (!p) return null;
+  return p[day + '_' + status] || p[status] || null;
+}
+
+// SOR lookup
+const SOR_CODES = {
+  '2172': { 'Inside OV':'08:00 - 18:00', 'Lairage OV':'06:30 - 17:30', 'MHI':'07:00 - 17:30' },
+  '2690': { 'OV':'07:00 - 16:00', 'MHI':'07:00 - 11:00' },
+  '4015': { 'OV':'07:00 - 18:00', 'MHI':'07:30 - 18:00' },
+  '4133': {
+    'OV':'05:30 - 15:30', 'THURSDAY_OV':'05:30 - 16:30', 'FRIDAY_OV':'05:30 - 16:30',
+    'MHI':'06:00 - 15:15', 'THURSDAY_MHI':'06:00 - 16:15', 'FRIDAY_MHI':'06:00 - 16:15',
+  },
+  '4138': { 'OV Only':'07:00 - 17:00' },
+  '4392': { 'OV Only':'07:30 - 15:30' },
+  '8072': {
+    'OV':'07:00 - 15:00', 'FRIDAY_OV':'06:30 - 14:00',
+    'MONDAY_TB OV':'09:00 - 16:00', 'TUESDAY_TB OV':'10:00 - 16:00', 'THURSDAY_TB OV':'09:00 - 16:00',
+    'MHI1':'07:15 - 14:45', 'TUESDAY_MHI1':'10:00 - 16:00', 'FRIDAY_MHI1':'07:00 - 14:00',
+    'MONDAY_MHI2':'10:30 - 15:00', 'TUESDAY_MHI2':'10:30 - 15:00',
+    'WEDNESDAY_MHI2':'10:30 - 15:00', 'THURSDAY_MHI2':'09:00 - 16:00',
+  },
+  '8145': {
+    'MONDAY_OV Afternoon':'15:00 - 20:30', 'WEDNESDAY_OV':'08:00 - 17:00', 'MONDAY_OV Morning':'07:30 - 15:00',
+    'MONDAY_MHI':'08:15 - 14:00', 'MHI':'08:15 - 14:00',
+  },
+  '8165': {
+    'MONDAY_OV':'06:45 - 18:00', 'TUESDAY_OV':'06:45 - 17:00', 'WEDNESDAY_OV':'06:45 - 17:00',
+    'THURSDAY_OV':'06:45 - 16:00', 'FRIDAY_OV':'06:45 - 13:00',
+    'MONDAY_MHI':'07:00 - 18:00', 'TUESDAY_MHI':'07:00 - 18:00', 'WEDNESDAY_MHI':'07:00 - 17:00',
+    'THURSDAY_MHI':'07:00 - 16:00', 'FRIDAY_MHI':'07:00 - 13:00',
+    'MHI':'07:00 - 18:00', 'OV':'06:45 - 18:00',
+  },
+};
+
+function getSOR(day, plant, status) {
+  const p = SOR_CODES[String(plant)];
+  if (!p || !status) return '';
+  return p[day + '_' + status] || p[status] || '';
+}
+
+// Enforcement codes
+const ENF_CODES = {
+  'WW': 'IENF', 'WA': 'IENF', 'Notices': 'IENF', 'Detention of animals and food': 'IENF',
+  'RFI': 'NENF', 'Preparing witness statements': 'NENF', 'Attending court hearings': 'NENF',
+  'Referrals for on farm / transport animal welfare non-compliances': 'NENF'
+};
+const ENF_LIST = Object.keys(ENF_CODES);
+
+// ─── STATE ──────────────────────────────────────────────────────
+let state = loadState();
+
+function defaultState() {
+  return {
+    days: {
+      'MONDAY':    { plant:'2172', plantStatus:'Working', status:'MHI',  arrival:'07:00', departure:'18:00', sampling:false, cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'' },
+      'TUESDAY':   { plant:'8072', plantStatus:'Working', status:'MHI2', arrival:'10:30', departure:'14:00', sampling:false, cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'' },
+      'WEDNESDAY': { plant:'8165', plantStatus:'Working', status:'MHI',  arrival:'07:00', departure:'16:30', sampling:false, cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'' },
+      'THURSDAY':  { plant:'4133', plantStatus:'Working', status:'MHI',  arrival:'06:00', departure:'11:00', sampling:false, cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'' },
+      'FRIDAY':    { plant:'8165', plantStatus:'Working', status:'MHI',  arrival:'07:00', departure:'13:00', sampling:false, cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'' },
+      'SATURDAY':  { plant:'', plantStatus:'', status:'', arrival:'', departure:'', sampling:false, cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'' },
+      'SUNDAY':    { plant:'', plantStatus:'', status:'', arrival:'', departure:'', sampling:false, cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'' },
+    }
+  };
+}
+
+function loadState() {
+  const def = defaultState();
+  try {
+    const s = localStorage.getItem('ts_state');
+    if (s) {
+      const saved = JSON.parse(s);
+      if (!saved.days) saved.days = {};
+      DAYS.forEach(day => {
+        saved.days[day] = Object.assign({}, def.days[day], saved.days[day] || {});
+      });
+      return saved;
+    }
+  } catch(e) {}
+  return def;
+}
+
+function saveData() {
+  try { localStorage.setItem('ts_state', JSON.stringify(state)); } catch(e) {}
+}
+
+// ─── HELPERS ────────────────────────────────────────────────────
+function timeToH(t) {
+  if (!t) return null;
+  const [h,m] = t.split(':').map(Number);
+  return h + m/60;
+}
+
+function round25(v) { return Math.round(v * 4) / 4; }
+
+function sorDepTime(sorStr) {
+  if (!sorStr) return null;
+  return sorStr.split(' - ')[1] || null;
+}
+
+function sorArrTime(sorStr) {
+  if (!sorStr) return null;
+  return sorStr.split(' - ')[0] || null;
+}
+
+function calcCodes(codes, d, sorStr, actualDep, isMHI) {
+  const BREAK = codes.BREAK ?? null;
+  const GBPS  = codes.GBPS  ?? null;
+  const GSRM  = codes.GSRM  ?? null;
+  const GPAS  = codes.GPAS  ?? null;
+  const GWAG  = d.cd       ? (codes.GWAG ?? null) : null;
+  const GAVI  = codes.GAVI  ?? null;
+  const GNTB  = d.tb       ? (codes.GNTB ?? null) : null;
+  const GFSA  = d.sampling ? (codes.GFSA ?? null) : null;
+  const isInsideOV = (!isMHI && String(d.plant) === '2172' && d.status === 'Inside OV');
+  const HLVI  = isInsideOV ? (codes.HLVI ?? null) : (d.ai ? (codes.HLVI ?? null) : null);
+
+  // IUWT: actual dep < SOR dep
+  const sorDep = sorDepTime(sorStr);
+  let IUWT = null;
+  if (sorDep && actualDep) {
+    const diff = round25(timeToH(sorDep) - timeToH(actualDep));
+    if (diff > 0) IUWT = diff;
+  }
+
+  // Actual total = arr to actualDep
+  const actArr = sorArrTime(sorStr);
+  const actualTotal = (actArr && actualDep) ? round25(timeToH(actualDep) - timeToH(actArr)) : null;
+  const sorTotal = (actArr && sorDep) ? round25(timeToH(sorDep) - timeToH(actArr)) : null;
+  const totalToFill = actualTotal !== null ? actualTotal : sorTotal;
+
+  const fixedSum = round25(
+    (BREAK||0) + (GBPS||0) + (GSRM||0) + (GPAS||0) +
+    (GWAG||0) + (GAVI||0) + (GNTB||0) + (GFSA||0) + (HLVI||0) + (IUWT||0)
+  );
+
+  let INSP = null;
+  let HLVI_final = HLVI;
+  if (totalToFill !== null) {
+    const remainder = round25(totalToFill - fixedSum);
+    if (HLVI !== null) {
+      HLVI_final = remainder > 0 ? remainder : null;
+    } else {
+      INSP = remainder > 0 ? remainder : null;
+    }
+  }
+
+  return { BREAK, GBPS, GSRM, GPAS, GWAG, GAVI, HLVI: HLVI_final, GNTB, GFSA, INSP, IUWT };
+}
+
+function calcCancelledCodes(sorStr, codes) {
+  const sorArr = sorArrTime(sorStr);
+  const sorDep = sorDepTime(sorStr);
+  const sorTotal = (sorArr && sorDep) ? round25(timeToH(sorDep) - timeToH(sorArr)) : null;
+  const BREAK_val = codes?.BREAK ?? 0;
+  const GBPS  = codes?.GBPS  ?? null;
+  const GSRM  = codes?.GSRM  ?? null;
+  const GPAS  = codes?.GPAS  ?? null;
+  const fixedSum = round25(BREAK_val + (GBPS||0) + (GSRM||0) + (GPAS||0));
+  const IUWT = sorTotal !== null ? round25(sorTotal - fixedSum) : null;
+  return { BREAK:null, GBPS, GSRM, GPAS, GWAG:null, GAVI:null, HLVI:null, GNTB:null, GFSA:null, INSP:null, IUWT };
+}
+
+function calcHours(arr, dep) {
+  const a = timeToH(arr), d = timeToH(dep);
+  if (a == null || d == null) return null;
+  return d - a;
+}
+
+// ─── TIMESHEET RENDER ────────────────────────────────────────────
+function timeSelect(day, field, val) {
+  const parts = (val || '').split(':');
+  const curH = parts[0] || '';
+  const curM = parts[1] || '';
+  const hours = Array.from({length:24}, (_,i) => String(i).padStart(2,'0'));
+  const mins  = ['00','15','30','45'];
+  const hOpts = ['', ...hours].map(h => `<option value="${h}" ${h===curH?'selected':''}>${h||'—'}</option>`).join('');
+  const mOpts = ['', ...mins ].map(m => `<option value="${m}" ${m===curM?'selected':''}>${m||'—'}</option>`).join('');
+  return `<span style="display:flex;gap:3px;align-items:center">
+    <select style="width:52px" onchange="updateTime('${day}','${field}','h',this.value)">${hOpts}</select>
+    <span style="color:var(--text-muted);font-size:13px">:</span>
+    <select style="width:48px" onchange="updateTime('${day}','${field}','m',this.value)">${mOpts}</select>
+  </span>`;
+}
+
+function renderTimesheet() {
+  const tbody = document.getElementById('tsTableBody');
+  tbody.innerHTML = '';
+
+  const getStatusOpts = (plant, currentStatus) => {
+    const valid = plant && PLANT_STATUSES[plant] ? PLANT_STATUSES[plant] : [];
+    const opts = ['', ...valid];
+    return opts.map(o => `<option value="${o}" ${o === currentStatus ? 'selected' : ''}>${o || '—'}</option>`).join('');
+  };
+
+  DAYS.forEach(day => {
+    const d = state.days[day];
+    if (!d) return;
+
+    const plantOpts = PLANTS.map(p => `<option value="${p}" ${p === d.plant ? 'selected':''}>${p||'—'}</option>`).join('');
+    const plantStatusOpts = STATUSES.map(s => `<option value="${s}" ${s === d.plantStatus ? 'selected':''}>${s||'—'}</option>`).join('');
+    const enfOpts = ['', ...ENF_LIST].map(e => `<option value="${e}" ${e === d.enforcement ? 'selected':''}>${e||'—'}</option>`).join('');
+    const cancelled = d.plantStatus === 'Cancelled';
+    const arrHtml = cancelled ? '<span style="font-family:monospace;font-size:11px;color:#6b7280">00:00</span>' : timeSelect(day, 'arrival', d.arrival);
+    const depHtml = cancelled ? '<span style="font-family:monospace;font-size:11px;color:#6b7280">00:00</span>' : timeSelect(day, 'departure', d.departure);
+    const sorHtml = cancelled ? '<span style="color:#6b7280">00:00 - 00:00</span>' : getSOR(day, d.plant, d.status);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="td-day">${day}</td>
+      <td style="width:80px"><select onchange="updateField('${day}','plant',this.value)">${plantOpts}</select></td>
+      <td style="width:100px"><select onchange="updateField('${day}','plantStatus',this.value)">${plantStatusOpts}</select></td>
+      <td style="width:130px"><select onchange="updateField('${day}','status',this.value)">${getStatusOpts(d.plant, d.status)}</select></td>
+      <td style="width:120px">${arrHtml}</td>
+      <td style="width:120px">${depHtml}</td>
+      <td style="width:120px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent2);white-space:nowrap">${sorHtml}</td>
+      <td style="text-align:center"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)" ${d.sampling?'checked':''} onchange="updateField('${day}','sampling',this.checked)"></td>
+      <td style="text-align:center"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)" ${d.cd?'checked':''} onchange="updateField('${day}','cd',this.checked)"></td>
+      <td style="text-align:center"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)" ${d.sha?'checked':''} onchange="updateField('${day}','sha',this.checked)"></td>
+      <td style="text-align:center"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)" ${d.tb?'checked':''} onchange="updateField('${day}','tb',this.checked)"></td>
+      <td style="text-align:center"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)" ${d.ai?'checked':''} onchange="updateField('${day}','ai',this.checked)"></td>
+      <td style="min-width:180px"><select onchange="updateField('${day}','enforcement',this.value)">${enfOpts}</select></td>
+      <td style="width:72px"><input type="number" step="0.25" min="0" value="${d.enfInHours}" placeholder="0" onchange="updateField('${day}','enfInHours',this.value)"></td>
+      <td style="width:72px"><input type="number" step="0.25" min="0" value="${d.enfOutHours}" placeholder="0" onchange="updateField('${day}','enfOutHours',this.value)"></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateField(day, field, value) {
+  state.days[day][field] = value;
+  saveData();
+  renderTimesheet();
+  renderOutcome();
+}
+
+function updateTime(day, field, part, value) {
+  const cur = (state.days[day][field] || ':').split(':');
+  if (part === 'h') cur[0] = value;
+  else cur[1] = value;
+  // Store even if only one part is set - use 00 as default for missing part
+  if (cur[0] || cur[1]) {
+    state.days[day][field] = (cur[0] || '00') + ':' + (cur[1] || '00');
+  } else {
+    state.days[day][field] = '';
+  }
+  saveData();
+  renderTimesheet();
+  renderOutcome();
+}
+
+// ─── OUTCOME ────────────────────────────────────────────────────
+function computeOutcome() {
+  const result = { ov:{}, mhi:{}, enf:{} };
+
+  DAYS.forEach(day => {
+    const d = state.days[day];
+    if (!d || !d.plant) return;
+
+    const statusType = d.status;
+
+    // OV?
+    const isOV = OV_TYPES.some(t => statusType === t);
+    if (isOV) {
+      const ovCodes = lookupOV(day, d.plant, statusType);
+      if (ovCodes) {
+        const ovSorStr = `${ovCodes.arr} - ${ovCodes.dep}`;
+        const ovActArr = ovCodes.arr;
+        const ovActDep = ovCodes.dep;
+        const ovCancelled = d.plantStatus === 'Cancelled';
+        const computed = ovCancelled
+          ? calcCancelledCodes(ovSorStr, ovCodes)
+          : calcCodes(ovCodes, d, ovSorStr, ovActDep, false);
+        result.ov[day] = {
+          plant: d.plant, status: statusType, codes: ovCodes,
+          arr: ovCancelled ? '00:00' : ovActArr,
+          dep: ovCancelled ? '00:00' : ovActDep,
+          sorStr: ovCancelled ? '00:00 - 00:00' : ovSorStr,
+          ...computed,
+        };
+      }
+    }
+
+    // MHI?
+    const mhiCodes = lookupMHI(day, d.plant, statusType);
+    if (mhiCodes) {
+      const mhiSorStr = `${mhiCodes.arr} - ${mhiCodes.dep}`;
+      const mhiActArr = mhiCodes.arr;
+      const mhiActDep = d.departure || mhiCodes.dep;
+      const mhiCancelled = d.plantStatus === 'Cancelled';
+      const computed = mhiCancelled
+        ? calcCancelledCodes(mhiSorStr, mhiCodes)
+        : calcCodes(mhiCodes, d, mhiSorStr, mhiActDep, true);
+      result.mhi[day] = {
+        plant: d.plant, status: statusType, codes: mhiCodes,
+        arr: mhiCancelled ? '00:00' : mhiActArr,
+        dep: mhiCancelled ? '00:00' : mhiActDep,
+        sorStr: mhiCancelled ? '00:00 - 00:00' : mhiSorStr,
+        ...computed,
+      };
+    }
+
+    // Enforcement
+    if (d.enforcement) {
+      result.enf[day] = {
+        plant: d.plant, status: statusType, type: d.enforcement,
+        inHours: parseFloat(d.enfInHours) || 0,
+        outHours: parseFloat(d.enfOutHours) || 0,
+        enfClass: ENF_CODES[d.enforcement]
+      };
+    }
+  });
+
+  return result;
+}
+
+function renderOutcomeGrid(containerId, sectionData, rowDefs) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  const cols = DAYS.length + 1;
+  container.style.gridTemplateColumns = `160px repeat(${DAYS.length}, 1fr)`;
+
+  ['', ...DAYS].forEach((d, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'og-cell og-header' + (i > 0 ? ' day-col' : '');
+    cell.textContent = d;
+    container.appendChild(cell);
+  });
+
+  rowDefs.forEach(row => {
+    if (row.type === 'section') {
+      const cell = document.createElement('div');
+      cell.className = 'og-cell og-section-header';
+      cell.textContent = row.label;
+      container.appendChild(cell);
+      return;
+    }
+    const labelCell = document.createElement('div');
+    labelCell.className = 'og-cell og-row-label';
+    labelCell.textContent = row.label;
+    container.appendChild(labelCell);
+
+    DAYS.forEach(day => {
+      const cell = document.createElement('div');
+      const val = row.getValue(day, sectionData);
+      cell.className = 'og-cell og-value' + (val !== '' && val != null ? (row.highlight ? ' highlight' : '') : ' empty');
+      cell.textContent = (val !== null && val !== undefined && val !== '') ? val : '';
+      container.appendChild(cell);
+    });
+  });
+}
+
+function renderOutcome() {
+  const out = computeOutcome();
+  document.getElementById('totalsStrip').innerHTML = '';
+
+  renderOutcomeGrid('ovGrid', out.ov, [
+    { label: 'Assignment', getValue: (day, d) => d[day] ? `${d[day].plant} ${d[day].status}` : '' },
+    { label: 'SOR Time',   getValue: (day, d) => d[day]?.sorStr || '' },
+    { label: 'Act. Time',  getValue: (day, d) => d[day] ? `${d[day].arr}–${d[day].dep}` : '', highlight: true },
+    { label: 'BREAK', getValue: (day, d) => d[day]?.BREAK ?? '' },
+    { label: 'GBPS',  getValue: (day, d) => d[day]?.GBPS  ?? '' },
+    { label: 'GSRM',  getValue: (day, d) => d[day]?.GSRM  ?? '' },
+    { label: 'GPAS',  getValue: (day, d) => d[day]?.GPAS  ?? '' },
+    { label: 'GWAG',  getValue: (day, d) => d[day]?.GWAG  ?? '' },
+    { label: 'GAVI',  getValue: (day, d) => d[day]?.GAVI  ?? '' },
+    { label: 'INSP',  getValue: (day, d) => d[day]?.INSP  ?? '' },
+    { label: 'HLVI',  getValue: (day, d) => d[day]?.HLVI  ?? '' },
+    { label: 'GNTB',  getValue: (day, d) => d[day]?.GNTB  ?? '' },
+    { label: 'GFSA',  getValue: (day, d) => d[day]?.GFSA  ?? '' },
+    { label: 'IUWT',  getValue: (day, d) => d[day]?.IUWT  ?? '', highlight: true },
+  ]);
+
+  renderOutcomeGrid('mhiGrid', out.mhi, [
+    { label: 'Assignment', getValue: (day, d) => d[day] ? `${d[day].plant} ${d[day].status}` : '' },
+    { label: 'SOR Time',   getValue: (day, d) => d[day]?.sorStr || '' },
+    { label: 'Act. Time',  getValue: (day, d) => d[day] ? `${d[day].arr}–${d[day].dep}` : '', highlight: true },
+    { label: 'BREAK', getValue: (day, d) => d[day]?.BREAK ?? '' },
+    { label: 'GBPS',  getValue: (day, d) => d[day]?.GBPS  ?? '' },
+    { label: 'GSRM',  getValue: (day, d) => d[day]?.GSRM  ?? '' },
+    { label: 'GPAS',  getValue: (day, d) => d[day]?.GPAS  ?? '' },
+    { label: 'INSP',  getValue: (day, d) => d[day]?.INSP  ?? '' },
+    { label: 'GNTB',  getValue: (day, d) => d[day]?.GNTB  ?? '' },
+    { label: 'GFSA',  getValue: (day, d) => d[day]?.GFSA  ?? '' },
+    { label: 'IUWT',  getValue: (day, d) => d[day]?.IUWT  ?? '', highlight: true },
+  ]);
+
+  renderOutcomeGrid('enfGrid', out.enf, [
+    { label: 'Activity',  getValue: (day, d) => d[day] ? `${d[day].plant} ${d[day].status}` : '' },
+    { label: 'SOR Time',  getValue: (day, d) => d[day] ? '00:00 - 00:00' : '' },
+    { label: 'Enf. Type', getValue: (day, d) => d[day]?.type || '', highlight: true },
+    { label: 'Class',     getValue: (day, d) => d[day]?.enfClass || '' },
+    { label: 'In Hours',  getValue: (day, d) => d[day]?.inHours || '' },
+    { label: 'Out Hours', getValue: (day, d) => d[day]?.outHours || '' },
+  ]);
+}
+
+// ─── TAB SWITCH ─────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'outcome') renderOutcome();
+  if (tab === 'codes') { lockCodes(); }
+}
+
+// ─── INIT ───────────────────────────────────────────────────────
+renderTimesheet();
+renderOutcome();
+
+// ─── CODES EDITOR ───────────────────────────────────────────────
+function checkPin() {
+  const val = document.getElementById('codesPin').value;
+  if (val === '0623') {
+    document.getElementById('codesLock').style.display = 'none';
+    document.getElementById('codesEditor').style.display = 'block';
+    renderCodesEditor();
+  } else {
+    document.getElementById('pinError').style.display = 'block';
+    document.getElementById('codesPin').value = '';
+  }
+}
+
+function lockCodes() {
+  document.getElementById('codesLock').style.display = 'flex';
+  document.getElementById('codesEditor').style.display = 'none';
+  document.getElementById('codesPin').value = '';
+  document.getElementById('pinError').style.display = 'none';
+}
+
+function numInput(val, onChange) {
+  return `<input type="number" step="0.25" min="0" value="${val??''}" placeholder="—"
+    style="width:58px;padding:4px 5px;font-size:11px"
+    onchange="${onChange}">`;
+}
+
+function timeInput(val, onChange) {
+  const parts = (val||'').split(':');
+  const h = parts[0]||'', m = parts[1]||'';
+  const hOpts = ['', ...Array.from({length:24},(_,i)=>String(i).padStart(2,'0'))].map(v=>`<option ${v===h?'selected':''}>${v||'—'}</option>`).join('');
+  const mOpts = ['','00','15','30','45'].map(v=>`<option ${v===m?'selected':''}>${v||'—'}</option>`).join('');
+  return `<span style="display:flex;gap:2px">
+    <select style="width:50px;font-size:11px;padding:4px" onchange="${onChange.replace('__PART__','h').replace('__IDX__',onChange.match(/__IDX__/)?'':'')}">${hOpts}</select>:
+    <select style="width:48px;font-size:11px;padding:4px" onchange="${onChange.replace('__PART__','m')}">${mOpts}</select>
+  </span>`;
+}
+
+function renderCodesEditor() {
+  renderOVCodesTable();
+  renderMHICodesTable();
+}
+
+// Flatten OV_CODES into rows
+function getOVRows() {
+  const rows = [];
+  for (const [plant, statuses] of Object.entries(OV_CODES)) {
+    for (const [key, c] of Object.entries(statuses)) {
+      const parts = key.split('_');
+      const day = parts.length > 1 ? parts[0] : '';
+      const status = parts.length > 1 ? parts.slice(1).join(' ') : key;
+      rows.push({ day, plant, status, key, ...c });
+    }
+  }
+  return rows;
+}
+
+function getMHIRows() {
+  const rows = [];
+  for (const [plant, statuses] of Object.entries(MHI_CODES)) {
+    for (const [key, c] of Object.entries(statuses)) {
+      const parts = key.split('_');
+      const day = parts.length > 1 ? parts[0] : '';
+      const status = parts.length > 1 ? parts.slice(1).join(' ') : key;
+      rows.push({ day, plant, status, key, ...c });
+    }
+  }
+  return rows;
+}
+
+function renderOVCodesTable() {
+  const tbody = document.getElementById('ovCodesBody');
+  tbody.innerHTML = '';
+  getOVRows().forEach((row, i) => {
+    const tr = document.createElement('tr');
+    const f = (field) => `updateOVCode(${i},'${field}',this.value)`;
+    tr.innerHTML = `
+      <td><input style="width:90px;font-size:11px;padding:4px" value="${row.day}" onchange="updateOVCode(${i},'day',this.value)"></td>
+      <td><input style="width:55px;font-size:11px;padding:4px" value="${row.plant}" onchange="updateOVCode(${i},'plant',this.value)"></td>
+      <td><input style="width:100px;font-size:11px;padding:4px" value="${row.status}" onchange="updateOVCode(${i},'status',this.value)"></td>
+      <td><input style="width:65px;font-size:11px;padding:4px" value="${row.arr||''}" placeholder="HH:MM" onchange="updateOVCode(${i},'arr',this.value)"></td>
+      <td><input style="width:65px;font-size:11px;padding:4px" value="${row.dep||''}" placeholder="HH:MM" onchange="updateOVCode(${i},'dep',this.value)"></td>
+      <td>${numInput(row.BREAK, f('BREAK'))}</td>
+      <td>${numInput(row.GBPS,  f('GBPS'))}</td>
+      <td>${numInput(row.GSRM,  f('GSRM'))}</td>
+      <td>${numInput(row.GPAS,  f('GPAS'))}</td>
+      <td>${numInput(row.GWAG,  f('GWAG'))}</td>
+      <td>${numInput(row.GAVI,  f('GAVI'))}</td>
+      <td>${numInput(row.INSP,  f('INSP'))}</td>
+      <td>${numInput(row.HLVI,  f('HLVI'))}</td>
+      <td>${numInput(row.GNTB,  f('GNTB'))}</td>
+      <td>${numInput(row.GFSA,  f('GFSA'))}</td>
+      <td><button onclick="deleteOVRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Add row button
+  const addTr = document.createElement('tr');
+  addTr.innerHTML = `<td colspan="16" style="padding:8px"><button onclick="addOVRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
+  tbody.appendChild(addTr);
+}
+
+function renderMHICodesTable() {
+  const tbody = document.getElementById('mhiCodesBody');
+  tbody.innerHTML = '';
+  getMHIRows().forEach((row, i) => {
+    const f = (field) => `updateMHICode(${i},'${field}',this.value)`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input style="width:90px;font-size:11px;padding:4px" value="${row.day}" onchange="updateMHICode(${i},'day',this.value)"></td>
+      <td><input style="width:55px;font-size:11px;padding:4px" value="${row.plant}" onchange="updateMHICode(${i},'plant',this.value)"></td>
+      <td><input style="width:100px;font-size:11px;padding:4px" value="${row.status}" onchange="updateMHICode(${i},'status',this.value)"></td>
+      <td><input style="width:65px;font-size:11px;padding:4px" value="${row.arr||''}" placeholder="HH:MM" onchange="updateMHICode(${i},'arr',this.value)"></td>
+      <td><input style="width:65px;font-size:11px;padding:4px" value="${row.dep||''}" placeholder="HH:MM" onchange="updateMHICode(${i},'dep',this.value)"></td>
+      <td>${numInput(row.BREAK, f('BREAK'))}</td>
+      <td>${numInput(row.GBPS,  f('GBPS'))}</td>
+      <td>${numInput(row.GSRM,  f('GSRM'))}</td>
+      <td>${numInput(row.GPAS,  f('GPAS'))}</td>
+      <td>${numInput(row.INSP,  f('INSP'))}</td>
+      <td>${numInput(row.GNTB,  f('GNTB'))}</td>
+      <td>${numInput(row.GFSA,  f('GFSA'))}</td>
+      <td><button onclick="deleteMHIRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  const addTr = document.createElement('tr');
+  addTr.innerHTML = `<td colspan="13" style="padding:8px"><button onclick="addMHIRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
+  tbody.appendChild(addTr);
+}
+
+let _ovRows = null, _mhiRows = null;
+
+function getOVRowsMutable() {
+  if (!_ovRows) _ovRows = getOVRows();
+  return _ovRows;
+}
+function getMHIRowsMutable() {
+  if (!_mhiRows) _mhiRows = getMHIRows();
+  return _mhiRows;
+}
+
+function updateOVCode(i, field, val) {
+  const rows = getOVRowsMutable();
+  rows[i][field] = val === '' ? null : (isNaN(val) || field === 'day' || field === 'plant' || field === 'status' || field === 'arr' || field === 'dep') ? val : parseFloat(val);
+}
+function updateMHICode(i, field, val) {
+  const rows = getMHIRowsMutable();
+  rows[i][field] = val === '' ? null : (isNaN(val) || field === 'day' || field === 'plant' || field === 'status' || field === 'arr' || field === 'dep') ? val : parseFloat(val);
+}
+
+function deleteOVRow(i) { getOVRowsMutable().splice(i, 1); renderOVCodesTable(); }
+function deleteMHIRow(i) { getMHIRowsMutable().splice(i, 1); renderMHICodesTable(); }
+
+function addOVRow() {
+  getOVRowsMutable().push({ day:'', plant:'', status:'', arr:'', dep:'', BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null });
+  renderOVCodesTable();
+}
+function addMHIRow() {
+  getMHIRowsMutable().push({ day:'', plant:'', status:'', arr:'', dep:'', BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null });
+  renderMHICodesTable();
+}
+
+function rowsToCodeObj(rows) {
+  const obj = {};
+  rows.forEach(r => {
+    const plant = String(r.plant);
+    if (!plant) return;
+    if (!obj[plant]) obj[plant] = {};
+    const key = r.day ? `${r.day}_${r.status}` : r.status;
+    const entry = { arr: r.arr, dep: r.dep };
+    ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA'].forEach(k => {
+      if (r[k] !== null && r[k] !== undefined && r[k] !== '') entry[k] = r[k];
+      else entry[k] = null;
+    });
+    obj[plant][key] = entry;
+  });
+  return obj;
+}
+
+function rowsToMHIObj(rows) {
+  const obj = {};
+  rows.forEach(r => {
+    const plant = String(r.plant);
+    if (!plant) return;
+    if (!obj[plant]) obj[plant] = {};
+    const key = r.day ? `${r.day}_${r.status}` : r.status;
+    const entry = { arr: r.arr, dep: r.dep };
+    ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA'].forEach(k => {
+      entry[k] = (r[k] !== null && r[k] !== undefined && r[k] !== '') ? r[k] : null;
+    });
+    obj[plant][key] = entry;
+  });
+  return obj;
+}
+
+function saveCodesEdit() {
+  if (_ovRows) {
+    const newOV = rowsToCodeObj(_ovRows);
+    Object.keys(OV_CODES).forEach(k => delete OV_CODES[k]);
+    Object.assign(OV_CODES, newOV);
+    _ovRows = null;
+  }
+  if (_mhiRows) {
+    const newMHI = rowsToMHIObj(_mhiRows);
+    Object.keys(MHI_CODES).forEach(k => delete MHI_CODES[k]);
+    Object.assign(MHI_CODES, newMHI);
+    _mhiRows = null;
+  }
+  renderOutcome();
+  renderCodesEditor();
+  alert('Codes saved!');
+}
+</script>
+</body>
+</html>

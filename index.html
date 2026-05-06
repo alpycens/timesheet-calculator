@@ -412,6 +412,7 @@
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('timesheet')">SCHEDULE</button>
     <button class="tab-btn" onclick="switchTab('outcome')">TIMESHEET</button>
+    <button class="tab-btn" onclick="switchTab('sor')">SOR</button>
     <button class="tab-btn" onclick="switchTab('codes')">ADMIN</button>
   </div>
 
@@ -472,6 +473,29 @@
     <div style="overflow-x:auto"><div class="outcome-grid" id="enfGrid"></div></div>
   </div>
 
+
+  <!-- ═══════════════ SOR PANEL ═══════════════ -->
+  <div class="panel" id="panel-sor">
+    <div style="margin-bottom:20px">
+      <div class="section-label">Plant SOR Reference</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+        <label style="font-family:'IBM Plex Mono',monospace;font-size:15px;color:var(--text-muted)">Plant:</label>
+        <select id="sorPlantSelect" onchange="renderSORTable()" style="font-size:15px;padding:6px 12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);width:120px">
+          <option value="">— Select —</option>
+          <option value="2172">2172</option>
+          <option value="2690">2690</option>
+          <option value="4015">4015</option>
+          <option value="4133">4133</option>
+          <option value="4138">4138</option>
+          <option value="4392">4392</option>
+          <option value="8072">8072</option>
+          <option value="8145">8145</option>
+          <option value="8165">8165</option>
+        </select>
+      </div>
+      <div id="sorTableContainer"></div>
+    </div>
+  </div>
 
   <!-- ═══════════════ CODES PANEL ═══════════════ -->
   <div class="panel" id="panel-codes">
@@ -845,12 +869,14 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   const GPAS  = codes.GPAS  ?? null;
   const isInsideOV = (!isMHI && String(d.plant) === '2172' && d.status === 'Inside OV');
   const isTBOV = (!isMHI && d.status === 'TB OV');
-  const hasGNTBAsMain = (codes.GNTB != null && codes.INSP == null);
-  const GWAG  = d.cd       ? (codes.GWAG ?? null) : null;
-  const GAVI  = d.ai       ? (codes.GAVI ?? null) : null;
-  const GNTB  = (isTBOV || hasGNTBAsMain) ? (codes.GNTB ?? null) : (d.tb ? (codes.GNTB ?? null) : null);
-  const GFSA  = (d.sampling && d.sampling !== '') ? (codes.GFSA ?? null) : null;
-  const HLVI  = isInsideOV ? (codes.HLVI ?? null) : (d.sha ? (codes.HLVI ?? null) : null);
+  // GNTB as main absorber only for: TB OV (OV section), TUESDAY_MHI1 and THURSDAY_MHI2 (MHI section)
+  const hasGNTBAsMain = (codes.GNTB != null && codes.INSP == null && !isInsideOV && isTBOV) ||
+                        (isMHI && codes.GNTB != null && codes.INSP == null);
+  const GWAG  = d.cd                                  ? (codes.GWAG ?? null) : null;
+  const GFSA  = (d.sampling && d.sampling !== '')     ? (codes.GFSA ?? null) : null;
+  const HLVI  = isInsideOV                            ? (codes.HLVI ?? null) : (d.sha ? (codes.HLVI ?? null) : null);
+  const GNTB  = (isTBOV || hasGNTBAsMain)             ? (codes.GNTB ?? null) : (d.tb  ? (codes.GNTB ?? null) : null);
+  const GAVI  = d.ai                                  ? (codes.GAVI ?? null) : null;
   const HLVI_is_absorber = isInsideOV;
   const absorber = (isTBOV || hasGNTBAsMain) ? 'GNTB' : (isInsideOV ? 'HLVI' : 'INSP');
 
@@ -891,7 +917,7 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     else INSP = remainder > 0 ? remainder : null;
   }
 
-  const enfHours = parseFloat(d.enfInHours) || 0;
+  const enfHours = (d.enforcement && d.enfInHours) ? (parseFloat(d.enfInHours) || 0) : 0;
   const enfClass = d.enforcement ? ENF_CODES[d.enforcement] : null;
   const IENF = (enfClass === 'IENF' && enfHours > 0) ? enfHours : null;
   const NENF = (enfClass === 'NENF' && enfHours > 0) ? enfHours : null;
@@ -1130,6 +1156,7 @@ function switchTab(tab) {
   document.getElementById('panel-' + tab).classList.add('active');
   event.target.classList.add('active');
   if (tab === 'outcome') renderOutcome();
+  if (tab === 'sor') renderSORTable();
   if (tab === 'codes') lockCodes();
 }
 
@@ -1326,6 +1353,89 @@ function saveCodesEdit() {
   if (_ovRows) { const newOV = rowsToCodeObj(_ovRows); Object.keys(OV_CODES).forEach(k=>delete OV_CODES[k]); Object.assign(OV_CODES, newOV); _ovRows=null; }
   if (_mhiRows) { const newMHI = rowsToMHIObj(_mhiRows); Object.keys(MHI_CODES).forEach(k=>delete MHI_CODES[k]); Object.assign(MHI_CODES, newMHI); _mhiRows=null; }
   renderOutcome(); renderCodesEditor(); alert('Codes saved!');
+}
+
+// ─── SOR TABLE ──────────────────────────────────────────────────
+function renderSORTable() {
+  const plant = document.getElementById('sorPlantSelect')?.value;
+  const container = document.getElementById('sorTableContainer');
+  if (!container) return;
+
+  if (!plant) {
+    container.innerHTML = "<div style='color:var(--text-muted);font-size:14px'>Please select a plant.</div>";
+    return;
+  }
+
+  const FIELDS_OV  = ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA'];
+  const FIELDS_MHI = ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA'];
+
+  // Build rows: for each day, find OV and MHI codes
+  const rows = [];
+  DAYS.forEach(day => {
+    const ovStatuses = getValidStatuses(day, plant).filter(s => OV_TYPES.includes(s));
+    const mhiStatuses = getValidStatuses(day, plant).filter(s => MHI_TYPES.includes(s) || (MHI_CODES[plant] && MHI_CODES[plant][day+'_'+s]));
+
+    const allStatuses = getValidStatuses(day, plant);
+    allStatuses.forEach(status => {
+      const isOV = OV_TYPES.some(t => status === t);
+      const ovCodes = isOV ? lookupOV(day, plant, status) : null;
+      const mhiCodes = lookupMHI(day, plant, status);
+      if (!ovCodes && !mhiCodes) return;
+
+      if (ovCodes) {
+        const sorStr = `${ovCodes.arr}-${ovCodes.dep}`;
+        // Exclude conditional codes (checkbox-dependent), except GNTB for TB OV (it's always present)
+        const isTBOVRow = status === 'TB OV';
+        const OV_CONDITIONAL = isTBOVRow ? ['GFSA','GWAG','GAVI','HLVI'] : ['GNTB','GFSA','GWAG','GAVI','HLVI'];
+        const codes = FIELDS_OV.filter(k => ovCodes[k] != null && !OV_CONDITIONAL.includes(k)).map(k => `${ovCodes[k]} ${k}`).join(' | ');
+        rows.push({ day, status, type:'OV', sor: sorStr, codes });
+      }
+      if (mhiCodes) {
+        const sorStr = `${mhiCodes.arr}-${mhiCodes.dep}`;
+        // GNTB is main code for TUESDAY_MHI1 and THURSDAY_MHI2
+        const isGNTBMain = (day === 'TUESDAY' && status === 'MHI1') || (day === 'THURSDAY' && status === 'MHI2');
+        const MHI_CONDITIONAL = isGNTBMain ? ['GFSA','GWAG','GAVI','HLVI'] : ['GNTB','GFSA','GWAG','GAVI','HLVI'];
+        const codes = FIELDS_MHI.filter(k => mhiCodes[k] != null && !MHI_CONDITIONAL.includes(k)).map(k => `${mhiCodes[k]} ${k}`).join(' | ');
+        rows.push({ day, status, type:'MHI', sor: sorStr, codes });
+      }
+    });
+  });
+
+  if (!rows.length) {
+    container.innerHTML = "<div style='color:var(--text-muted);font-size:14px'>No codes found.</div>";
+    return;
+  }
+
+  // Group rows by day
+  const byDay = {};
+  DAYS.forEach(d => { byDay[d] = []; });
+  rows.forEach(r => byDay[r.day].push(r));
+
+  let html = '<div style="overflow-x:auto"><div style="display:grid;grid-template-columns:repeat(7,minmax(180px,1fr));gap:12px;min-width:900px">';
+
+  DAYS.forEach(day => {
+    const dayRows = byDay[day];
+    html += '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">';
+    html += '<div style="background:var(--surface2);padding:8px 12px;font-family:\'IBM Plex Mono\',monospace;font-size:13px;font-weight:600;color:var(--accent2);border-bottom:1px solid var(--border)">' + day.slice(0,3) + '</div>';
+
+    if (!dayRows.length) {
+      html += '<div style="padding:10px 12px;color:var(--text-muted);font-size:12px">—</div>';
+    } else {
+      dayRows.forEach(r => {
+        const typeColor = r.type === 'OV' ? 'var(--accent2)' : 'var(--accent)';
+        html += '<div style="padding:10px 12px;border-bottom:1px solid var(--border)">';
+        html += '<div style="font-weight:600;font-size:14px;margin-bottom:4px">' + r.status + '</div>';
+        html += '<div style="font-size:12px;color:' + typeColor + ';font-family:monospace;margin-bottom:4px">' + r.type + '</div>';
+        html += '<div style="background:#fefce8;color:#92580a;font-family:monospace;font-size:12px;padding:2px 6px;border-radius:3px;margin-bottom:6px;display:inline-block">' + r.sor + '</div>';
+        html += '<div style="color:#d97706;font-size:11px;line-height:1.8">' + r.codes.split(' | ').join('<br>') + '</div>';
+        html += '</div>';
+      });
+    }
+    html += '</div>';
+  });
+
+  html += '</div></div>';
+  container.innerHTML = html;
 }
 
 // ─── DOWNLOAD UPDATED HTML ──────────────────────────────────────

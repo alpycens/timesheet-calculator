@@ -1125,7 +1125,7 @@ function renderOutcomeSection(containerId, sectionData) {
   ['', ...DAYS].forEach((d, i) => {
     const cell = document.createElement('div');
     cell.className = 'og-cell og-header' + (i > 0 ? ' day-col' : '');
-    cell.textContent = d.slice(0,3);
+    cell.textContent = d;
     container.appendChild(cell);
   });
 
@@ -1153,7 +1153,7 @@ function renderEnfSection(containerId, sectionData) {
   ['', ...DAYS].forEach((d, i) => {
     const cell = document.createElement('div');
     cell.className = 'og-cell og-header' + (i > 0 ? ' day-col' : '');
-    cell.textContent = d.slice(0,3);
+    cell.textContent = d;
     container.appendChild(cell);
   });
 
@@ -1455,7 +1455,7 @@ function renderSORTable() {
   DAYS.forEach(day => {
     const dayRows = byDay[day];
     html += '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">';
-    html += '<div style="background:var(--surface2);padding:8px 12px;font-family:\'IBM Plex Mono\',monospace;font-size:13px;font-weight:600;color:var(--accent2);border-bottom:1px solid var(--border)">' + day.slice(0,3) + '</div>';
+    html += '<div style="background:var(--surface2);padding:8px 12px;font-family:\'IBM Plex Mono\',monospace;font-size:13px;font-weight:600;color:var(--accent2);border-bottom:1px solid var(--border)">' + day + '</div>';
 
     if (!dayRows.length) {
       html += '<div style="padding:10px 12px;color:var(--text-muted);font-size:12px">—</div>';

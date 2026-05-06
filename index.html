@@ -646,11 +646,11 @@ const PLANT_STATUSES = {
 
 // Day-specific overrides for 8145 and 8072
 const DAY_PLANT_STATUSES = {
-  'MONDAY_8145':    ['OV Afternoon', 'OV Morning', 'MHI'],
-  'TUESDAY_8145':   [],
-  'WEDNESDAY_8145': ['OV'],
-  'THURSDAY_8145':  [],
-  'FRIDAY_8145':    [],
+  'MONDAY_8145':    ['OV Afternoon', 'OV Morning', 'OV', 'MHI'],
+  'TUESDAY_8145':   ['OV Afternoon', 'OV Morning', 'OV', 'MHI'],
+  'WEDNESDAY_8145': ['OV Afternoon', 'OV Morning', 'OV', 'MHI'],
+  'THURSDAY_8145':  ['OV Afternoon', 'OV Morning', 'OV', 'MHI'],
+  'FRIDAY_8145':    ['OV Afternoon', 'OV Morning', 'OV', 'MHI'],
   'SATURDAY_8145':  ['OV Afternoon', 'OV Morning', 'OV', 'MHI'],
   'SUNDAY_8145':    ['OV Afternoon', 'OV Morning', 'OV', 'MHI'],
   'SATURDAY_2172':  [], 'SUNDAY_2172':  [],
@@ -662,25 +662,25 @@ const DAY_PLANT_STATUSES = {
   'SATURDAY_8072':  [], 'SUNDAY_8072':  [],
   'SATURDAY_8145':  [], 'SUNDAY_8145':  [],
   'SATURDAY_8165':  [], 'SUNDAY_8165':  [],
-  'MONDAY_4138':    [],
+  'MONDAY_4138':    ['OV Only'],
   'TUESDAY_4138':   ['OV Only'],
-  'WEDNESDAY_4138': [],
+  'WEDNESDAY_4138': ['OV Only'],
   'THURSDAY_4138':  ['OV Only'],
-  'FRIDAY_4138':    [],
+  'FRIDAY_4138':    ['OV Only'],
   'SATURDAY_4138':  [],
   'SUNDAY_4138':    [],
-  'MONDAY_4392':    [],
+  'MONDAY_4392':    ['OV Only'],
   'TUESDAY_4392':   ['OV Only'],
   'WEDNESDAY_4392': ['OV Only'],
-  'THURSDAY_4392':  [],
-  'FRIDAY_4392':    [],
+  'THURSDAY_4392':  ['OV Only'],
+  'FRIDAY_4392':    ['OV Only'],
   'SATURDAY_4392':  [],
   'SUNDAY_4392':    [],
   'MONDAY_2690':    ['OV', 'MHI'],
-  'TUESDAY_2690':   ['OV'],
-  'WEDNESDAY_2690': [],
+  'TUESDAY_2690':   ['OV', 'MHI'],
+  'WEDNESDAY_2690': ['OV', 'MHI'],
   'THURSDAY_2690':  ['OV', 'MHI'],
-  'FRIDAY_2690':    [],
+  'FRIDAY_2690':    ['OV', 'MHI'],
   'SATURDAY_2690':  [],
   'SUNDAY_2690':    [],
   'MONDAY_8072':    ['OV', 'TB OV', 'MHI1', 'MHI2'],
@@ -836,6 +836,23 @@ const SOR_CODES = {
     'MHI':'07:00-18:00', 'OV':'06:45-18:00',
   },
 };
+
+// SOR-specific day restrictions (different from schedule)
+const SOR_DAY_STATUSES = {
+  '4138': { 'TUESDAY':['OV Only'], 'THURSDAY':['OV Only'] },
+  '4392': { 'TUESDAY':['OV Only'], 'WEDNESDAY':['OV Only'] },
+  '2690': { 'MONDAY':['OV','MHI'], 'TUESDAY':['OV'], 'THURSDAY':['OV','MHI'] },
+  '8145': { 'MONDAY':['OV Afternoon','OV Morning','MHI'], 'WEDNESDAY':['OV'] },
+};
+
+function getSORValidStatuses(day, plant) {
+  const restrictions = SOR_DAY_STATUSES[String(plant)];
+  if (restrictions) {
+    return restrictions[day] || [];
+  }
+  // No restriction - use normal statuses
+  return getValidStatuses(day, plant);
+}
 
 function getSOR(day, plant, status) {
   const p = SOR_CODES[String(plant)];
@@ -1408,7 +1425,7 @@ function renderSORTable() {
     const ovStatuses = getValidStatuses(day, plant).filter(s => OV_TYPES.includes(s));
     const mhiStatuses = getValidStatuses(day, plant).filter(s => MHI_TYPES.includes(s) || (MHI_CODES[plant] && MHI_CODES[plant][day+'_'+s]));
 
-    const allStatuses = getValidStatuses(day, plant);
+    const allStatuses = getSORValidStatuses(day, plant);
     const seen = new Set();
     allStatuses.forEach(status => {
       const isOV = OV_TYPES.some(t => status === t);

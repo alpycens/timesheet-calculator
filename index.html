@@ -1503,33 +1503,41 @@ function downloadUpdatedHTML() {
   if (_ovRows) { const newOV = rowsToCodeObj(_ovRows); Object.keys(OV_CODES).forEach(k=>delete OV_CODES[k]); Object.assign(OV_CODES, newOV); _ovRows=null; }
   if (_mhiRows) { const newMHI = rowsToMHIObj(_mhiRows); Object.keys(MHI_CODES).forEach(k=>delete MHI_CODES[k]); Object.assign(MHI_CODES, newMHI); _mhiRows=null; }
 
-  fetch(window.location.href)
-    .then(r => r.text())
-    .then(html => {
-      const ovMarker = "// OV_CODES: keyed by 'DAY_plant_status' or 'plant_status'";
-      const ovEnd = "\nfunction lookupOV(";
-      const mhiMarker = "const MHI_CODES = {";
-      const mhiEnd = "\nfunction lookupMHI(";
-      const ovStart = html.indexOf(ovMarker);
-      const ovEndIdx = html.indexOf(ovEnd);
-      const mhiStart = html.indexOf(mhiMarker);
-      const mhiEndIdx = html.indexOf(mhiEnd);
-      if (ovStart === -1 || mhiStart === -1) { alert('Could not locate code blocks.'); return; }
-      const newOVBlock = ovMarker + '\n// Columns: arr, dep, BREAK, GBPS, GSRM, GPAS, GWAG, INSP, GAVI, HLVI, GNTB, GFSA\nconst OV_CODES = ' + JSON.stringify(OV_CODES, null, 2) + ';';
-      const newMHIBlock = 'const MHI_CODES = ' + JSON.stringify(MHI_CODES, null, 2) + ';';
-      let updated = html.slice(0, ovStart) + newOVBlock + html.slice(ovEndIdx);
-      const ms = updated.indexOf(mhiMarker);
-      const me = updated.indexOf(mhiEnd);
-      updated = updated.slice(0, ms) + newMHIBlock + updated.slice(me);
-      const blob = new Blob([updated], { type: 'text/html' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'timesheet_final.html';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 100);
-    })
-    .catch(() => alert('Download failed. Try again.'));
+  function serializeObj(obj) {
+    return JSON.stringify(obj, null, 2)
+      .replace(/"([^"]+)":/g, "'$1':")
+      .replace(/: "([^"]+)"/g, ": '$1'")
+      .replace(/: null/g, ': null');
+  }
+
+  const html = document.documentElement.outerHTML;
+  const ovMarker = "// OV_CODES: keyed by 'DAY_plant_status' or 'plant_status'";
+  const ovEnd = "\nfunction lookupOV(";
+  const mhiMarker = "const MHI_CODES = {";
+  const mhiEnd = "\nfunction lookupMHI(";
+
+  const ovStart = html.indexOf(ovMarker);
+  const ovEndIdx = html.indexOf(ovEnd);
+  const mhiStart = html.indexOf(mhiMarker);
+  const mhiEndIdx = html.indexOf(mhiEnd);
+
+  if (ovStart === -1 || mhiStart === -1) { alert('Could not locate code blocks.'); return; }
+
+  const newOVBlock = ovMarker + '\n// Columns: arr, dep, BREAK, GBPS, GSRM, GPAS, GWAG, INSP, GAVI, HLVI, GNTB, GFSA\nconst OV_CODES = ' + serializeObj(OV_CODES) + ';';
+  const newMHIBlock = 'const MHI_CODES = ' + serializeObj(MHI_CODES) + ';';
+
+  let updated = html.slice(0, ovStart) + newOVBlock + html.slice(ovEndIdx);
+  const ms = updated.indexOf(mhiMarker);
+  const me = updated.indexOf(mhiEnd);
+  updated = updated.slice(0, ms) + newMHIBlock + updated.slice(me);
+
+  const blob = new Blob([updated], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'timesheet_final.html';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 100);
 }
 // ─── ADMIN SUB-TABS ─────────────────────────────────────────────
 function switchAdminTab(tab) {

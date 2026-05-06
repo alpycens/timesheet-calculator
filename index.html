@@ -522,7 +522,10 @@
         <div class="ts-title">Code Tables</div>
         <div style="display:flex;gap:8px">
           <button onclick="saveCodesEdit()" style="font-family:'IBM Plex Mono',monospace;font-size:16px;padding:6px 16px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:4px;cursor:pointer">Save Changes</button>
-          <button onclick="downloadUpdatedHTML()" style="font-family:'IBM Plex Mono',monospace;font-size:16px;padding:6px 16px;border:1px solid var(--accent2);background:transparent;color:var(--accent2);border-radius:4px;cursor:pointer">⬇ Download HTML</button>
+          <button onclick="exportCodesJSON()" style="font-family:'IBM Plex Mono',monospace;font-size:16px;padding:6px 16px;border:1px solid var(--accent2);background:transparent;color:var(--accent2);border-radius:4px;cursor:pointer">⬇ Export JSON</button>
+          <label style="font-family:'IBM Plex Mono',monospace;font-size:16px;padding:6px 16px;border:1px solid #7c3aed;background:transparent;color:#7c3aed;border-radius:4px;cursor:pointer;display:inline-block">⬆ Import JSON
+            <input type="file" accept=".json,application/json" onchange="importCodesJSON(this)" style="display:none">
+          </label>
           <button onclick="lockCodes()" style="font-family:'IBM Plex Mono',monospace;font-size:16px;padding:6px 16px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:4px;cursor:pointer">Lock</button>
         </div>
       </div>
@@ -785,8 +788,8 @@ const MHI_CODES = {
     'MHI2':          { arr:'10:30', dep:'15:00', BREAK:0.5,  GBPS:null, GSRM:0.25, GPAS:null, INSP:3.75, GNTB:null, GFSA:null },
   },
   '8145': {
-    'MONDAY_MHI':    { arr:'08:15', dep:'14:00', BREAK:0.5,  GBPS:null, GSRM:0.25, GPAS:null, INSP:5,    GNTB:null, GFSA:null },
-    'MHI':           { arr:'08:15', dep:'14:00', BREAK:0.5,  GBPS:null, GSRM:0.25, GPAS:null, INSP:5,    GNTB:null, GFSA:null },
+    'MONDAY_MHI':    { arr:'08:15', dep:'14:00', BREAK:null, GBPS:null, GSRM:0.25, GPAS:null, INSP:5.5,  GNTB:null, GFSA:null },
+    'MHI':           { arr:'08:15', dep:'14:00', BREAK:null, GBPS:null, GSRM:0.25, GPAS:null, INSP:5.5,  GNTB:null, GFSA:null },
   },
   '8165': {
     'MONDAY_MHI':    { arr:'07:00', dep:'18:00', BREAK:0.5,  GBPS:0.25, GSRM:0.75, GPAS:null, INSP:9.5,  GNTB:null, GFSA:null },
@@ -913,9 +916,11 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   const BREAK = codes.BREAK ?? null;
   const GBPS  = codes.GBPS  ?? null;
   const GSRM_base = codes.GSRM ?? null;
-  // RCP: adds 1 GSRM for 8145 OV
+  // RCP: 8145 OV için ayrı 1 GSRM-RCP satırı eklenir; bu 1 saat INSP'ten düşer.
+  // GSRM ana değeri DEĞİŞMEZ — sadece formatCodes'ta ayrı satır gösterilir.
   const rcpActive = (d.rcp && String(d.plant) === '8145' && !isMHI);
-  const GSRM = rcpActive ? round25((GSRM_base||0) + 1) : GSRM_base;
+  const GSRM = GSRM_base;
+  const rcpExtraHours = rcpActive ? 1 : 0;
   const GPAS  = codes.GPAS  ?? null;
   const isInsideOV = (!isMHI && String(d.plant) === '2172' && d.status === 'Inside OV');
   const isTBOV = (!isMHI && d.status === 'TB OV');
@@ -952,7 +957,7 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
 
   const fixedSum = round25(
     (BREAK||0)+(GBPS||0)+(GSRM||0)+(GPAS||0)+
-    (GWAG||0)+(GAVI||0)+(GFSA||0)+(IUWT||0)+
+    (GWAG||0)+(GAVI||0)+(GFSA||0)+(IUWT||0)+rcpExtraHours+
     (absorber==='HLVI' ? 0 : (HLVI||0))+
     (absorber==='GNTB' ? 0 : (GNTB||0))
   );
@@ -1402,7 +1407,9 @@ function clearCodesFilter() {
 function saveCodesEdit() {
   if (_ovRows) { const newOV = rowsToCodeObj(_ovRows); Object.keys(OV_CODES).forEach(k=>delete OV_CODES[k]); Object.assign(OV_CODES, newOV); _ovRows=null; }
   if (_mhiRows) { const newMHI = rowsToMHIObj(_mhiRows); Object.keys(MHI_CODES).forEach(k=>delete MHI_CODES[k]); Object.assign(MHI_CODES, newMHI); _mhiRows=null; }
-  renderOutcome(); renderCodesEditor(); alert('Codes saved!');
+  // localStorage'a kaydet ki sayfa yenilenince kaybolmasın
+  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES })); } catch(e) {}
+  renderOutcome(); renderCodesEditor(); alert('Codes saved! (Kalıcı yapmak için Export JSON ile codes.json indir ve GitHub\'a yükle.)');
 }
 
 // ─── SOR TABLE ──────────────────────────────────────────────────
@@ -1444,7 +1451,8 @@ function renderSORTable() {
           ...(isInsideOVRow ? [] : ['HLVI'])
         ];
         const codes = FIELDS_OV.filter(k => ovCodes[k] != null && !OV_CONDITIONAL.includes(k)).map(k => `${ovCodes[k]} ${k}`).join(' | ');
-        if (!seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', sor: sorStr, codes, rcpNote: (plant==='8145' && status==='OV Afternoon'), trichNote: (plant==='8145' && status==='OV Afternoon') }); }
+        const isWedOV8145 = (plant==='8145' && day==='WEDNESDAY' && status==='OV');
+        if (!seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', sor: sorStr, codes, rcpNote: isWedOV8145, rcpInspNote: isWedOV8145, trichNote: (plant==='8145' && status==='OV Afternoon') }); }
       }
       if (mhiCodes) {
         const sorStr = `${mhiCodes.arr}-${mhiCodes.dep}`;
@@ -1452,7 +1460,7 @@ function renderSORTable() {
         const isGNTBMain = (day === 'TUESDAY' && status === 'MHI1') || (day === 'THURSDAY' && status === 'MHI2');
         const MHI_CONDITIONAL = isGNTBMain ? ['GFSA','GWAG','GAVI','HLVI'] : ['GNTB','GFSA','GWAG','GAVI','HLVI'];
         const codes = FIELDS_MHI.filter(k => mhiCodes[k] != null && !MHI_CONDITIONAL.includes(k)).map(k => `${mhiCodes[k]} ${k}`).join(' | ');
-        if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', sor: sorStr, codes, rcpNote: false, trichNote: false }); }
+        if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', sor: sorStr, codes, rcpNote: false, rcpInspNote: false, trichNote: false }); }
       }
     });
   });
@@ -1485,6 +1493,7 @@ function renderSORTable() {
         html += '<div style="background:#fefce8;color:#92580a;font-family:monospace;font-size:12px;padding:2px 6px;border-radius:3px;margin-bottom:6px;display:inline-block">' + r.sor + '</div>';
         let codesHtml = r.codes.split(' | ').join('<br>');
         if (r.rcpNote) codesHtml += '<br><span style="color:#dc2626;font-weight:600">RCP: 1 GSRM</span>';
+        if (r.rcpInspNote) codesHtml += '<br><span style="color:#dc2626;font-weight:600">6.5 INSP (if RCP)</span>';
         if (r.trichNote) codesHtml += '<br><span style="color:#06b6d4;font-weight:600">0.75 GFSA (if Trich)</span><br><span style="color:#06b6d4;font-weight:600">3.25 INSP (if Trich)</span>';
         html += '<div style="color:#d97706;font-size:11px;line-height:1.8">' + codesHtml + '</div>';
         html += '</div>';
@@ -1497,58 +1506,112 @@ function renderSORTable() {
   container.innerHTML = html;
 }
 
-// ─── DOWNLOAD UPDATED HTML ──────────────────────────────────────
-function downloadUpdatedHTML() {
-  // First save any pending code changes
-  if (_ovRows) { const newOV = rowsToCodeObj(_ovRows); Object.keys(OV_CODES).forEach(k=>delete OV_CODES[k]); Object.assign(OV_CODES, newOV); _ovRows=null; }
-  if (_mhiRows) { const newMHI = rowsToMHIObj(_mhiRows); Object.keys(MHI_CODES).forEach(k=>delete MHI_CODES[k]); Object.assign(MHI_CODES, newMHI); _mhiRows=null; }
+// ─── JSON EXPORT / IMPORT ───────────────────────────────────────
+// Güvenli yaklaşım: HTML'i kendi üstüne yazmıyoruz. Kodları ayrı bir
+// codes.json dosyasına export ediyoruz. Sayfa açılınca codes.json
+// varsa yüklüyor, yoksa gömülü default değerlere fallback yapıyor.
+// Bu sayede site asla bozulamaz.
 
-  // Serialize current OV_CODES and MHI_CODES as JS
-  function serializeObj(obj) {
-    return JSON.stringify(obj, null, 2)
-      .replace(/"([^"]+)":/g, "'$1':")
-      .replace(/: "([^"]+)"/g, ": '$1'")
-      .replace(/: null/g, ': null');
+function commitPendingCodeRows() {
+  if (_ovRows) {
+    const newOV = rowsToCodeObj(_ovRows);
+    Object.keys(OV_CODES).forEach(k => delete OV_CODES[k]);
+    Object.assign(OV_CODES, newOV);
+    _ovRows = null;
   }
-
-  // Get the current page HTML
-  const html = document.documentElement.outerHTML;
-
-  // Replace OV_CODES block
-  const ovMarker = "// OV_CODES: keyed by 'DAY_plant_status' or 'plant_status'";
-  const ovEnd = "\nfunction lookupOV(";
-  const mhiMarker = "const MHI_CODES = {";
-  const mhiEnd = "\nfunction lookupMHI(";
-
-  const ovStart = html.indexOf(ovMarker);
-  const ovEndIdx = html.indexOf(ovEnd);
-  const mhiStart = html.indexOf(mhiMarker);
-  const mhiEndIdx = html.indexOf(mhiEnd);
-
-  if (ovStart === -1 || mhiStart === -1) {
-    alert('Could not locate code blocks. Please try again.');
-    return;
+  if (_mhiRows) {
+    const newMHI = rowsToMHIObj(_mhiRows);
+    Object.keys(MHI_CODES).forEach(k => delete MHI_CODES[k]);
+    Object.assign(MHI_CODES, newMHI);
+    _mhiRows = null;
   }
+}
 
-  const newOVBlock = `${ovMarker}
-// Columns: arr, dep, BREAK, GBPS, GSRM, GPAS, GWAG, INSP, GAVI, HLVI, GNTB, GFSA
-const OV_CODES = ${serializeObj(OV_CODES)};`;
-  const newMHIBlock = `const MHI_CODES = ${serializeObj(MHI_CODES)};`;
-
-  let updated = html.slice(0, ovStart) + newOVBlock + html.slice(ovEndIdx);
-  const newMhiStart = updated.indexOf(mhiMarker);
-  const newMhiEnd = updated.indexOf(mhiEnd);
-  updated = updated.slice(0, newMhiStart) + newMHIBlock + updated.slice(newMhiEnd);
-
-  const blob = new Blob([updated], { type: 'text/html' });
+function exportCodesJSON() {
+  commitPendingCodeRows();
+  const payload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    OV_CODES: OV_CODES,
+    MHI_CODES: MHI_CODES,
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'timesheet_final.html';
+  a.download = 'codes.json';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
 }
+
+function importCodesJSON(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.OV_CODES || !data.MHI_CODES) {
+        alert('Geçersiz dosya: OV_CODES veya MHI_CODES bulunamadı.');
+        return;
+      }
+      Object.keys(OV_CODES).forEach(k => delete OV_CODES[k]);
+      Object.assign(OV_CODES, data.OV_CODES);
+      Object.keys(MHI_CODES).forEach(k => delete MHI_CODES[k]);
+      Object.assign(MHI_CODES, data.MHI_CODES);
+      try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES })); } catch(err) {}
+      _ovRows = null;
+      _mhiRows = null;
+      renderCodesEditor();
+      renderTimesheet();
+      renderOutcome();
+      alert('Kodlar başarıyla yüklendi!');
+    } catch (err) {
+      alert('JSON okunamadı: ' + err.message);
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// Sayfa açılırken codes.json'u dene; yoksa localStorage'a, o da yoksa gömülü default'a düş.
+async function loadCodesFromFile() {
+  // 1) Önce aynı dizindeki codes.json
+  try {
+    const res = await fetch('codes.json', { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.OV_CODES && data.MHI_CODES) {
+        Object.keys(OV_CODES).forEach(k => delete OV_CODES[k]);
+        Object.assign(OV_CODES, data.OV_CODES);
+        Object.keys(MHI_CODES).forEach(k => delete MHI_CODES[k]);
+        Object.assign(MHI_CODES, data.MHI_CODES);
+        renderTimesheet();
+        renderOutcome();
+        return;
+      }
+    }
+  } catch(e) { /* file:// veya 404 — sessizce geç */ }
+
+  // 2) localStorage fallback (kullanıcı import etmiş olabilir)
+  try {
+    const cached = localStorage.getItem('ts_codes');
+    if (cached) {
+      const data = JSON.parse(cached);
+      if (data.OV_CODES && data.MHI_CODES) {
+        Object.keys(OV_CODES).forEach(k => delete OV_CODES[k]);
+        Object.assign(OV_CODES, data.OV_CODES);
+        Object.keys(MHI_CODES).forEach(k => delete MHI_CODES[k]);
+        Object.assign(MHI_CODES, data.MHI_CODES);
+        renderTimesheet();
+        renderOutcome();
+      }
+    }
+  } catch(e) {}
+}
+
 
 // ─── ADMIN SUB-TABS ─────────────────────────────────────────────
 function switchAdminTab(tab) {
@@ -1618,6 +1681,7 @@ function saveDropDown() {
 // ─── INIT ───────────────────────────────────────────────────────
 renderTimesheet();
 renderOutcome();
+loadCodesFromFile(); // codes.json varsa otomatik yükle (yoksa default'a fallback)
 </script>
 </body>
 </html>

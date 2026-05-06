@@ -653,6 +653,15 @@ const DAY_PLANT_STATUSES = {
   'FRIDAY_8145':    [],
   'SATURDAY_8145':  ['OV Afternoon', 'OV Morning', 'OV', 'MHI'],
   'SUNDAY_8145':    ['OV Afternoon', 'OV Morning', 'OV', 'MHI'],
+  'SATURDAY_2172':  [], 'SUNDAY_2172':  [],
+  'SATURDAY_2690':  [], 'SUNDAY_2690':  [],
+  'SATURDAY_4015':  [], 'SUNDAY_4015':  [],
+  'SATURDAY_4133':  [], 'SUNDAY_4133':  [],
+  'SATURDAY_4138':  [], 'SUNDAY_4138':  [],
+  'SATURDAY_4392':  [], 'SUNDAY_4392':  [],
+  'SATURDAY_8072':  [], 'SUNDAY_8072':  [],
+  'SATURDAY_8145':  [], 'SUNDAY_8145':  [],
+  'SATURDAY_8165':  [], 'SUNDAY_8165':  [],
   'MONDAY_4138':    [],
   'TUESDAY_4138':   ['OV Only'],
   'WEDNESDAY_4138': [],
@@ -845,14 +854,15 @@ const SAMPLING_OPTS = ['','RIM','Trichinella','TSE (Goats and Sheep) (including 
 let state = loadState();
 
 function defaultState() {
+  const emptyDay = { plant:'', plantStatus:'', status:'', arrival:'', departure:'', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'', rcp:false };
   return { days: {
-    'MONDAY':    { plant:'2172', plantStatus:'Operational', status:'MHI',  arrival:'07:00', departure:'18:00', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'', rcp:false },
-    'TUESDAY':   { plant:'8072', plantStatus:'Operational', status:'MHI2', arrival:'10:30', departure:'14:00', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'', rcp:false },
-    'WEDNESDAY': { plant:'8165', plantStatus:'Operational', status:'MHI',  arrival:'07:00', departure:'16:30', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'', rcp:false },
-    'THURSDAY':  { plant:'4133', plantStatus:'Operational', status:'MHI',  arrival:'06:00', departure:'11:00', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'', rcp:false },
-    'FRIDAY':    { plant:'8165', plantStatus:'Operational', status:'MHI',  arrival:'07:00', departure:'13:00', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'', rcp:false },
-    'SATURDAY':  { plant:'', plantStatus:'', status:'', arrival:'', departure:'', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'', rcp:false },
-    'SUNDAY':    { plant:'', plantStatus:'', status:'', arrival:'', departure:'', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'', rcp:false },
+    'MONDAY':    { ...emptyDay },
+    'TUESDAY':   { ...emptyDay },
+    'WEDNESDAY': { ...emptyDay },
+    'THURSDAY':  { ...emptyDay },
+    'FRIDAY':    { ...emptyDay },
+    'SATURDAY':  { ...emptyDay },
+    'SUNDAY':    { ...emptyDay },
   }};
 }
 
@@ -1417,7 +1427,7 @@ function renderSORTable() {
           ...(isInsideOVRow ? [] : ['HLVI'])
         ];
         const codes = FIELDS_OV.filter(k => ovCodes[k] != null && !OV_CONDITIONAL.includes(k)).map(k => `${ovCodes[k]} ${k}`).join(' | ');
-        if (!seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', sor: sorStr, codes, rcpNote: (plant==='8145' && day==='MONDAY') }); }
+        if (!seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', sor: sorStr, codes, rcpNote: (plant==='8145' && status==='OV Afternoon') }); }
       }
       if (mhiCodes) {
         const sorStr = `${mhiCodes.arr}-${mhiCodes.dep}`;

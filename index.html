@@ -41,7 +41,7 @@
     height: 56px;
     position: sticky;
     top: 0;
-    z-index: 9999;
+    z-index: 100;
   }
   .logo {
     font-family: 'IBM Plex Mono', monospace;
@@ -85,8 +85,7 @@
   main { padding: 24px; max-width: 1400px; margin: 0 auto; }
 
   /* PANELS */
-  .panel { display: none; pointer-events: none; }
-  .panel.active { pointer-events: auto; }
+  .panel { display: none; }
   .panel.active { display: block; }
 
   /* ─── TIMESHEET PANEL ─── */
@@ -1445,7 +1444,7 @@ function renderSORTable() {
           ...(isInsideOVRow ? [] : ['HLVI'])
         ];
         const codes = FIELDS_OV.filter(k => ovCodes[k] != null && !OV_CONDITIONAL.includes(k)).map(k => `${ovCodes[k]} ${k}`).join(' | ');
-        if (!seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', sor: sorStr, codes, rcpNote: (plant==='8145' && status==='OV Afternoon'), gfsaNote: (plant==='8145' && status==='OV Afternoon') }); }
+        if (!seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', sor: sorStr, codes, rcpNote: (plant==='8145' && status==='OV Afternoon'), trichNote: (plant==='8145' && status==='OV Afternoon') }); }
       }
       if (mhiCodes) {
         const sorStr = `${mhiCodes.arr}-${mhiCodes.dep}`;
@@ -1453,7 +1452,7 @@ function renderSORTable() {
         const isGNTBMain = (day === 'TUESDAY' && status === 'MHI1') || (day === 'THURSDAY' && status === 'MHI2');
         const MHI_CONDITIONAL = isGNTBMain ? ['GFSA','GWAG','GAVI','HLVI'] : ['GNTB','GFSA','GWAG','GAVI','HLVI'];
         const codes = FIELDS_MHI.filter(k => mhiCodes[k] != null && !MHI_CONDITIONAL.includes(k)).map(k => `${mhiCodes[k]} ${k}`).join(' | ');
-        if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', sor: sorStr, codes, rcpNote: false }); }
+        if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', sor: sorStr, codes, rcpNote: false, trichNote: false }); }
       }
     });
   });
@@ -1486,7 +1485,7 @@ function renderSORTable() {
         html += '<div style="background:#fefce8;color:#92580a;font-family:monospace;font-size:12px;padding:2px 6px;border-radius:3px;margin-bottom:6px;display:inline-block">' + r.sor + '</div>';
         let codesHtml = r.codes.split(' | ').join('<br>');
         if (r.rcpNote) codesHtml += '<br><span style="color:#dc2626;font-weight:600">RCP: 1 GSRM</span>';
-        if (r.gfsaNote) codesHtml += '<br><span style="color:#0891b2;font-weight:600">0.75 GFSA (if Trich.) 3.25 INSP</span>';
+        if (r.trichNote) codesHtml += '<br><span style="color:#06b6d4;font-weight:600">0.75 GFSA (if Trich)</span><br><span style="color:#06b6d4;font-weight:600">3.25 INSP (if Trich)</span>';
         html += '<div style="color:#d97706;font-size:11px;line-height:1.8">' + codesHtml + '</div>';
         html += '</div>';
       });
@@ -1500,9 +1499,11 @@ function renderSORTable() {
 
 // ─── DOWNLOAD UPDATED HTML ──────────────────────────────────────
 function downloadUpdatedHTML() {
+  // First save any pending code changes
   if (_ovRows) { const newOV = rowsToCodeObj(_ovRows); Object.keys(OV_CODES).forEach(k=>delete OV_CODES[k]); Object.assign(OV_CODES, newOV); _ovRows=null; }
   if (_mhiRows) { const newMHI = rowsToMHIObj(_mhiRows); Object.keys(MHI_CODES).forEach(k=>delete MHI_CODES[k]); Object.assign(MHI_CODES, newMHI); _mhiRows=null; }
 
+  // Serialize current OV_CODES and MHI_CODES as JS
   function serializeObj(obj) {
     return JSON.stringify(obj, null, 2)
       .replace(/"([^"]+)":/g, "'$1':")
@@ -1510,7 +1511,10 @@ function downloadUpdatedHTML() {
       .replace(/: null/g, ': null');
   }
 
+  // Get the current page HTML
   const html = document.documentElement.outerHTML;
+
+  // Replace OV_CODES block
   const ovMarker = "// OV_CODES: keyed by 'DAY_plant_status' or 'plant_status'";
   const ovEnd = "\nfunction lookupOV(";
   const mhiMarker = "const MHI_CODES = {";
@@ -1521,15 +1525,20 @@ function downloadUpdatedHTML() {
   const mhiStart = html.indexOf(mhiMarker);
   const mhiEndIdx = html.indexOf(mhiEnd);
 
-  if (ovStart === -1 || mhiStart === -1) { alert('Could not locate code blocks.'); return; }
+  if (ovStart === -1 || mhiStart === -1) {
+    alert('Could not locate code blocks. Please try again.');
+    return;
+  }
 
-  const newOVBlock = ovMarker + '\n// Columns: arr, dep, BREAK, GBPS, GSRM, GPAS, GWAG, INSP, GAVI, HLVI, GNTB, GFSA\nconst OV_CODES = ' + serializeObj(OV_CODES) + ';';
-  const newMHIBlock = 'const MHI_CODES = ' + serializeObj(MHI_CODES) + ';';
+  const newOVBlock = `${ovMarker}
+// Columns: arr, dep, BREAK, GBPS, GSRM, GPAS, GWAG, INSP, GAVI, HLVI, GNTB, GFSA
+const OV_CODES = ${serializeObj(OV_CODES)};`;
+  const newMHIBlock = `const MHI_CODES = ${serializeObj(MHI_CODES)};`;
 
   let updated = html.slice(0, ovStart) + newOVBlock + html.slice(ovEndIdx);
-  const ms = updated.indexOf(mhiMarker);
-  const me = updated.indexOf(mhiEnd);
-  updated = updated.slice(0, ms) + newMHIBlock + updated.slice(me);
+  const newMhiStart = updated.indexOf(mhiMarker);
+  const newMhiEnd = updated.indexOf(mhiEnd);
+  updated = updated.slice(0, newMhiStart) + newMHIBlock + updated.slice(newMhiEnd);
 
   const blob = new Blob([updated], { type: 'text/html' });
   const a = document.createElement('a');
@@ -1537,8 +1546,10 @@ function downloadUpdatedHTML() {
   a.download = 'timesheet_final.html';
   document.body.appendChild(a);
   a.click();
-  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 100);
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
 }
+
 // ─── ADMIN SUB-TABS ─────────────────────────────────────────────
 function switchAdminTab(tab) {
   ['codes','dropdown'].forEach(t => {

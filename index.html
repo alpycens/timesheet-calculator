@@ -36,11 +36,12 @@
   header {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 0 24px;
+    padding: 12px 24px 0;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    height: 64px;
+    justify-content: center;
+    gap: 8px;
     position: sticky;
     top: 0;
     z-index: 100;
@@ -58,24 +59,24 @@
   .brand {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
   }
   .brand-logo {
-    width: 50px;
-    height: 50px;
+    width: 56px;
+    height: 56px;
     flex-shrink: 0;
   }
   .brand-text {
     font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 19px;
+    font-size: 22px;
     font-weight: 600;
     color: var(--text);
     letter-spacing: -0.01em;
     white-space: nowrap;
   }
   @media (max-width: 600px) {
-    .brand-text { display: none; }
-    .brand-logo { width: 40px; height: 40px; }
+    .brand-logo { width: 44px; height: 44px; }
+    .brand-text { font-size: 18px; }
   }
 
   /* TABS */

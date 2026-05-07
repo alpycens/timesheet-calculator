@@ -1493,7 +1493,7 @@ function renderSORTable() {
         let codesHtml = r.codes.split(' | ').join('<br>');
         if (r.rcpNote) codesHtml += '<br><span style="color:#dc2626;font-weight:600">RCP: 1 GSRM</span>';
         if (r.rcpInspNote) codesHtml += '<br><span style="color:#dc2626;font-weight:600">6.5 INSP (if RCP)</span>';
-        if (r.trichNote) codesHtml += '<br><span style="color:#06b6d4;font-weight:600">0.75 GFSA (if Trich)</span><br><span style="color:#06b6d4;font-weight:600">3.25 INSP (if Trich)</span>';
+        if (r.trichNote) codesHtml += '<br><span style="color:#06b6d4;font-weight:600">0.75 GFSA (if Trich)</span>';
         html += '<div style="color:#d97706;font-size:11px;line-height:1.8">' + codesHtml + '</div>';
         html += '</div>';
       });

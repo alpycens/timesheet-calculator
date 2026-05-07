@@ -1,0 +1,638 @@
+{
+  "version": 1,
+  "exportedAt": "2026-05-07T04:28:46.112Z",
+  "OV_CODES": {
+    "2172": {
+      "Inside OV": {
+        "arr": "08:00",
+        "dep": "18:00",
+        "BREAK": 0.5,
+        "GBPS": 0.5,
+        "GSRM": null,
+        "GPAS": null,
+        "GWAG": 0.75,
+        "INSP": null,
+        "GAVI": null,
+        "HLVI": 9,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      },
+      "Lairage OV": {
+        "arr": "06:30",
+        "dep": "17:30",
+        "BREAK": 0.5,
+        "GBPS": 0.5,
+        "GSRM": null,
+        "GPAS": 0.5,
+        "GWAG": 0.75,
+        "INSP": 9.5,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      }
+    },
+    "2690": {
+      "OV": {
+        "arr": "07:00",
+        "dep": "16:00",
+        "BREAK": 0.5,
+        "GBPS": 0.5,
+        "GSRM": 0.5,
+        "GPAS": 0.25,
+        "GWAG": 0.75,
+        "INSP": 7.25,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      }
+    },
+    "4015": {
+      "OV": {
+        "arr": "07:00",
+        "dep": "18:00",
+        "BREAK": 0.5,
+        "GBPS": 0.5,
+        "GSRM": null,
+        "GPAS": null,
+        "GWAG": 0.75,
+        "INSP": 10,
+        "GAVI": 0.5,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      }
+    },
+    "4133": {
+      "OV": {
+        "arr": "05:30",
+        "dep": "15:30",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "GWAG": 0.75,
+        "INSP": 9,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      },
+      "THURSDAY_OV": {
+        "arr": "05:30",
+        "dep": "16:30",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "GWAG": 0.75,
+        "INSP": 10,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      },
+      "FRIDAY_OV": {
+        "arr": "05:30",
+        "dep": "16:30",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "GWAG": 0.75,
+        "INSP": 10,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      }
+    },
+    "4138": {
+      "OV Only": {
+        "arr": "07:00",
+        "dep": "10:00",
+        "BREAK": null,
+        "GBPS": 0.5,
+        "GSRM": 0.5,
+        "GPAS": 0.25,
+        "GWAG": 0.75,
+        "INSP": 1.75,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      }
+    },
+    "4392": {
+      "OV Only": {
+        "arr": "07:30",
+        "dep": "11:00",
+        "BREAK": null,
+        "GBPS": 0.25,
+        "GSRM": 0.5,
+        "GPAS": 0.25,
+        "GWAG": 0.75,
+        "INSP": 2.5,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      }
+    },
+    "8072": {
+      "OV": {
+        "arr": "07:00",
+        "dep": "15:00",
+        "BREAK": 0.5,
+        "GBPS": 0.5,
+        "GSRM": null,
+        "GPAS": 0.25,
+        "GWAG": 0.75,
+        "INSP": 6.75,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      },
+      "FRIDAY_OV": {
+        "arr": "06:30",
+        "dep": "14:00",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": null,
+        "GPAS": null,
+        "GWAG": 0.75,
+        "INSP": 6.75,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      },
+      "MONDAY_TB OV": {
+        "arr": "09:00",
+        "dep": "16:00",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "GWAG": 0.75,
+        "INSP": null,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 7.5,
+        "GFSA": 0.5
+      },
+      "TUESDAY_TB OV": {
+        "arr": "10:00",
+        "dep": "16:00",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "GWAG": 0.75,
+        "INSP": null,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 7.5,
+        "GFSA": 0.5
+      },
+      "THURSDAY_TB OV": {
+        "arr": "09:00",
+        "dep": "16:00",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "GWAG": 0.75,
+        "INSP": null,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 7.5,
+        "GFSA": 0.5
+      }
+    },
+    "8145": {
+      "OV": {
+        "arr": "08:00",
+        "dep": "17:00",
+        "BREAK": null,
+        "GBPS": 0.5,
+        "GSRM": 0.5,
+        "GPAS": 0.5,
+        "GWAG": 0.75,
+        "INSP": 7.5,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      },
+      "OV Afternoon": {
+        "arr": "15:00",
+        "dep": "20:30",
+        "BREAK": 0.5,
+        "GBPS": 0.5,
+        "GSRM": 0.5,
+        "GPAS": null,
+        "GWAG": 0.75,
+        "INSP": 4,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.75
+      },
+      "OV Morning": {
+        "arr": "07:30",
+        "dep": "15:00",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": 0.5,
+        "GPAS": null,
+        "GWAG": 0.75,
+        "INSP": 6.5,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      }
+    },
+    "8165": {
+      "MONDAY_OV": {
+        "arr": "06:45",
+        "dep": "18:00",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 1,
+        "GPAS": 0.5,
+        "GWAG": 0.75,
+        "INSP": 9,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      },
+      "TUESDAY_OV": {
+        "arr": "06:45",
+        "dep": "17:00",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 1,
+        "GPAS": 0.5,
+        "GWAG": 0.75,
+        "INSP": 8,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      },
+      "WEDNESDAY_OV": {
+        "arr": "06:45",
+        "dep": "17:00",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 1,
+        "GPAS": 0.5,
+        "GWAG": 0.75,
+        "INSP": 8,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      },
+      "THURSDAY_OV": {
+        "arr": "06:45",
+        "dep": "16:00",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 1,
+        "GPAS": 0.5,
+        "GWAG": 0.75,
+        "INSP": 7,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      },
+      "FRIDAY_OV": {
+        "arr": "06:45",
+        "dep": "13:00",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 1,
+        "GPAS": 0.5,
+        "GWAG": 0.75,
+        "INSP": 4,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5
+      }
+    }
+  },
+  "MHI_CODES": {
+    "2172": {
+      "MHI": {
+        "arr": "07:00",
+        "dep": "17:30",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": 0.5,
+        "GPAS": null,
+        "INSP": 9.5,
+        "GNTB": null,
+        "GFSA": null
+      }
+    },
+    "2690": {
+      "MHI": {
+        "arr": "07:00",
+        "dep": "11:00",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "INSP": 3.75,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "MONDAY_MHI": {
+        "arr": "07:00",
+        "dep": "11:00",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "INSP": 3.75,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "THURSDAY_MHI": {
+        "arr": "07:00",
+        "dep": "11:00",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "INSP": 3.75,
+        "GNTB": null,
+        "GFSA": null
+      }
+    },
+    "4015": {
+      "MHI": {
+        "arr": "07:30",
+        "dep": "18:00",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "INSP": 10,
+        "GNTB": null,
+        "GFSA": null
+      }
+    },
+    "4133": {
+      "MHI": {
+        "arr": "06:00",
+        "dep": "15:15",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": 0.5,
+        "GPAS": null,
+        "INSP": 8.25,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "THURSDAY_MHI": {
+        "arr": "06:00",
+        "dep": "16:15",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": 0.5,
+        "GPAS": null,
+        "INSP": 9.25,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "FRIDAY_MHI": {
+        "arr": "06:00",
+        "dep": "16:15",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": 0.5,
+        "GPAS": null,
+        "INSP": 9.25,
+        "GNTB": null,
+        "GFSA": null
+      }
+    },
+    "4138": {
+      "OV Only": {
+        "arr": "10:00",
+        "dep": "17:00",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "INSP": 6.5,
+        "GNTB": null,
+        "GFSA": null
+      }
+    },
+    "4392": {
+      "OV Only": {
+        "arr": "11:00",
+        "dep": "14:30",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "INSP": 3,
+        "GNTB": null,
+        "GFSA": null
+      }
+    },
+    "8072": {
+      "MHI1": {
+        "arr": "07:15",
+        "dep": "14:45",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": 0.5,
+        "GPAS": null,
+        "INSP": 6.5,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "TUESDAY_MHI1": {
+        "arr": "10:00",
+        "dep": "16:00",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "INSP": null,
+        "GNTB": 7.5,
+        "GFSA": null
+      },
+      "FRIDAY_MHI1": {
+        "arr": "07:00",
+        "dep": "14:00",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "INSP": 6.5,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "MONDAY_MHI2": {
+        "arr": "10:30",
+        "dep": "15:00",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "INSP": 4.25,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "TUESDAY_MHI2": {
+        "arr": "10:30",
+        "dep": "15:00",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "INSP": 4.25,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "WEDNESDAY_MHI2": {
+        "arr": "10:30",
+        "dep": "15:00",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "INSP": 4.25,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "THURSDAY_MHI2": {
+        "arr": "09:00",
+        "dep": "16:00",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "INSP": null,
+        "GNTB": 7.5,
+        "GFSA": null
+      },
+      "MHI2": {
+        "arr": "10:30",
+        "dep": "15:00",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "INSP": 3.75,
+        "GNTB": null,
+        "GFSA": null
+      }
+    },
+    "8145": {
+      "MONDAY_MHI": {
+        "arr": "08:15",
+        "dep": "14:00",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "INSP": 5.5,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "MHI": {
+        "arr": "08:15",
+        "dep": "14:00",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "INSP": 5.5,
+        "GNTB": null,
+        "GFSA": null
+      }
+    },
+    "8165": {
+      "MONDAY_MHI": {
+        "arr": "07:00",
+        "dep": "18:00",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.75,
+        "GPAS": null,
+        "INSP": 9.5,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "TUESDAY_MHI": {
+        "arr": "07:00",
+        "dep": "18:00",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.75,
+        "GPAS": null,
+        "INSP": 9.5,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "WEDNESDAY_MHI": {
+        "arr": "07:00",
+        "dep": "17:00",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.75,
+        "GPAS": null,
+        "INSP": 8.5,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "THURSDAY_MHI": {
+        "arr": "07:00",
+        "dep": "16:00",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.75,
+        "GPAS": null,
+        "INSP": 7.5,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "FRIDAY_MHI": {
+        "arr": "07:00",
+        "dep": "13:00",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.75,
+        "GPAS": null,
+        "INSP": 4.5,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "MHI": {
+        "arr": "07:00",
+        "dep": "18:00",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.75,
+        "GPAS": null,
+        "INSP": 9.5,
+        "GNTB": null,
+        "GFSA": null
+      }
+    }
+  }
+}

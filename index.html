@@ -1066,7 +1066,27 @@ function renderTimesheet() {
 }
 
 function updateField(day, field, value) {
-  state.days[day][field] = value;
+  // Plant değiştiyse (ve gerçekten değişiyorsa) o satırdaki diğer tüm alanları sıfırla
+  if (field === 'plant' && state.days[day].plant !== value) {
+    state.days[day] = {
+      plant: value,
+      plantStatus: '',
+      status: '',
+      arrival: '',
+      departure: '',
+      sampling: '',
+      cd: false,
+      sha: false,
+      tb: false,
+      ai: false,
+      rcp: false,
+      enforcement: '',
+      enfInHours: '',
+      enfOutHours: ''
+    };
+  } else {
+    state.days[day][field] = value;
+  }
   saveData();
   renderTimesheet();
   renderOutcome();

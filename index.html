@@ -1154,28 +1154,86 @@ function computeOutcome() {
     if (!d || !d.plant) return;
     const statusType = d.status;
 
+    const hasUserTimes = !!(d.arrival || d.departure);
+    const cancelled = d.plantStatus === 'Cancelled';
+
     const isOV = OV_TYPES.some(t => statusType === t);
+    const isOVOnly = (statusType === 'OV Only');
+
     if (isOV) {
       const ovCodes = lookupOV(day, d.plant, statusType);
       if (ovCodes) {
         const ovSorStr = `${ovCodes.arr}-${ovCodes.dep}`;
-        const isOVOnly = (statusType === 'OV Only');
-        const ovActArr = isOVOnly ? ovCodes.arr : ((d.arrival && timeToH(d.arrival) > timeToH(ovCodes.arr)) ? d.arrival : ovCodes.arr);
-        const ovActDep = isOVOnly ? ovCodes.dep : (d.departure || ovCodes.dep);
-        const ovCancelled = d.plantStatus === 'Cancelled';
-        const computed = ovCancelled ? calcCancelledCodes(ovSorStr, ovCodes) : calcCodes(ovCodes, d, ovSorStr, ovActDep, false, ovActArr);
-        result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:ovCancelled?'00:00':ovActArr, dep:ovCancelled?'00:00':ovActDep, sorStr:ovSorStr, _rcp:!!(d.rcp&&String(d.plant)==='8145'), ...computed };
+
+        if (cancelled) {
+          // İptal edilmiş: mevcut davranış
+          const computed = calcCancelledCodes(ovSorStr, ovCodes);
+          result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:'00:00', dep:'00:00', sorStr:ovSorStr, _rcp:!!(d.rcp&&String(d.plant)==='8145'), ...computed };
+        } else if (!hasUserTimes) {
+          // Saat girilmedi: sadece SOR satırı görünsün, kodlar/Time boş
+          result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, sorStr:ovSorStr, _empty:true, _rcp:!!(d.rcp&&String(d.plant)==='8145') };
+        } else if (isOVOnly) {
+          // OV Only: kullanıcının saatlerini OV penceresine clip et
+          const sorArrH = timeToH(ovCodes.arr), sorDepH = timeToH(ovCodes.dep);
+          const userArrH = timeToH(d.arrival) ?? sorArrH;
+          const userDepH = timeToH(d.departure) ?? sorDepH;
+          // OV bölümü için clip: max(userArr, sorArr) → min(userDep, sorDep)
+          const clipArrH = Math.max(userArrH, sorArrH);
+          const clipDepH = Math.min(userDepH, sorDepH);
+          if (clipArrH < clipDepH) {
+            // OV penceresine giren süre var
+            const clipArr = (d.arrival && userArrH > sorArrH) ? d.arrival : ovCodes.arr;
+            const clipDep = (d.departure && userDepH < sorDepH) ? d.departure : ovCodes.dep;
+            const computed = calcCodes(ovCodes, d, ovSorStr, clipDep, false, clipArr);
+            result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:clipArr, dep:clipDep, sorStr:ovSorStr, _rcp:!!(d.rcp&&String(d.plant)==='8145'), ...computed };
+          } else {
+            // OV penceresine hiç girmedi → tümü IUWT
+            const sorTotal = round25(sorDepH - sorArrH);
+            result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:ovCodes.arr, dep:ovCodes.dep, sorStr:ovSorStr, _rcp:false, BREAK:null, GBPS:null, GSRM:null, GPAS:null, GWAG:null, GAVI:null, HLVI:null, GNTB:null, GFSA:null, INSP:null, IUWT:sorTotal };
+          }
+        } else {
+          // Normal OV: mevcut davranış
+          const ovActArr = (d.arrival && timeToH(d.arrival) > timeToH(ovCodes.arr)) ? d.arrival : ovCodes.arr;
+          const ovActDep = d.departure || ovCodes.dep;
+          const computed = calcCodes(ovCodes, d, ovSorStr, ovActDep, false, ovActArr);
+          result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:ovActArr, dep:ovActDep, sorStr:ovSorStr, _rcp:!!(d.rcp&&String(d.plant)==='8145'), ...computed };
+        }
       }
     }
 
     const mhiCodes = lookupMHI(day, d.plant, statusType);
     if (mhiCodes) {
       const mhiSorStr = `${mhiCodes.arr}-${mhiCodes.dep}`;
-      const mhiActArr = (d.arrival && timeToH(d.arrival) > timeToH(mhiCodes.arr)) ? d.arrival : mhiCodes.arr;
-      const mhiActDep = d.departure || mhiCodes.dep;
-      const mhiCancelled = d.plantStatus === 'Cancelled';
-      const computed = mhiCancelled ? calcCancelledCodes(mhiSorStr, mhiCodes) : calcCodes(mhiCodes, d, mhiSorStr, mhiActDep, true, mhiActArr);
-      result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, arr:mhiCancelled?'00:00':mhiActArr, dep:mhiCancelled?'00:00':mhiActDep, sorStr:mhiSorStr, ...computed };
+
+      if (cancelled) {
+        const computed = calcCancelledCodes(mhiSorStr, mhiCodes);
+        result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, arr:'00:00', dep:'00:00', sorStr:mhiSorStr, ...computed };
+      } else if (!hasUserTimes) {
+        result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, sorStr:mhiSorStr, _empty:true };
+      } else if (isOVOnly) {
+        // OV Only MHI bölümü: kullanıcının saatlerini MHI penceresine clip et
+        const sorArrH = timeToH(mhiCodes.arr), sorDepH = timeToH(mhiCodes.dep);
+        const userArrH = timeToH(d.arrival) ?? sorArrH;
+        const userDepH = timeToH(d.departure) ?? sorDepH;
+        const clipArrH = Math.max(userArrH, sorArrH);
+        const clipDepH = Math.min(userDepH, sorDepH);
+        if (clipArrH < clipDepH) {
+          const clipArr = (d.arrival && userArrH > sorArrH) ? d.arrival : mhiCodes.arr;
+          const clipDep = (d.departure && userDepH < sorDepH) ? d.departure : mhiCodes.dep;
+          const computed = calcCodes(mhiCodes, d, mhiSorStr, clipDep, true, clipArr);
+          result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, arr:clipArr, dep:clipDep, sorStr:mhiSorStr, ...computed };
+        } else {
+          // MHI penceresine hiç girmedi → tümü IUWT
+          const sorTotal = round25(sorDepH - sorArrH);
+          result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, arr:mhiCodes.arr, dep:mhiCodes.dep, sorStr:mhiSorStr, BREAK:null, GBPS:null, GSRM:null, GPAS:null, GWAG:null, GAVI:null, HLVI:null, GNTB:null, GFSA:null, INSP:null, IUWT:sorTotal };
+        }
+      } else {
+        // Normal MHI
+        const mhiActArr = (d.arrival && timeToH(d.arrival) > timeToH(mhiCodes.arr)) ? d.arrival : mhiCodes.arr;
+        const mhiActDep = d.departure || mhiCodes.dep;
+        const computed = calcCodes(mhiCodes, d, mhiSorStr, mhiActDep, true, mhiActArr);
+        result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, arr:mhiActArr, dep:mhiActDep, sorStr:mhiSorStr, ...computed };
+      }
     }
 
     if (d.enforcement) {
@@ -1208,8 +1266,8 @@ function renderOutcomeSection(containerId, sectionData) {
 
   [['', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
    ['SOR', (e) => e?.sorStr || '', 'var(--text-muted)', '400'],
-   ['Time', (e) => e ? `${e.arr}-${e.dep}` : '', 'var(--accent)', '400'],
-   ['', (e) => e ? formatCodes(e) : '', '#d97706', '400']
+   ['Time', (e) => (e && !e._empty && e.arr && e.dep) ? `${e.arr}-${e.dep}` : '', 'var(--accent)', '400'],
+   ['', (e) => (e && !e._empty) ? formatCodes(e) : '', '#d97706', '400']
   ].forEach(([label, fn, color, weight]) => {
     const lc = document.createElement('div'); lc.className='og-cell og-row-label'; lc.textContent=label; container.appendChild(lc);
     DAYS.forEach(day => {

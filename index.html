@@ -468,6 +468,7 @@
         <thead>
           <tr>
             <th>Day</th>
+            <th>Region <button onclick="resetColumn('region')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
             <th>Plant <button onclick="resetColumn('plant')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
             <th>Plant Status <button onclick="resetColumn('plantStatus')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
             <th>Status <button onclick="resetColumn('status')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
@@ -513,19 +514,14 @@
   <div class="panel" id="panel-sor">
     <div style="margin-bottom:20px">
       <div class="section-label">Plant SOR Reference</div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <label style="font-family:'IBM Plex Mono',monospace;font-size:15px;color:var(--text-muted)">Region:</label>
+        <select id="sorRegionSelect" onchange="onSORRegionChange()" style="font-size:15px;padding:6px 12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);width:140px">
+          <option value="">— Select —</option>
+        </select>
         <label style="font-family:'IBM Plex Mono',monospace;font-size:15px;color:var(--text-muted)">Plant:</label>
         <select id="sorPlantSelect" onchange="renderSORTable()" style="font-size:15px;padding:6px 12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);width:120px">
           <option value="">— Select —</option>
-          <option value="2172">2172</option>
-          <option value="2690">2690</option>
-          <option value="4015">4015</option>
-          <option value="4133">4133</option>
-          <option value="4138">4138</option>
-          <option value="4392">4392</option>
-          <option value="8072">8072</option>
-          <option value="8145">8145</option>
-          <option value="8165">8165</option>
         </select>
       </div>
       <div id="sorTableContainer"></div>
@@ -592,7 +588,7 @@
       <div class="ts-table-wrap" style="margin-bottom:24px">
         <table class="ts-table" id="ovCodesTable">
           <thead><tr>
-            <th>Day</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
+            <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
             <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th><th>GWAG</th>
             <th>GAVI</th><th>INSP</th><th>HLVI</th><th>GNTB</th><th>GFSA</th><th></th>
           </tr></thead>
@@ -603,7 +599,7 @@
       <div class="ts-table-wrap">
         <table class="ts-table" id="mhiCodesTable">
           <thead><tr>
-            <th>Day</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
+            <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
             <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th>
             <th>INSP</th><th>GNTB</th><th>GFSA</th><th></th>
           </tr></thead>
@@ -620,6 +616,12 @@
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:20px">
+          <!-- Regions -->
+          <div>
+            <div class="section-label">Regions</div>
+            <div id="dd-regions"></div>
+            <button onclick="addDDItem('regions')" style="font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 12px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer;margin-top:8px">+ Add</button>
+          </div>
           <!-- Plants -->
           <div>
             <div class="section-label">Plants</div>
@@ -665,6 +667,25 @@ const PLANTS = ['','2172','2690','4015','4133','4138','4392','8072','8145','8165
 const STATUSES = ['','Operational','Cancelled'];
 const OV_TYPES = ['OV','Lairage OV','Inside OV','OV Afternoon','OV Morning','OV Only','TB OV'];
 const MHI_TYPES = ['MHI','MHI1','MHI2'];
+
+// Regions ve plant-region eşleştirmesi
+let REGIONS = ['Cluster27', 'Cluster26'];
+let PLANT_REGIONS = {
+  '2172': 'Cluster27',
+  '2690': 'Cluster27',
+  '4015': 'Cluster27',
+  '4133': 'Cluster27',
+  '4138': 'Cluster27',
+  '4392': 'Cluster27',
+  '8072': 'Cluster27',
+  '8145': 'Cluster27',
+  '8165': 'Cluster27',
+};
+
+function getPlantsByRegion(region) {
+  if (!region) return [];
+  return PLANTS.filter(p => p && PLANT_REGIONS[p] === region);
+}
 
 // Valid statuses per plant+day (exact from OV CODES + MHI CODES sheets)
 // Key: 'plant' or 'DAY_plant', value: array of valid statuses
@@ -909,7 +930,7 @@ const SAMPLING_OPTS = ['','RIM','Trichinella','TSE (Goats and Sheep) (including 
 let state = loadState();
 
 function defaultState() {
-  const emptyDay = { plant:'', plantStatus:'', status:'', arrival:'', departure:'', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'', rcp:false };
+  const emptyDay = { region:'', plant:'', plantStatus:'', status:'', arrival:'', departure:'', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'', rcp:false };
   return { days: {
     'MONDAY':    { ...emptyDay },
     'TUESDAY':   { ...emptyDay },
@@ -1069,7 +1090,10 @@ function renderTimesheet() {
     const d = state.days[day];
     if (!d) return;
     const cancelled = d.plantStatus === 'Cancelled';
-    const plantOpts = PLANTS.map(p=>`<option value="${p}" ${p===d.plant?'selected':''}>${p||'—'}</option>`).join('');
+    // Region seçilmediyse plant dropdown boş; seçildiyse o region'a ait plantlar
+    const availablePlants = d.region ? ['', ...getPlantsByRegion(d.region)] : [''];
+    const regionOpts = ['', ...REGIONS].map(r=>`<option value="${r}" ${r===d.region?'selected':''}>${r||'—'}</option>`).join('');
+    const plantOpts = availablePlants.map(p=>`<option value="${p}" ${p===d.plant?'selected':''}>${p||'—'}</option>`).join('');
     const plantStatusOpts = STATUSES.map(s=>`<option value="${s}" ${s===d.plantStatus?'selected':''}>${s||'—'}</option>`).join('');
     const enfOpts = ['', ...ENF_LIST].map(e=>`<option value="${e}" ${e===d.enforcement?'selected':''}>${e||'—'}</option>`).join('');
     const samplingOpts = SAMPLING_OPTS.map(o=>`<option value="${o}" ${o===d.sampling?'selected':''}>${o||'—'}</option>`).join('');
@@ -1080,7 +1104,8 @@ function renderTimesheet() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="td-day">${day}</td>
-      <td style="min-width:110px"><select onchange="updateField('${day}','plant',this.value)">${plantOpts}</select></td>
+      <td style="min-width:110px"><select onchange="updateField('${day}','region',this.value)">${regionOpts}</select></td>
+      <td style="min-width:110px"><select onchange="updateField('${day}','plant',this.value)" ${!d.region?'disabled style="opacity:0.5"':''}>${plantOpts}</select></td>
       <td style="width:100px"><select onchange="updateField('${day}','plantStatus',this.value)">${plantStatusOpts}</select></td>
       <td style="width:130px"><select onchange="updateField('${day}','status',this.value)">${getStatusOpts(day, d.plant, d.status)}</select></td>
       <td style="width:120px">${arrHtml}</td>
@@ -1101,9 +1126,30 @@ function renderTimesheet() {
 }
 
 function updateField(day, field, value) {
-  // Plant değiştiyse (ve gerçekten değişiyorsa) o satırdaki diğer tüm alanları sıfırla
-  if (field === 'plant' && state.days[day].plant !== value) {
+  // Region değiştiyse o satırdaki TÜM alanları sıfırla (region dahil yeni değer)
+  if (field === 'region' && state.days[day].region !== value) {
     state.days[day] = {
+      region: value,
+      plant: '',
+      plantStatus: '',
+      status: '',
+      arrival: '',
+      departure: '',
+      sampling: '',
+      cd: false,
+      sha: false,
+      tb: false,
+      ai: false,
+      rcp: false,
+      enforcement: '',
+      enfInHours: '',
+      enfOutHours: ''
+    };
+  }
+  // Plant değiştiyse o satırdaki diğer tüm alanları sıfırla (region korunur)
+  else if (field === 'plant' && state.days[day].plant !== value) {
+    state.days[day] = {
+      region: state.days[day].region,
       plant: value,
       plantStatus: '',
       status: '',
@@ -1324,7 +1370,7 @@ function switchTab(tab) {
   document.getElementById('panel-' + tab).classList.add('active');
   if (typeof event !== 'undefined' && event && event.target) event.target.classList.add('active');
   if (tab === 'outcome') renderOutcome();
-  if (tab === 'sor') renderSORTable();
+  if (tab === 'sor') { populateSORRegions(); populateSORPlants(); renderSORTable(); }
   if (tab === 'codes') lockCodes();
 }
 
@@ -1359,7 +1405,7 @@ function getOVRows() {
   for (const [plant, statuses] of Object.entries(OV_CODES)) {
     for (const [key, c] of Object.entries(statuses)) {
       const parts = key.split('_'); const day = parts.length > 1 ? parts[0] : ''; const status = parts.length > 1 ? parts.slice(1).join(' ') : key;
-      rows.push({ day, plant, status, key, ...c });
+      rows.push({ day, region: PLANT_REGIONS[plant] || '', plant, status, key, ...c });
     }
   }
   return rows;
@@ -1370,10 +1416,15 @@ function getMHIRows() {
   for (const [plant, statuses] of Object.entries(MHI_CODES)) {
     for (const [key, c] of Object.entries(statuses)) {
       const parts = key.split('_'); const day = parts.length > 1 ? parts[0] : ''; const status = parts.length > 1 ? parts.slice(1).join(' ') : key;
-      rows.push({ day, plant, status, key, ...c });
+      rows.push({ day, region: PLANT_REGIONS[plant] || '', plant, status, key, ...c });
     }
   }
   return rows;
+}
+
+function regionSelect(currentVal, onChange) {
+  const opts = ['', ...REGIONS].map(r => `<option value="${r}" ${r===currentVal?'selected':''}>${r||'—'}</option>`).join('');
+  return `<select style="width:95px;font-size:11px;padding:4px" onchange="${onChange}">${opts}</select>`;
 }
 
 function renderOVCodesTable() {
@@ -1384,6 +1435,7 @@ function renderOVCodesTable() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><input style="width:90px;font-size:11px;padding:4px" value="${row.day}" onchange="${f('day')}"></td>
+      <td>${regionSelect(row.region, f('region'))}</td>
       <td><input style="width:55px;font-size:11px;padding:4px" value="${row.plant}" onchange="${f('plant')}"></td>
       <td><input style="width:100px;font-size:11px;padding:4px" value="${row.status}" onchange="${f('status')}"></td>
       <td><input style="width:65px;font-size:11px;padding:4px" value="${row.arr||''}" onchange="${f('arr')}"></td>
@@ -1398,7 +1450,7 @@ function renderOVCodesTable() {
     tbody.appendChild(tr);
   });
   const addTr = document.createElement('tr');
-  addTr.innerHTML = `<td colspan="16" style="padding:8px"><button onclick="addOVRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
+  addTr.innerHTML = `<td colspan="17" style="padding:8px"><button onclick="addOVRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
   tbody.appendChild(addTr);
 }
 
@@ -1410,6 +1462,7 @@ function renderMHICodesTable() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><input style="width:90px;font-size:11px;padding:4px" value="${row.day}" onchange="${f('day')}"></td>
+      <td>${regionSelect(row.region, f('region'))}</td>
       <td><input style="width:55px;font-size:11px;padding:4px" value="${row.plant}" onchange="${f('plant')}"></td>
       <td><input style="width:100px;font-size:11px;padding:4px" value="${row.status}" onchange="${f('status')}"></td>
       <td><input style="width:65px;font-size:11px;padding:4px" value="${row.arr||''}" onchange="${f('arr')}"></td>
@@ -1423,7 +1476,7 @@ function renderMHICodesTable() {
     tbody.appendChild(tr);
   });
   const addTr = document.createElement('tr');
-  addTr.innerHTML = `<td colspan="13" style="padding:8px"><button onclick="addMHIRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
+  addTr.innerHTML = `<td colspan="14" style="padding:8px"><button onclick="addMHIRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
   tbody.appendChild(addTr);
 }
 
@@ -1433,16 +1486,16 @@ function getMHIRowsMutable() { if (!_mhiRows) _mhiRows = getMHIRows(); return _m
 
 function updateOVCode(i, field, val) {
   const rows = getOVRowsMutable();
-  rows[i][field] = val==='' ? null : (['day','plant','status','arr','dep'].includes(field) ? val : parseFloat(val));
+  rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep'].includes(field) ? val : parseFloat(val));
 }
 function updateMHICode(i, field, val) {
   const rows = getMHIRowsMutable();
-  rows[i][field] = val==='' ? null : (['day','plant','status','arr','dep'].includes(field) ? val : parseFloat(val));
+  rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep'].includes(field) ? val : parseFloat(val));
 }
 function deleteOVRow(i) { getOVRowsMutable().splice(i,1); renderOVCodesTable(); }
 function deleteMHIRow(i) { getMHIRowsMutable().splice(i,1); renderMHICodesTable(); }
-function addOVRow() { getOVRowsMutable().push({day:'',plant:'',status:'',arr:'',dep:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null}); renderOVCodesTable(); }
-function addMHIRow() { getMHIRowsMutable().push({day:'',plant:'',status:'',arr:'',dep:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null}); renderMHICodesTable(); }
+function addOVRow() { getOVRowsMutable().push({day:'',region:'',plant:'',status:'',arr:'',dep:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null}); renderOVCodesTable(); }
+function addMHIRow() { getMHIRowsMutable().push({day:'',region:'',plant:'',status:'',arr:'',dep:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null}); renderMHICodesTable(); }
 
 function rowsToCodeObj(rows) {
   const obj = {};
@@ -1518,19 +1571,65 @@ function clearCodesFilter() {
 }
 
 function saveCodesEdit() {
+  // Önce satırlardan PLANT_REGIONS'u güncelle (tüm plantlar için)
+  const allRows = [...(_ovRows || []), ...(_mhiRows || [])];
+  if (allRows.length > 0) {
+    allRows.forEach(r => {
+      if (r.plant && r.region) {
+        PLANT_REGIONS[String(r.plant)] = r.region;
+      }
+    });
+    // Tablo dışında kalan plantları da koruyalım — PLANTS dropdown'una yeni plantları ekle
+    const tablePlants = new Set(allRows.map(r => String(r.plant)).filter(p => p));
+    tablePlants.forEach(p => {
+      if (!PLANTS.includes(p)) PLANTS.push(p);
+    });
+  }
+
   if (_ovRows) { const newOV = rowsToCodeObj(_ovRows); Object.keys(OV_CODES).forEach(k=>delete OV_CODES[k]); Object.assign(OV_CODES, newOV); _ovRows=null; }
   if (_mhiRows) { const newMHI = rowsToMHIObj(_mhiRows); Object.keys(MHI_CODES).forEach(k=>delete MHI_CODES[k]); Object.assign(MHI_CODES, newMHI); _mhiRows=null; }
   // localStorage'a kaydet ki sayfa yenilenince kaybolmasın
-  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES })); } catch(e) {}
-  renderOutcome(); renderCodesEditor(); alert('Codes saved! (Kalıcı yapmak için Export JSON ile codes.json indir ve GitHub\'a yükle.)');
+  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS })); } catch(e) {}
+  renderOutcome(); renderCodesEditor(); renderTimesheet(); alert('Codes saved! (Kalıcı yapmak için Export JSON ile codes.json indir ve GitHub\'a yükle.)');
 }
 
 // ─── SOR TABLE ──────────────────────────────────────────────────
+function populateSORRegions() {
+  const sel = document.getElementById('sorRegionSelect');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Select —</option>' +
+    REGIONS.map(r => `<option value="${r}" ${r===current?'selected':''}>${r}</option>`).join('');
+}
+
+function populateSORPlants() {
+  const regionSel = document.getElementById('sorRegionSelect');
+  const plantSel = document.getElementById('sorPlantSelect');
+  if (!plantSel) return;
+  const region = regionSel ? regionSel.value : '';
+  const plants = region ? getPlantsByRegion(region) : [];
+  const current = plantSel.value;
+  plantSel.innerHTML = '<option value="">— Select —</option>' +
+    plants.map(p => `<option value="${p}" ${p===current?'selected':''}>${p}</option>`).join('');
+}
+
+function onSORRegionChange() {
+  // Region değişti → plant listesini güncelle ve tabloyu temizle
+  populateSORPlants();
+  // Plant seçimi sıfırlandığı için tabloyu yeniden render et
+  renderSORTable();
+}
+
 function renderSORTable() {
+  const region = document.getElementById('sorRegionSelect')?.value;
   const plant = document.getElementById('sorPlantSelect')?.value;
   const container = document.getElementById('sorTableContainer');
   if (!container) return;
 
+  if (!region) {
+    container.innerHTML = "<div style='color:var(--text-muted);font-size:14px'>Please select a region first.</div>";
+    return;
+  }
   if (!plant) {
     container.innerHTML = "<div style='color:var(--text-muted);font-size:14px'>Please select a plant.</div>";
     return;
@@ -1640,9 +1739,15 @@ function commitPendingCodeRows() {
 
 function exportCodesJSON() {
   commitPendingCodeRows();
+  // Tablo değişikliklerinden PLANT_REGIONS'u tazele
+  Object.keys(OV_CODES).concat(Object.keys(MHI_CODES)).forEach(p => {
+    if (!PLANT_REGIONS[p]) PLANT_REGIONS[p] = '';
+  });
   const payload = {
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
+    REGIONS: REGIONS,
+    PLANT_REGIONS: PLANT_REGIONS,
     OV_CODES: OV_CODES,
     MHI_CODES: MHI_CODES,
   };
@@ -1672,7 +1777,19 @@ function importCodesJSON(input) {
       Object.assign(OV_CODES, data.OV_CODES);
       Object.keys(MHI_CODES).forEach(k => delete MHI_CODES[k]);
       Object.assign(MHI_CODES, data.MHI_CODES);
-      try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES })); } catch(err) {}
+      // Region bilgisi varsa onları da yükle
+      if (data.REGIONS && Array.isArray(data.REGIONS)) {
+        REGIONS.length = 0; REGIONS.push(...data.REGIONS);
+      }
+      if (data.PLANT_REGIONS) {
+        Object.keys(PLANT_REGIONS).forEach(k => delete PLANT_REGIONS[k]);
+        Object.assign(PLANT_REGIONS, data.PLANT_REGIONS);
+      }
+      // PLANTS'ı tazele (yeni eklenmiş plantlar olabilir)
+      Object.keys({...OV_CODES, ...MHI_CODES}).forEach(p => {
+        if (!PLANTS.includes(p)) PLANTS.push(p);
+      });
+      try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS })); } catch(err) {}
       _ovRows = null;
       _mhiRows = null;
       renderCodesEditor();
@@ -1689,16 +1806,31 @@ function importCodesJSON(input) {
 
 // Sayfa açılırken codes.json'u dene; yoksa localStorage'a, o da yoksa gömülü default'a düş.
 async function loadCodesFromFile() {
+  function applyData(data) {
+    if (!data || !data.OV_CODES || !data.MHI_CODES) return false;
+    Object.keys(OV_CODES).forEach(k => delete OV_CODES[k]);
+    Object.assign(OV_CODES, data.OV_CODES);
+    Object.keys(MHI_CODES).forEach(k => delete MHI_CODES[k]);
+    Object.assign(MHI_CODES, data.MHI_CODES);
+    if (data.REGIONS && Array.isArray(data.REGIONS)) {
+      REGIONS.length = 0; REGIONS.push(...data.REGIONS);
+    }
+    if (data.PLANT_REGIONS) {
+      Object.keys(PLANT_REGIONS).forEach(k => delete PLANT_REGIONS[k]);
+      Object.assign(PLANT_REGIONS, data.PLANT_REGIONS);
+    }
+    Object.keys({...OV_CODES, ...MHI_CODES}).forEach(p => {
+      if (!PLANTS.includes(p)) PLANTS.push(p);
+    });
+    return true;
+  }
+
   // 1) Önce aynı dizindeki codes.json
   try {
     const res = await fetch('codes.json', { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
-      if (data.OV_CODES && data.MHI_CODES) {
-        Object.keys(OV_CODES).forEach(k => delete OV_CODES[k]);
-        Object.assign(OV_CODES, data.OV_CODES);
-        Object.keys(MHI_CODES).forEach(k => delete MHI_CODES[k]);
-        Object.assign(MHI_CODES, data.MHI_CODES);
+      if (applyData(data)) {
         renderTimesheet();
         renderOutcome();
         return;
@@ -1706,16 +1838,12 @@ async function loadCodesFromFile() {
     }
   } catch(e) { /* file:// veya 404 — sessizce geç */ }
 
-  // 2) localStorage fallback (kullanıcı import etmiş olabilir)
+  // 2) localStorage fallback
   try {
     const cached = localStorage.getItem('ts_codes');
     if (cached) {
       const data = JSON.parse(cached);
-      if (data.OV_CODES && data.MHI_CODES) {
-        Object.keys(OV_CODES).forEach(k => delete OV_CODES[k]);
-        Object.assign(OV_CODES, data.OV_CODES);
-        Object.keys(MHI_CODES).forEach(k => delete MHI_CODES[k]);
-        Object.assign(MHI_CODES, data.MHI_CODES);
+      if (applyData(data)) {
         renderTimesheet();
         renderOutcome();
       }
@@ -1737,6 +1865,7 @@ function switchAdminTab(tab) {
 
 // ─── DROP-DOWN EDITOR ───────────────────────────────────────────
 const DD_DATA = {
+  regions: [...REGIONS],
   plants: [...PLANTS.filter(p=>p)],
   status: ['OV','Lairage OV','Inside OV','MHI','OV Only','TB OV','OV Afternoon','OV Morning','MHI1','MHI2'],
   days: [...DAYS],
@@ -1761,6 +1890,9 @@ function renderDDList(key) {
 }
 
 function renderAllDD() {
+  // DD_DATA'yı her render'da güncel REGIONS/PLANTS ile tazele
+  DD_DATA.regions = [...REGIONS];
+  DD_DATA.plants = [...PLANTS.filter(p=>p)];
   Object.keys(DD_DATA).forEach(k => renderDDList(k));
 }
 
@@ -1775,10 +1907,13 @@ function removeDDItem(key, i) {
 }
 
 function saveDropDown() {
-  PLANTS.length = 0; PLANTS.push('', ...DD_DATA.plants);
+  REGIONS.length = 0; REGIONS.push(...DD_DATA.regions.filter(r=>r));
+  PLANTS.length = 0; PLANTS.push('', ...DD_DATA.plants.filter(p=>p));
   SAMPLING_OPTS.length = 0; SAMPLING_OPTS.push('', ...DD_DATA.sampling);
   const newEnfList = DD_DATA.enforcement;
   ENF_LIST.length = 0; ENF_LIST.push(...newEnfList);
+  // localStorage'a region/plant kaydı
+  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS })); } catch(e) {}
   renderTimesheet();
   renderOutcome();
   renderAllDD();

@@ -1,6 +1,21 @@
 {
-  "version": 1,
-  "exportedAt": "2026-05-07T05:07:09.415Z",
+  "version": 2,
+  "exportedAt": "2026-05-08T07:16:44.742Z",
+  "REGIONS": [
+    "Cluster27",
+    "Cluster26"
+  ],
+  "PLANT_REGIONS": {
+    "2172": "Cluster27",
+    "2690": "Cluster27",
+    "4015": "Cluster27",
+    "4133": "Cluster27",
+    "4138": "Cluster27",
+    "4392": "Cluster27",
+    "8072": "Cluster27",
+    "8145": "Cluster27",
+    "8165": "Cluster27"
+  },
   "OV_CODES": {
     "2172": {
       "Inside OV": {
@@ -513,9 +528,9 @@
         "dep": "15:00",
         "BREAK": null,
         "GBPS": null,
-        "GSRM": 0.5,
+        "GSRM": 0.25,
         "GPAS": null,
-        "INSP": 4,
+        "INSP": 4.25,
         "GNTB": null,
         "GFSA": null
       },

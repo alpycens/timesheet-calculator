@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-08T07:16:44.742Z",
+  "exportedAt": "2026-05-08T21:51:53.444Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -240,7 +240,23 @@
         "GAVI": null,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
+      },
+      "WEDNESDAY_OV": {
+        "arr": "08:00",
+        "dep": "17:00",
+        "BREAK": null,
+        "GBPS": 0.5,
+        "GSRM": 0.5,
+        "GPAS": 0.5,
+        "GWAG": 0.75,
+        "INSP": 7.5,
+        "GAVI": null,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5,
+        "RCP": 1
       },
       "OV Afternoon": {
         "arr": "15:00",
@@ -254,7 +270,8 @@
         "GAVI": null,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.75
+        "GFSA": 0.75,
+        "RCP": null
       },
       "OV Morning": {
         "arr": "07:30",
@@ -268,7 +285,8 @@
         "GAVI": null,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       }
     },
     "8165": {

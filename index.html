@@ -480,7 +480,6 @@
             <th class="group-checks">SHA</th>
             <th class="group-checks">TB</th>
             <th class="group-checks">AI Zone</th>
-            <th class="group-checks">RCP</th>
             <th class="group-enf">Enforcement</th>
             <th class="group-enf">In Hours</th>
             <th class="group-enf">Out Hours</th>
@@ -590,7 +589,7 @@
           <thead><tr>
             <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
             <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th><th>GWAG</th>
-            <th>GAVI</th><th>INSP</th><th>HLVI</th><th>GNTB</th><th>GFSA</th><th></th>
+            <th>GAVI</th><th>INSP</th><th>HLVI</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th></th>
           </tr></thead>
           <tbody id="ovCodesBody"></tbody>
         </table>
@@ -798,9 +797,10 @@ const OV_CODES = {
     'THURSDAY_TB OV':      { arr:'09:00', dep:'16:00', BREAK:null, GBPS:null, GSRM:null, GPAS:null, GWAG:0.75, INSP:null, GAVI:null, HLVI:0.5, GNTB:7.5, GFSA:0.5 },
   },
   '8145': {
-    'OV':                  { arr:'08:00', dep:'17:00', BREAK:null, GBPS:0.5,  GSRM:0.5,  GPAS:0.5,  GWAG:0.75, INSP:7.5,  GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
-    'OV Afternoon':        { arr:'15:00', dep:'20:30', BREAK:0.5,  GBPS:0.5,  GSRM:0.5,  GPAS:null, GWAG:0.75, INSP:4,    GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.75 },
-    'OV Morning':          { arr:'07:30', dep:'15:00', BREAK:0.5,  GBPS:null, GSRM:0.5,  GPAS:null, GWAG:0.75, INSP:6.5,  GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
+    'OV':                  { arr:'08:00', dep:'17:00', BREAK:null, GBPS:0.5,  GSRM:0.5,  GPAS:0.5,  GWAG:0.75, INSP:7.5,  GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5,  RCP:null },
+    'WEDNESDAY_OV':        { arr:'08:00', dep:'17:00', BREAK:null, GBPS:0.5,  GSRM:0.5,  GPAS:0.5,  GWAG:0.75, INSP:7.5,  GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5,  RCP:1    },
+    'OV Afternoon':        { arr:'15:00', dep:'20:30', BREAK:0.5,  GBPS:0.5,  GSRM:0.5,  GPAS:null, GWAG:0.75, INSP:4,    GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.75, RCP:null },
+    'OV Morning':          { arr:'07:30', dep:'15:00', BREAK:0.5,  GBPS:null, GSRM:0.5,  GPAS:null, GWAG:0.75, INSP:6.5,  GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5,  RCP:null },
   },
   '8165': {
     'MONDAY_OV':           { arr:'06:45', dep:'18:00', BREAK:0.5,  GBPS:0.25, GSRM:1,    GPAS:0.5,  GWAG:0.75, INSP:9,    GAVI:null, HLVI:0.5, GNTB:0.5, GFSA:0.5 },
@@ -930,7 +930,7 @@ const SAMPLING_OPTS = ['','RIM','Trichinella','TSE (Goats and Sheep) (including 
 let state = loadState();
 
 function defaultState() {
-  const emptyDay = { region:'', plant:'', plantStatus:'', status:'', arrival:'', departure:'', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'', rcp:false };
+  const emptyDay = { region:'', plant:'', plantStatus:'', status:'', arrival:'', departure:'', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'' };
   return { days: {
     'MONDAY':    { ...emptyDay },
     'TUESDAY':   { ...emptyDay },
@@ -972,11 +972,11 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   const BREAK = codes.BREAK ?? null;
   const GBPS  = codes.GBPS  ?? null;
   const GSRM_base = codes.GSRM ?? null;
-  // RCP: 8145 OV için ayrı 1 GSRM-RCP satırı eklenir; bu 1 saat INSP'ten düşer.
-  // GSRM ana değeri DEĞİŞMEZ — sadece formatCodes'ta ayrı satır gösterilir.
-  const rcpActive = (d.rcp && String(d.plant) === '8145' && !isMHI);
+  // RCP: kodda RCP değeri varsa otomatik aktif. Ekstra GSRM-RCP olarak ayrı satır
+  // gösterilir; bu saatler INSP'ten (ana absorber) düşülür.
+  const rcpVal = (!isMHI && codes.RCP != null) ? codes.RCP : 0;
   const GSRM = GSRM_base;
-  const rcpExtraHours = rcpActive ? 1 : 0;
+  const rcpExtraHours = rcpVal;
   const GPAS  = codes.GPAS  ?? null;
   const isInsideOV = (!isMHI && String(d.plant) === '2172' && d.status === 'Inside OV');
   const isTBOV = (!isMHI && d.status === 'TB OV');
@@ -1116,7 +1116,6 @@ function renderTimesheet() {
       <td style="text-align:center"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)" ${d.sha?'checked':''} onchange="updateField('${day}','sha',this.checked)"></td>
       <td style="text-align:center"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)" ${d.tb?'checked':''} onchange="updateField('${day}','tb',this.checked)"></td>
       <td style="text-align:center"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)" ${d.ai?'checked':''} onchange="updateField('${day}','ai',this.checked)"></td>
-      <td style="text-align:center">${d.plant === '8145' ? `<input type="checkbox" style="width:14px;height:14px;accent-color:#7c3aed" ${d.rcp?'checked':''} onchange="updateField('${day}','rcp',this.checked)">` : ''}</td>
       <td style="min-width:180px"><select onchange="updateField('${day}','enforcement',this.value)">${enfOpts}</select></td>
       <td style="width:72px"><input type="number" step="0.25" min="0" value="${d.enfInHours}" placeholder="0" onchange="updateField('${day}','enfInHours',this.value)"></td>
       <td style="width:72px"><input type="number" step="0.25" min="0" value="${d.enfOutHours}" placeholder="0" onchange="updateField('${day}','enfOutHours',this.value)"></td>
@@ -1214,10 +1213,10 @@ function computeOutcome() {
         if (cancelled) {
           // İptal edilmiş: mevcut davranış
           const computed = calcCancelledCodes(ovSorStr, ovCodes);
-          result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:'00:00', dep:'00:00', sorStr:ovSorStr, _rcp:!!(d.rcp&&String(d.plant)==='8145'), ...computed };
+          result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:'00:00', dep:'00:00', sorStr:ovSorStr, _rcp:(ovCodes.RCP||null), ...computed };
         } else if (!hasUserTimes) {
           // Saat girilmedi: sadece SOR satırı görünsün, kodlar/Time boş
-          result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, sorStr:ovSorStr, _empty:true, _rcp:!!(d.rcp&&String(d.plant)==='8145') };
+          result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, sorStr:ovSorStr, _empty:true, _rcp:(ovCodes.RCP||null) };
         } else if (isOVOnly) {
           // OV Only: kullanıcının saatlerini OV penceresine clip et
           const sorArrH = timeToH(ovCodes.arr), sorDepH = timeToH(ovCodes.dep);
@@ -1231,7 +1230,7 @@ function computeOutcome() {
             const clipArr = (d.arrival && userArrH > sorArrH) ? d.arrival : ovCodes.arr;
             const clipDep = (d.departure && userDepH < sorDepH) ? d.departure : ovCodes.dep;
             const computed = calcCodes(ovCodes, d, ovSorStr, clipDep, false, clipArr);
-            result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:clipArr, dep:clipDep, sorStr:ovSorStr, _rcp:!!(d.rcp&&String(d.plant)==='8145'), ...computed };
+            result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:clipArr, dep:clipDep, sorStr:ovSorStr, _rcp:(ovCodes.RCP||null), ...computed };
           } else {
             // OV penceresine hiç girmedi → tümü IUWT
             const sorTotal = round25(sorDepH - sorArrH);
@@ -1242,7 +1241,7 @@ function computeOutcome() {
           const ovActArr = (d.arrival && timeToH(d.arrival) > timeToH(ovCodes.arr)) ? d.arrival : ovCodes.arr;
           const ovActDep = d.departure || ovCodes.dep;
           const computed = calcCodes(ovCodes, d, ovSorStr, ovActDep, false, ovActArr);
-          result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:ovActArr, dep:ovActDep, sorStr:ovSorStr, _rcp:!!(d.rcp&&String(d.plant)==='8145'), ...computed };
+          result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:ovActArr, dep:ovActDep, sorStr:ovSorStr, _rcp:(ovCodes.RCP||null), ...computed };
         }
       }
     }
@@ -1294,7 +1293,7 @@ function formatCodes(entry) {
   const fields = ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','IUWT','IENF','NENF'];
   let parts = fields.filter(k => entry[k] != null && entry[k] !== '').map(k => `${entry[k]} ${k}`);
 
-  if (entry._rcp) parts.push('1 GSRM-RCP');
+  if (entry._rcp) parts.push(`${entry._rcp} GSRM-RCP`);
   return parts.join('\n');
 }
 
@@ -1453,12 +1452,13 @@ function renderOVCodesTable() {
       <td>${numInput(row.GWAG, f('GWAG'))}</td><td>${numInput(row.GAVI, f('GAVI'))}</td>
       <td>${numInput(row.INSP, f('INSP'))}</td><td>${numInput(row.HLVI, f('HLVI'))}</td>
       <td>${numInput(row.GNTB, f('GNTB'))}</td><td>${numInput(row.GFSA, f('GFSA'))}</td>
+      <td>${numInput(row.RCP, f('RCP'))}</td>
       <td><button onclick="deleteOVRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
   const addTr = document.createElement('tr');
-  addTr.innerHTML = `<td colspan="17" style="padding:8px"><button onclick="addOVRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
+  addTr.innerHTML = `<td colspan="18" style="padding:8px"><button onclick="addOVRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
   tbody.appendChild(addTr);
 }
 
@@ -1502,7 +1502,7 @@ function updateMHICode(i, field, val) {
 }
 function deleteOVRow(i) { getOVRowsMutable().splice(i,1); renderOVCodesTable(); }
 function deleteMHIRow(i) { getMHIRowsMutable().splice(i,1); renderMHICodesTable(); }
-function addOVRow() { getOVRowsMutable().push({day:'',region:'',plant:'',status:'',arr:'',dep:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null}); renderOVCodesTable(); }
+function addOVRow() { getOVRowsMutable().push({day:'',region:'',plant:'',status:'',arr:'',dep:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null,RCP:null}); renderOVCodesTable(); }
 function addMHIRow() { getMHIRowsMutable().push({day:'',region:'',plant:'',status:'',arr:'',dep:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null}); renderMHICodesTable(); }
 
 function rowsToCodeObj(rows) {
@@ -1512,7 +1512,7 @@ function rowsToCodeObj(rows) {
     if (!obj[plant]) obj[plant] = {};
     const key = r.day ? `${r.day}_${r.status}` : r.status;
     const entry = { arr:r.arr, dep:r.dep };
-    ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
+    ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','RCP'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     obj[plant][key] = entry;
   });
   return obj;
@@ -1670,8 +1670,10 @@ function renderSORTable() {
           ...(isInsideOVRow ? [] : ['HLVI'])
         ];
         const codes = FIELDS_OV.filter(k => ovCodes[k] != null && !OV_CONDITIONAL.includes(k)).map(k => `${ovCodes[k]} ${k}`).join(' | ');
-        const isWedOV8145 = (plant==='8145' && day==='WEDNESDAY' && status==='OV');
-        if (!seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', sor: sorStr, codes, rcpNote: isWedOV8145, rcpInspNote: isWedOV8145, trichNote: (plant==='8145' && status==='OV Afternoon') }); }
+        // RCP veri-odaklı: kodda RCP > 0 varsa not göster
+        const rcpVal = (ovCodes.RCP != null && ovCodes.RCP > 0) ? ovCodes.RCP : null;
+        const inspAfterRcp = (rcpVal != null && ovCodes.INSP != null) ? round25(ovCodes.INSP - rcpVal) : null;
+        if (!seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', sor: sorStr, codes, rcpNote: rcpVal, rcpInspNote: inspAfterRcp, trichNote: (plant==='8145' && status==='OV Afternoon') }); }
       }
       if (mhiCodes) {
         const sorStr = `${mhiCodes.arr}-${mhiCodes.dep}`;
@@ -1711,8 +1713,8 @@ function renderSORTable() {
         html += '<div style="font-size:12px;color:' + typeColor + ';font-family:monospace;margin-bottom:4px">' + r.type + '</div>';
         html += '<div style="background:#fefce8;color:#92580a;font-family:monospace;font-size:12px;padding:2px 6px;border-radius:3px;margin-bottom:6px;display:inline-block">' + r.sor + '</div>';
         let codesHtml = r.codes.split(' | ').join('<br>');
-        if (r.rcpNote) codesHtml += '<br><span style="color:#dc2626;font-weight:600">RCP: 1 GSRM</span>';
-        if (r.rcpInspNote) codesHtml += '<br><span style="color:#dc2626;font-weight:600">6.5 INSP (if RCP)</span>';
+        if (r.rcpNote != null) codesHtml += `<br><span style="color:#dc2626;font-weight:600">RCP: ${r.rcpNote} GSRM</span>`;
+        if (r.rcpInspNote != null) codesHtml += `<br><span style="color:#dc2626;font-weight:600">${r.rcpInspNote} INSP (if RCP)</span>`;
         if (r.trichNote) codesHtml += '<br><span style="color:#06b6d4;font-weight:600">0.75 GFSA (if Trich)</span>';
         html += '<div style="color:#d97706;font-size:11px;line-height:1.8">' + codesHtml + '</div>';
         html += '</div>';

@@ -1398,7 +1398,15 @@ function numInput(val, onChange) {
   return `<input type="number" step="0.25" min="0" value="${val??''}" placeholder="—" style="width:58px;padding:4px 5px;font-size:11px" onchange="${onChange}">`;
 }
 
-function renderCodesEditor() { renderOVCodesTable(); renderMHICodesTable(); applyCodesFilter(); renderAllDD(); }
+function renderCodesEditor() {
+  // _ovRows ve _mhiRows null'a çek ki güncel OV_CODES/MHI_CODES'tan tekrar oluşturulsun
+  _ovRows = null;
+  _mhiRows = null;
+  renderOVCodesTable();
+  renderMHICodesTable();
+  applyCodesFilter();
+  renderAllDD();
+}
 
 function getOVRows() {
   const rows = [];
@@ -1430,7 +1438,7 @@ function regionSelect(currentVal, onChange) {
 function renderOVCodesTable() {
   const tbody = document.getElementById('ovCodesBody');
   tbody.innerHTML = '';
-  getOVRows().forEach((row, i) => {
+  getOVRowsMutable().forEach((row, i) => {
     const f = (field) => `updateOVCode(${i},'${field}',this.value)`;
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -1457,7 +1465,7 @@ function renderOVCodesTable() {
 function renderMHICodesTable() {
   const tbody = document.getElementById('mhiCodesBody');
   tbody.innerHTML = '';
-  getMHIRows().forEach((row, i) => {
+  getMHIRowsMutable().forEach((row, i) => {
     const f = (field) => `updateMHICode(${i},'${field}',this.value)`;
     const tr = document.createElement('tr');
     tr.innerHTML = `

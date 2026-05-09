@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-09T07:57:22.899Z",
+  "exportedAt": "2026-05-09T09:18:38.120Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -14,6 +14,7 @@
     "4392": "Cluster27",
     "8061": "Cluster26",
     "8072": "Cluster27",
+    "8119": "Cluster26",
     "8145": "Cluster27",
     "8165": "Cluster27"
   },
@@ -336,6 +337,72 @@
         "GNTB": 7.5,
         "GFSA": 0.5,
         "RCP": null
+      }
+    },
+    "8119": {
+      "TUESDAY_OV": {
+        "arr": "06:30",
+        "dep": "18:15",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": 0.5,
+        "GSRM": 0.5,
+        "GPAS": 0.5,
+        "GWAG": 0.75,
+        "GAVI": null,
+        "INSP": 9.25,
+        "HLVI": 0.5,
+        "GNTB": 0.5,
+        "GFSA": 0.5,
+        "RCP": 1
+      },
+      "WEDNESDAY_OV": {
+        "arr": "07:30",
+        "dep": "17:45",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": 0.5,
+        "GSRM": 0.5,
+        "GPAS": 0.5,
+        "GWAG": null,
+        "GAVI": 7.75,
+        "INSP": null,
+        "HLVI": 0.5,
+        "GNTB": null,
+        "GFSA": null,
+        "RCP": 1
+      },
+      "THURSDAY_OV": {
+        "arr": "08:00",
+        "dep": "17:45",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": 0.5,
+        "GSRM": 0.5,
+        "GPAS": 0.5,
+        "GWAG": null,
+        "GAVI": null,
+        "INSP": 7.25,
+        "HLVI": 0.5,
+        "GNTB": null,
+        "GFSA": null,
+        "RCP": 1
+      },
+      "FRIDAY_OV": {
+        "arr": "06:30",
+        "dep": "18:15",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": 0.5,
+        "GSRM": 0.5,
+        "GPAS": 0.5,
+        "GWAG": null,
+        "GAVI": null,
+        "INSP": 9.25,
+        "HLVI": 0.5,
+        "GNTB": null,
+        "GFSA": null,
+        "RCP": 1
       }
     },
     "8145": {

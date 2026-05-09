@@ -759,9 +759,39 @@ const DAY_PLANT_STATUSES = {
 };
 
 function getValidStatuses(day, plant) {
-  const dayKey = day + '_' + plant;
-  if (DAY_PLANT_STATUSES[dayKey] !== undefined) return DAY_PLANT_STATUSES[dayKey];
-  return PLANT_STATUSES[String(plant)] || [];
+  // Codes tablolarından otomatik türet — Day + Plant + Status kombinasyonuna göre:
+  // Bir status, bu (day, plant) için geçerlidir eğer:
+  //   - Day-specific kayıt (DAY_status) varsa  → her durumda geçerli
+  //   - Generic kayıt (status) varsa            → SADECE hafta içinde (Mon-Fri) geçerli
+  // Cumartesi/Pazar için sadece day-specific kayıtlar geçerli; generic'ler değil.
+  if (!plant) return [];
+  const result = new Set();
+  const sources = [OV_CODES[String(plant)], MHI_CODES[String(plant)]];
+  const isWeekend = (day === 'SATURDAY' || day === 'SUNDAY');
+  const dayPrefix = day + '_';
+  const ALL_DAY_PREFIXES = DAYS.map(d => d + '_');
+
+  for (const src of sources) {
+    if (!src) continue;
+    for (const key of Object.keys(src)) {
+      // 1) Bu day'in day-specific kaydı mı? (örn 'WEDNESDAY_OV' ve day=WEDNESDAY)
+      if (key.startsWith(dayPrefix)) {
+        result.add(key.slice(dayPrefix.length));
+        continue;
+      }
+      // 2) Başka bir günün day-specific kaydı mı? (örn 'MONDAY_OV' ama day=TUESDAY)
+      // Eğer öyleyse, bu key bizim için yok sayılır — AMA aynı status'un generic kaydı varsa
+      // o aşağıdaki blokta yakalanacak.
+      const isOtherDaySpecific = ALL_DAY_PREFIXES.some(p => key.startsWith(p));
+      if (isOtherDaySpecific) continue;
+      // 3) Generic kayıt — sadece hafta içi günlerde geçerli
+      if (!isWeekend) {
+        result.add(key);
+      }
+    }
+  }
+
+  return [...result];
 }
 
 // OV CODES lookup: { plant: { status: { arrival, departure, codes: {BREAK,GBPS,GSRM,GPAS,GWAG,INSP,HLVI,GNTB,GFSA,IENF,NENF} } } }
@@ -841,7 +871,6 @@ const MHI_CODES = {
     'TUESDAY_MHI2':  { arr:'10:30', dep:'15:00', BREAK:null, GBPS:null, GSRM:0.25, GPAS:null, INSP:4.25, GNTB:null, GFSA:null },
     'WEDNESDAY_MHI2':{ arr:'10:30', dep:'15:00', BREAK:null, GBPS:null, GSRM:0.25, GPAS:null, INSP:4.25, GNTB:null, GFSA:null },
     'THURSDAY_MHI2': { arr:'09:00', dep:'16:00', BREAK:null, GBPS:null, GSRM:null, GPAS:null, INSP:null, GNTB:7.5,  GFSA:null },
-    'MHI2':          { arr:'10:30', dep:'15:00', BREAK:0.5,  GBPS:null, GSRM:0.25, GPAS:null, INSP:3.75, GNTB:null, GFSA:null },
   },
   '8145': {
     'MONDAY_MHI':    { arr:'08:15', dep:'14:00', BREAK:null, GBPS:null, GSRM:0.25, GPAS:null, INSP:5.5,  GNTB:null, GFSA:null },
@@ -1681,7 +1710,7 @@ function renderSORTable() {
         const isGNTBMain = (day === 'TUESDAY' && status === 'MHI1') || (day === 'THURSDAY' && status === 'MHI2');
         const MHI_CONDITIONAL = isGNTBMain ? ['GFSA','GWAG','GAVI','HLVI'] : ['GNTB','GFSA','GWAG','GAVI','HLVI'];
         const codes = FIELDS_MHI.filter(k => mhiCodes[k] != null && !MHI_CONDITIONAL.includes(k)).map(k => `${mhiCodes[k]} ${k}`).join(' | ');
-        if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', sor: sorStr, codes, rcpNote: false, rcpInspNote: false, trichNote: false }); }
+        if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', sor: sorStr, codes, rcpNote: null, rcpInspNote: null, trichNote: false }); }
       }
     });
   });

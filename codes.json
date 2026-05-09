@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-08T21:51:53.444Z",
+  "exportedAt": "2026-05-09T00:54:54.116Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -561,17 +561,6 @@
         "GPAS": null,
         "INSP": null,
         "GNTB": 7.5,
-        "GFSA": null
-      },
-      "MHI2": {
-        "arr": "10:30",
-        "dep": "15:00",
-        "BREAK": 0.5,
-        "GBPS": null,
-        "GSRM": 0.25,
-        "GPAS": null,
-        "INSP": 3.75,
-        "GNTB": null,
         "GFSA": null
       }
     },

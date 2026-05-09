@@ -494,6 +494,8 @@
     background: var(--bg);
     word-break: break-word;
     line-height: 1.4;
+    /* Override flex from .og-cell — multi-line code lists should flow as block */
+    display: block;
   }
   .og-value.empty { color: var(--border); }
   .og-value.highlight { color: var(--accent); }
@@ -609,6 +611,11 @@
 
     <div class="section-label">OV Timesheet</div>
     <div style="overflow-x:auto"><div class="outcome-grid" id="ovGrid"></div></div>
+
+    <div id="rcpSection" style="display:none">
+      <div class="section-label">RCP</div>
+      <div style="overflow-x:auto"><div class="outcome-grid" id="rcpGrid"></div></div>
+    </div>
 
     <div class="section-label">MHI Timesheet</div>
     <div style="overflow-x:auto"><div class="outcome-grid" id="mhiGrid"></div></div>
@@ -999,16 +1006,29 @@ const MHI_CODES = {
   },
 }
 
+// Hafta içi günleri (default kodlar sadece bu günler için geçerli)
+const WEEKDAYS = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY'];
+
 function lookupOV(day, plant, status) {
   const p = OV_CODES[String(plant)];
   if (!p) return null;
-  return p[day + '_' + status] || p[status] || null;
+  // Gün-spesifik kod varsa onu kullan
+  const daySpecific = p[day + '_' + status];
+  if (daySpecific) return daySpecific;
+  // Default kod (gün belirtilmemiş) sadece Pzt-Cuma için geçerli
+  if (p[status] && WEEKDAYS.includes(day)) return p[status];
+  return null;
 }
 
 function lookupMHI(day, plant, status) {
   const p = MHI_CODES[String(plant)];
   if (!p) return null;
-  return p[day + '_' + status] || p[status] || null;
+  // Gün-spesifik kod varsa onu kullan
+  const daySpecific = p[day + '_' + status];
+  if (daySpecific) return daySpecific;
+  // Default kod (gün belirtilmemiş) sadece Pzt-Cuma için geçerli
+  if (p[status] && WEEKDAYS.includes(day)) return p[status];
+  return null;
 }
 
 const SOR_CODES = {
@@ -1136,16 +1156,39 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     absorber = (isTBOV || hasGNTBAsMain) ? 'GNTB' : (isInsideOV ? 'HLVI' : 'INSP');
   }
 
-  // Conditional kodlar: checkbox/sampling'e bağlı
-  const GWAG  = d.cd                                  ? (codes.GWAG ?? null) : null;
-  const GFSA  = (d.sampling && d.sampling !== '')     ? (codes.GFSA ?? null) : null;
-  // HLVI: Inside OV her zaman, diğer durumlarda SHA checkbox'a bağlı — AMA absorber HLVI ise koşulsuz aktif
-  const HLVI  = (absorber === 'HLVI' || isInsideOV)   ? (codes.HLVI ?? null) : (d.sha ? (codes.HLVI ?? null) : null);
-  // GNTB: absorber GNTB veya TB OV ise koşulsuz aktif, yoksa TB checkbox'a bağlı
-  const GNTB  = (absorber === 'GNTB' || isTBOV)       ? (codes.GNTB ?? null) : (d.tb  ? (codes.GNTB ?? null) : null);
-  const GAVI  = d.ai                                  ? (codes.GAVI ?? null) : null;
+  // ALWAYS_ACTIVE: admin panelinden pin'lenen kodlar — her zaman aktif (checkbox'a bakmaz)
+  const alwaysSet = new Set(Array.isArray(codes.ALWAYS_ACTIVE) ? codes.ALWAYS_ACTIVE : []);
+  const isAlways = (key) => alwaysSet.has(key);
+
+  // Conditional kodlar: checkbox/sampling'e bağlı VEYA absorber VEYA pin'liyse koşulsuz aktif
+  const GWAG  = (absorber === 'GWAG' || isAlways('GWAG') || d.cd)               ? (codes.GWAG ?? null) : null;
+  const GFSA  = (absorber === 'GFSA' || isAlways('GFSA') || (d.sampling && d.sampling !== '')) ? (codes.GFSA ?? null) : null;
+  // HLVI: Inside OV her zaman, diğer durumlarda SHA checkbox'a bağlı — absorber HLVI ise veya pin'liyse koşulsuz aktif
+  const HLVI  = (absorber === 'HLVI' || isAlways('HLVI') || isInsideOV || d.sha) ? (codes.HLVI ?? null) : null;
+  // GNTB: absorber GNTB veya TB OV veya pin'liyse koşulsuz aktif, yoksa TB checkbox'a bağlı
+  const GNTB  = (absorber === 'GNTB' || isAlways('GNTB') || isTBOV || d.tb)      ? (codes.GNTB ?? null) : null;
+  const GAVI  = (absorber === 'GAVI' || isAlways('GAVI') || d.ai)                ? (codes.GAVI ?? null) : null;
 
   const sorDep = sorDepTime(sorStr);
+  // ─── RCP zaman aralığı ─────────────────────────────────────────
+  // Kodda RCP değeri varsa: gerçek departure'dan rcpVal saat düşülür.
+  // O fark RCP olarak ayrı satırda gösterilir (rcpRange + GSRM saati).
+  // Hesaplama mantığı:
+  //   - sorTotal'den rcpVal düşülür (toplam çalışılan zaman RCP hariç)
+  //   - IUWT/extraDep hesabı gerçek departure üzerinden yapılır (RCP penaltısı yok)
+  //   - rcpVal saatleri ayrı bir satırda RCP olarak gösterilir
+  let rcpRange = null;
+  if (rcpVal > 0 && actualDep) {
+    const depH = timeToH(actualDep);
+    const rcpStartH = depH - rcpVal;
+    const fmt = (h) => {
+      const hh = Math.floor(h);
+      const mm = Math.round((h - hh) * 60);
+      return String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
+    };
+    rcpRange = fmt(rcpStartH) + '-' + actualDep;
+  }
+
   let IUWT = null;
   let extraDep = 0;
   if (sorDep && actualDep) {
@@ -1163,9 +1206,12 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   }
 
   const sorTotal = (sorArr && sorDep) ? round25(timeToH(sorDep) - timeToH(sorArr)) : null;
-  const totalToFill = sorTotal;
+  // RCP saati ayrı bir satırda gösterileceği için sorTotal'den düşülür
+  // (örn 9 saatlik SOR'un 1 saati RCP, kalan 8 saat normal kodlara dağılır)
+  const totalToFill = (sorTotal !== null) ? round25(sorTotal - rcpVal) : null;
 
   // Sabit (absorber dışındaki) kodların toplamı — bunlar sabit kalır, absorber dengeyi alır
+  // NOT: RCP artık sorTotal'den çıkarıldığı için fixedSum'a eklenmez
   const fixedSum = round25(
     (absorber==='BREAK' ? 0 : (BREAK||0)) +
     (absorber==='GBPS'  ? 0 : (GBPS ||0)) +
@@ -1177,7 +1223,6 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     (absorber==='HLVI'  ? 0 : (HLVI ||0)) +
     (absorber==='GNTB'  ? 0 : (GNTB ||0)) +
     (absorber==='INSP'  ? 0 : 0) + // INSP başlangıçta 0
-    (absorber==='RCP'   ? 0 : rcpExtraHours) +
     (IUWT||0)
   );
 
@@ -1261,7 +1306,10 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     GNTB:  GNTB_final,
     GFSA:  GFSA_final,
     INSP:  INSP,
-    IUWT, IENF, NENF
+    IUWT, IENF, NENF,
+    // RCP ayrı section için: saat aralığı (örn "16:00-17:00") ve değer (1 GSRM)
+    rcpRange: rcpRange,
+    rcpHours: (rcpVal > 0 ? rcpVal : null)
   };
 }
 
@@ -1323,6 +1371,37 @@ function renderTimesheet() {
     const depHtml = cancelled ? '<span style="font-family:monospace;font-size:12px;color:#6b7280">00:00</span>' : timeSelect(day, 'departure', d.departure);
     const sorHtml = getSOR(day, d.plant, d.status);
 
+    // ─── Hangi kodlar her zaman aktif? (pin'li veya MAIN_ABSORB) ───
+    // O günün plant+status için OV ve MHI kodlarına bak:
+    //   - kod MAIN_ABSORB ise → o checkbox disabled (kod zaten yedirilmiş)
+    //   - kod ALWAYS_ACTIVE listesinde ise → o checkbox disabled (kod zaten her zaman dahil)
+    // Eşleşen checkbox şu şekilde:
+    //   GWAG → cd, HLVI → sha, GNTB → tb, GAVI → ai, GFSA → sampling
+    const lockedCodes = new Set();
+    if (d.plant && d.status) {
+      [lookupOV(day, d.plant, d.status), lookupMHI(day, d.plant, d.status)].forEach(c => {
+        if (!c) return;
+        const main = (c.MAIN_ABSORB || '').trim();
+        if (main) lockedCodes.add(main);
+        const arr = Array.isArray(c.ALWAYS_ACTIVE) ? c.ALWAYS_ACTIVE : [];
+        arr.forEach(k => lockedCodes.add(k));
+      });
+    }
+    const lockCD  = lockedCodes.has('GWAG');
+    const lockSHA = lockedCodes.has('HLVI');
+    const lockTB  = lockedCodes.has('GNTB');
+    const lockAI  = lockedCodes.has('GAVI');
+    const lockSamp = lockedCodes.has('GFSA');
+    // Pin'li/MAIN_ABSORB ise checkbox işaretli görünsün ve disabled olsun
+    const cbAttr = (locked, checked) => {
+      const isChecked = locked || checked;
+      const dis = locked ? 'disabled' : '';
+      const style = locked ? 'width:14px;height:14px;accent-color:var(--accent);opacity:0.55;cursor:not-allowed' : 'width:14px;height:14px;accent-color:var(--accent)';
+      const title = locked ? 'title="Always active (set in Settings) — cannot be changed here"' : '';
+      return `${isChecked?'checked':''} ${dis} style="${style}" ${title}`;
+    };
+    const sampDisableAttr = lockSamp ? 'disabled style="opacity:0.55;cursor:not-allowed" title="GFSA is always active (set in Settings) — sampling selection not required"' : '';
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="td-day">${day}</td>
@@ -1333,11 +1412,11 @@ function renderTimesheet() {
       <td style="width:120px">${arrHtml}</td>
       <td style="width:120px">${depHtml}</td>
       <td style="width:120px;font-family:monospace;font-size:12px;color:#92580a;white-space:nowrap;background:#fefce8;text-align:center">${sorHtml}</td>
-      <td style="min-width:80px"><select onchange="updateField('${day}','sampling',this.value)">${samplingOpts}</select></td>
-      <td style="text-align:center"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)" ${d.cd?'checked':''} onchange="updateField('${day}','cd',this.checked)"></td>
-      <td style="text-align:center"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)" ${d.sha?'checked':''} onchange="updateField('${day}','sha',this.checked)"></td>
-      <td style="text-align:center"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)" ${d.tb?'checked':''} onchange="updateField('${day}','tb',this.checked)"></td>
-      <td style="text-align:center"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--accent)" ${d.ai?'checked':''} onchange="updateField('${day}','ai',this.checked)"></td>
+      <td style="min-width:80px"><select onchange="updateField('${day}','sampling',this.value)" ${sampDisableAttr}>${samplingOpts}</select></td>
+      <td style="text-align:center"><input type="checkbox" ${cbAttr(lockCD,  d.cd)}  onchange="updateField('${day}','cd',this.checked)"></td>
+      <td style="text-align:center"><input type="checkbox" ${cbAttr(lockSHA, d.sha)} onchange="updateField('${day}','sha',this.checked)"></td>
+      <td style="text-align:center"><input type="checkbox" ${cbAttr(lockTB,  d.tb)}  onchange="updateField('${day}','tb',this.checked)"></td>
+      <td style="text-align:center"><input type="checkbox" ${cbAttr(lockAI,  d.ai)}  onchange="updateField('${day}','ai',this.checked)"></td>
       <td style="min-width:180px"><select onchange="updateField('${day}','enforcement',this.value)">${enfOpts}</select></td>
       <td style="width:72px"><input type="number" step="0.25" min="0" value="${d.enfInHours}" placeholder="0" onchange="updateField('${day}','enfInHours',this.value)"></td>
       <td style="width:72px"><input type="number" step="0.25" min="0" value="${d.enfOutHours}" placeholder="0" onchange="updateField('${day}','enfOutHours',this.value)"></td>
@@ -1516,7 +1595,8 @@ function formatCodes(entry) {
   const fields = ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','IUWT','IENF','NENF'];
   let parts = fields.filter(k => entry[k] != null && entry[k] !== '').map(k => `${entry[k]} ${k}`);
 
-  if (entry._rcp) parts.push(`${entry._rcp} GSRM-RCP`);
+  // GSRM-RCP satırı kırmızı renkte, ayrı bir blok olarak (yan yana sıkışmasın)
+  if (entry._rcp) parts.push(`<span style="color:#dc2626;font-weight:600;display:inline-block;width:100%">${entry._rcp} GSRM-RCP</span>`);
   return parts.join('\n');
 }
 
@@ -1576,10 +1656,57 @@ function renderEnfSection(containerId, sectionData) {
   });
 }
 
+function renderRCPSection(out) {
+  // RCP datasını OV girdilerinden topla — sadece rcpRange ve rcpHours dolu olanlar
+  const rcpData = {};
+  let hasAny = false;
+  Object.entries(out.ov || {}).forEach(([day, e]) => {
+    if (e && e.rcpRange && e.rcpHours != null && e.rcpHours > 0) {
+      rcpData[day] = { plant: e.plant, status: e.status, sorStr: e.rcpRange, hours: e.rcpHours };
+      hasAny = true;
+    }
+  });
+
+  // RCP section'ı sadece içerik varsa görünür
+  const section = document.getElementById('rcpSection');
+  if (section) section.style.display = hasAny ? 'block' : 'none';
+  if (!hasAny) return;
+
+  const container = document.getElementById('rcpGrid');
+  if (!container) return;
+  container.innerHTML = '';
+  container.style.gridTemplateColumns = `70px repeat(${DAYS.length}, minmax(120px, 1fr))`;
+
+  // Header satırı
+  ['', ...DAYS].forEach((d, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'og-cell og-header' + (i > 0 ? ' day-col' : '');
+    cell.textContent = d;
+    container.appendChild(cell);
+  });
+
+  // 1) Plant + Status satırı
+  // 2) RCP saat aralığı (örn 16:00-17:00)
+  // 3) Saat değeri (örn "1 GSRM") — kırmızı, RCP zaten section başlığında
+  [['', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
+   ['RCP', (e) => e ? e.sorStr : '', '#dc2626', '600'],
+   ['', (e) => e ? `${e.hours} GSRM` : '', '#dc2626', '600']
+  ].forEach(([label, fn, color, weight]) => {
+    const lc = document.createElement('div'); lc.className='og-cell og-row-label'; lc.textContent=label; container.appendChild(lc);
+    DAYS.forEach(day => {
+      const cell = document.createElement('div'); cell.className='og-cell og-value';
+      cell.style.color=color; cell.style.fontWeight=weight; cell.style.fontSize='15px';
+      cell.textContent = fn(rcpData[day]) || '';
+      container.appendChild(cell);
+    });
+  });
+}
+
 function renderOutcome() {
   const out = computeOutcome();
   document.getElementById('totalsStrip').innerHTML = '';
   renderOutcomeSection('ovGrid', out.ov);
+  renderRCPSection(out);
   renderOutcomeSection('mhiGrid', out.mhi);
   const outEnf = {};
   Object.entries(out.enf).forEach(([day, v]) => { if (v.outHours > 0) outEnf[day] = { ...v, sorStr:'00:00-00:00', arr:'00:00', dep:'00:00' }; });
@@ -1681,6 +1808,53 @@ function numInput(val, onChange) {
   return `<input type="number" step="0.25" min="0" value="${val??''}" placeholder="—" style="width:58px;padding:4px 5px;font-size:11px" onchange="${onChange}">`;
 }
 
+// Pinli sayı input — sayı kutusunun yanında küçük 📌 toggle
+// Pin işaretli kod → her zaman aktif (checkbox/sampling'e bakmaz)
+// table: 'OV' | 'MHI', i: row index, fieldKey: kod adı (örn 'HLVI')
+function numInputWithPin(val, table, i, fieldKey, isPinned) {
+  const onChangeNum = table === 'OV' ? `updateOVCode(${i},'${fieldKey}',this.value)` : `updateMHICode(${i},'${fieldKey}',this.value)`;
+  const onPin = table === 'OV' ? `togglePinOV(${i},'${fieldKey}',this.checked)` : `togglePinMHI(${i},'${fieldKey}',this.checked)`;
+  const pinTitle = isPinned ? 'Always active — click to make conditional' : 'Make always active (independent of checkbox)';
+  return `<div style="display:flex;align-items:center;gap:3px">
+    <input type="number" step="0.25" min="0" value="${val??''}" placeholder="—" style="width:52px;padding:4px 5px;font-size:11px" onchange="${onChangeNum}">
+    <label title="${pinTitle}" style="cursor:pointer;display:inline-flex;align-items:center;font-size:13px;${isPinned?'filter:none;opacity:1':'filter:grayscale(1);opacity:0.45'}">
+      <input type="checkbox" ${isPinned?'checked':''} onchange="${onPin}" style="display:none">
+      <span style="font-size:13px">📌</span>
+    </label>
+  </div>`;
+}
+
+// Pin toggle — ALWAYS_ACTIVE setine kod ekle/çıkar
+function togglePinOV(i, fieldKey, checked) {
+  const rows = getOVRowsMutable();
+  if (!rows[i].ALWAYS_ACTIVE) rows[i].ALWAYS_ACTIVE = [];
+  const idx = rows[i].ALWAYS_ACTIVE.indexOf(fieldKey);
+  if (checked && idx === -1) rows[i].ALWAYS_ACTIVE.push(fieldKey);
+  else if (!checked && idx !== -1) rows[i].ALWAYS_ACTIVE.splice(idx, 1);
+  renderOVCodesTable();
+}
+function togglePinMHI(i, fieldKey, checked) {
+  const rows = getMHIRowsMutable();
+  if (!rows[i].ALWAYS_ACTIVE) rows[i].ALWAYS_ACTIVE = [];
+  const idx = rows[i].ALWAYS_ACTIVE.indexOf(fieldKey);
+  if (checked && idx === -1) rows[i].ALWAYS_ACTIVE.push(fieldKey);
+  else if (!checked && idx !== -1) rows[i].ALWAYS_ACTIVE.splice(idx, 1);
+  renderMHICodesTable();
+}
+
+// Hangi kodlar "pin'lenebilir" (conditional ⇒ always-active toggle'ı olabilir)
+const PINNABLE_OV  = ['HLVI','GNTB','GFSA','GWAG','GAVI'];
+const PINNABLE_MHI = ['HLVI','GNTB','GFSA','GWAG','GAVI'];
+
+// Day select for codes editor — boş = "All" (Pzt-Cuma için geçerli)
+function daySelect(currentVal, onChange) {
+  const days = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'];
+  const opts = [`<option value="" ${!currentVal?'selected':''}>All</option>`,
+    ...days.map(d => `<option value="${d}" ${d===currentVal?'selected':''}>${d.slice(0,3)}</option>`)
+  ].join('');
+  return `<select style="width:75px;font-size:11px;padding:4px" onchange="${onChange}" title="All = Mon–Fri (default)">${opts}</select>`;
+}
+
 function renderCodesEditor() {
   // _ovRows ve _mhiRows null'a çek ki güncel OV_CODES/MHI_CODES'tan tekrar oluşturulsun
   _ovRows = null;
@@ -1748,9 +1922,11 @@ function renderOVCodesTable() {
   tbody.innerHTML = '';
   getOVRowsMutable().forEach((row, i) => {
     const f = (field) => `updateOVCode(${i},'${field}',this.value)`;
+    const always = row.ALWAYS_ACTIVE || [];
+    const pin = (key) => numInputWithPin(row[key], 'OV', i, key, always.includes(key));
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input style="width:90px;font-size:11px;padding:4px" value="${row.day}" onchange="${f('day')}"></td>
+      <td>${daySelect(row.day, f('day'))}</td>
       <td>${regionSelect(row.region, f('region'))}</td>
       <td><input style="width:55px;font-size:11px;padding:4px" value="${row.plant}" onchange="${f('plant')}"></td>
       <td><input style="width:100px;font-size:11px;padding:4px" value="${row.status}" onchange="${f('status')}"></td>
@@ -1759,9 +1935,9 @@ function renderOVCodesTable() {
       <td>${mainAbsorbSelect(row.MAIN_ABSORB || '', OV_ABSORB_FIELDS, f('MAIN_ABSORB'))}</td>
       <td>${numInput(row.BREAK, f('BREAK'))}</td><td>${numInput(row.GBPS, f('GBPS'))}</td>
       <td>${numInput(row.GSRM, f('GSRM'))}</td><td>${numInput(row.GPAS, f('GPAS'))}</td>
-      <td>${numInput(row.GWAG, f('GWAG'))}</td><td>${numInput(row.GAVI, f('GAVI'))}</td>
-      <td>${numInput(row.INSP, f('INSP'))}</td><td>${numInput(row.HLVI, f('HLVI'))}</td>
-      <td>${numInput(row.GNTB, f('GNTB'))}</td><td>${numInput(row.GFSA, f('GFSA'))}</td>
+      <td>${pin('GWAG')}</td><td>${pin('GAVI')}</td>
+      <td>${numInput(row.INSP, f('INSP'))}</td><td>${pin('HLVI')}</td>
+      <td>${pin('GNTB')}</td><td>${pin('GFSA')}</td>
       <td>${numInput(row.RCP, f('RCP'))}</td>
       <td><button onclick="deleteOVRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
     `;
@@ -1777,9 +1953,11 @@ function renderMHICodesTable() {
   tbody.innerHTML = '';
   getMHIRowsMutable().forEach((row, i) => {
     const f = (field) => `updateMHICode(${i},'${field}',this.value)`;
+    const always = row.ALWAYS_ACTIVE || [];
+    const pin = (key) => numInputWithPin(row[key], 'MHI', i, key, always.includes(key));
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input style="width:90px;font-size:11px;padding:4px" value="${row.day}" onchange="${f('day')}"></td>
+      <td>${daySelect(row.day, f('day'))}</td>
       <td>${regionSelect(row.region, f('region'))}</td>
       <td><input style="width:55px;font-size:11px;padding:4px" value="${row.plant}" onchange="${f('plant')}"></td>
       <td><input style="width:100px;font-size:11px;padding:4px" value="${row.status}" onchange="${f('status')}"></td>
@@ -1788,8 +1966,8 @@ function renderMHICodesTable() {
       <td>${mainAbsorbSelect(row.MAIN_ABSORB || '', MHI_ABSORB_FIELDS, f('MAIN_ABSORB'))}</td>
       <td>${numInput(row.BREAK, f('BREAK'))}</td><td>${numInput(row.GBPS, f('GBPS'))}</td>
       <td>${numInput(row.GSRM, f('GSRM'))}</td><td>${numInput(row.GPAS, f('GPAS'))}</td>
-      <td>${numInput(row.INSP, f('INSP'))}</td><td>${numInput(row.GNTB, f('GNTB'))}</td>
-      <td>${numInput(row.GFSA, f('GFSA'))}</td>
+      <td>${numInput(row.INSP, f('INSP'))}</td><td>${pin('GNTB')}</td>
+      <td>${pin('GFSA')}</td>
       <td><button onclick="deleteMHIRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
     `;
     tbody.appendChild(tr);
@@ -1828,8 +2006,8 @@ function updateMHICodeTime(i, field, part, value) {
 }
 function deleteOVRow(i) { getOVRowsMutable().splice(i,1); renderOVCodesTable(); }
 function deleteMHIRow(i) { getMHIRowsMutable().splice(i,1); renderMHICodesTable(); }
-function addOVRow() { getOVRowsMutable().push({day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null,RCP:null}); renderOVCodesTable(); }
-function addMHIRow() { getMHIRowsMutable().push({day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null}); renderMHICodesTable(); }
+function addOVRow() { getOVRowsMutable().push({day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null,RCP:null}); renderOVCodesTable(); }
+function addMHIRow() { getMHIRowsMutable().push({day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null}); renderMHICodesTable(); }
 
 function rowsToCodeObj(rows) {
   const obj = {};
@@ -1839,6 +2017,7 @@ function rowsToCodeObj(rows) {
     const key = r.day ? `${r.day}_${r.status}` : r.status;
     const entry = { arr:r.arr, dep:r.dep };
     if (r.MAIN_ABSORB) entry.MAIN_ABSORB = r.MAIN_ABSORB;
+    if (r.ALWAYS_ACTIVE && r.ALWAYS_ACTIVE.length) entry.ALWAYS_ACTIVE = [...r.ALWAYS_ACTIVE];
     ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','RCP'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     obj[plant][key] = entry;
   });
@@ -1853,6 +2032,7 @@ function rowsToMHIObj(rows) {
     const key = r.day ? `${r.day}_${r.status}` : r.status;
     const entry = { arr:r.arr, dep:r.dep };
     if (r.MAIN_ABSORB) entry.MAIN_ABSORB = r.MAIN_ABSORB;
+    if (r.ALWAYS_ACTIVE && r.ALWAYS_ACTIVE.length) entry.ALWAYS_ACTIVE = [...r.ALWAYS_ACTIVE];
     ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     obj[plant][key] = entry;
   });
@@ -2041,15 +2221,16 @@ function renderSORTableForPlant(plant, region) {
       if (ovCodes) {
         const sorStr = `${ovCodes.arr}-${ovCodes.dep}`;
         const mainAbsorb = (ovCodes.MAIN_ABSORB || '').trim();
-        // Exclude conditional codes (checkbox-dependent) — UNLESS this code is the MAIN_ABSORB
+        const alwaysActive = new Set(Array.isArray(ovCodes.ALWAYS_ACTIVE) ? ovCodes.ALWAYS_ACTIVE : []);
+        // Exclude conditional codes (checkbox-dependent) — UNLESS this code is the MAIN_ABSORB or pinned always-active
         const isTBOVRow = status === 'TB OV';
         const isInsideOVRow = (plant === '2172' && status === 'Inside OV');
         const baseConditional = ['GFSA','GWAG','GAVI',
           ...(isTBOVRow ? [] : ['GNTB']),
           ...(isInsideOVRow ? [] : ['HLVI'])
         ];
-        // MAIN_ABSORB'da olan kod conditional olsa bile her zaman gösterilir
-        const OV_CONDITIONAL = baseConditional.filter(k => k !== mainAbsorb);
+        // MAIN_ABSORB veya ALWAYS_ACTIVE pin'li olanlar conditional listesinden çıkarılır
+        const OV_CONDITIONAL = baseConditional.filter(k => k !== mainAbsorb && !alwaysActive.has(k));
         const visibleKeys = FIELDS_OV.filter(k => ovCodes[k] != null && !OV_CONDITIONAL.includes(k));
         const codeItems = visibleKeys.map(k => ({ k, v: ovCodes[k], isMain: k === mainAbsorb }));
         // RCP veri-odaklı: kodda RCP > 0 varsa not göster
@@ -2060,11 +2241,12 @@ function renderSORTableForPlant(plant, region) {
       if (mhiCodes) {
         const sorStr = `${mhiCodes.arr}-${mhiCodes.dep}`;
         const mainAbsorb = (mhiCodes.MAIN_ABSORB || '').trim();
+        const alwaysActive = new Set(Array.isArray(mhiCodes.ALWAYS_ACTIVE) ? mhiCodes.ALWAYS_ACTIVE : []);
         // GNTB is main code for TUESDAY_MHI1 and THURSDAY_MHI2
         const isGNTBMain = (day === 'TUESDAY' && status === 'MHI1') || (day === 'THURSDAY' && status === 'MHI2');
         const baseConditional = isGNTBMain ? ['GFSA','GWAG','GAVI','HLVI'] : ['GNTB','GFSA','GWAG','GAVI','HLVI'];
-        // MAIN_ABSORB'da olan kod conditional olsa bile her zaman gösterilir
-        const MHI_CONDITIONAL = baseConditional.filter(k => k !== mainAbsorb);
+        // MAIN_ABSORB veya ALWAYS_ACTIVE pin'li olanlar conditional listesinden çıkarılır
+        const MHI_CONDITIONAL = baseConditional.filter(k => k !== mainAbsorb && !alwaysActive.has(k));
         const visibleKeys = FIELDS_MHI.filter(k => mhiCodes[k] != null && !MHI_CONDITIONAL.includes(k));
         const codeItems = visibleKeys.map(k => ({ k, v: mhiCodes[k], isMain: k === mainAbsorb }));
         if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', sor: sorStr, codeItems, mainAbsorb, rcpNote: null, rcpInspNote: null, trichNote: false }); }
@@ -2076,39 +2258,40 @@ function renderSORTableForPlant(plant, region) {
     return "<div style='color:var(--text-muted);font-size:14px;padding:8px'>No codes found for this plant.</div>";
   }
 
-  // Group rows by day
+  // Group rows by day — sadece kodu olan günler dahil edilir
   const byDay = {};
   DAYS.forEach(d => { byDay[d] = []; });
   rows.forEach(r => byDay[r.day].push(r));
 
-  let html = '<div style="overflow-x:auto"><div style="display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:12px;min-width:900px">';
+  // Sadece dolu günleri göster (kodu olmayan günler hiç render edilmez)
+  const activeDays = DAYS.filter(d => byDay[d].length > 0);
+  const colCount = activeDays.length;
+  const minWidth = Math.max(300, colCount * 150);
 
-  DAYS.forEach(day => {
+  let html = `<div style="overflow-x:auto"><div style="display:grid;grid-template-columns:repeat(${colCount},minmax(150px,1fr));gap:12px;min-width:${minWidth}px">`;
+
+  activeDays.forEach(day => {
     const dayRows = byDay[day];
     html += '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">';
     html += '<div style="background:var(--surface2);padding:8px 12px;font-family:\'IBM Plex Mono\',monospace;font-size:13px;font-weight:600;color:var(--accent2);border-bottom:1px solid var(--border)">' + day + '</div>';
 
-    if (!dayRows.length) {
-      html += '<div style="padding:10px 12px;color:var(--text-muted);font-size:12px">—</div>';
-    } else {
-      dayRows.forEach(r => {
-        const typeColor = r.type === 'OV' ? 'var(--accent2)' : 'var(--accent)';
-        html += '<div style="padding:10px 12px;border-bottom:1px solid var(--border)">';
-        html += '<div style="font-weight:600;font-size:14px;margin-bottom:4px">' + r.status + '</div>';
-        html += '<div style="font-size:12px;color:' + typeColor + ';font-family:monospace;margin-bottom:4px">' + r.type + '</div>';
-        html += '<div style="background:#fefce8;color:#92580a;font-family:monospace;font-size:12px;padding:2px 6px;border-radius:3px;margin-bottom:6px;display:inline-block">' + r.sor + '</div>';
-        // Render code list (no special highlighting for main absorb in SOR view)
-        let codesHtml = '';
-        if (r.codeItems && r.codeItems.length) {
-          codesHtml = r.codeItems.map(item => `${item.v} ${item.k}`).join('<br>');
-        }
-        if (r.rcpNote != null) codesHtml += `<br><span style="color:#dc2626;font-weight:600">RCP: ${r.rcpNote} GSRM</span>`;
-        if (r.rcpInspNote != null) codesHtml += `<br><span style="color:#dc2626;font-weight:600">${r.rcpInspNote} INSP (if RCP)</span>`;
-        if (r.trichNote) codesHtml += '<br><span style="color:#06b6d4;font-weight:600">0.75 GFSA (if Trich)</span>';
-        html += '<div style="color:#d97706;font-size:11px;line-height:1.8">' + codesHtml + '</div>';
-        html += '</div>';
-      });
-    }
+    dayRows.forEach(r => {
+      const typeColor = r.type === 'OV' ? 'var(--accent2)' : 'var(--accent)';
+      html += '<div style="padding:10px 12px;border-bottom:1px solid var(--border)">';
+      html += '<div style="font-weight:600;font-size:14px;margin-bottom:4px">' + r.status + '</div>';
+      html += '<div style="font-size:12px;color:' + typeColor + ';font-family:monospace;margin-bottom:4px">' + r.type + '</div>';
+      html += '<div style="background:#fefce8;color:#92580a;font-family:monospace;font-size:12px;padding:2px 6px;border-radius:3px;margin-bottom:6px;display:inline-block">' + r.sor + '</div>';
+      // Render code list (no special highlighting for main absorb in SOR view)
+      let codesHtml = '';
+      if (r.codeItems && r.codeItems.length) {
+        codesHtml = r.codeItems.map(item => `${item.v} ${item.k}`).join('<br>');
+      }
+      if (r.rcpNote != null) codesHtml += `<br><span style="color:#dc2626;font-weight:600">RCP: ${r.rcpNote} GSRM</span>`;
+      if (r.rcpInspNote != null) codesHtml += `<br><span style="color:#dc2626;font-weight:600">${r.rcpInspNote} INSP (if RCP)</span>`;
+      if (r.trichNote) codesHtml += '<br><span style="color:#06b6d4;font-weight:600">0.75 GFSA (if Trich)</span>';
+      html += '<div style="color:#d97706;font-size:11px;line-height:1.8">' + codesHtml + '</div>';
+      html += '</div>';
+    });
     html += '</div>';
   });
 

@@ -578,6 +578,7 @@
           <button onclick="lockCodes()" style="font-family:'IBM Plex Mono',monospace;font-size:16px;padding:6px 16px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:4px;cursor:pointer">Lock</button>
         </div>
       </div>
+      <div id="syncStatusBanner" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:16px;font-family:'IBM Plex Mono',monospace;font-size:13px"></div>
       <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
         <div style="display:flex;align-items:center;gap:6px">
           <label style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-muted)">Region:</label>
@@ -1508,6 +1509,7 @@ function checkPin() {
     document.getElementById('codesLock').style.display = 'none';
     document.getElementById('codesEditor').style.display = 'block';
     renderCodesEditor();
+    updateSyncStatusBanner();
   } else {
     document.getElementById('pinError').style.display = 'block';
     document.getElementById('codesPin').value = '';
@@ -1519,6 +1521,59 @@ function lockCodes() {
   document.getElementById('codesEditor').style.display = 'none';
   document.getElementById('codesPin').value = '';
   document.getElementById('pinError').style.display = 'none';
+}
+
+// Senkronizasyon durumu banner'ı: yerel (localStorage) ve uzak (codes.json) versiyonları
+// karşılaştırarak kullanıcıya hangi durumda olduğunu gösterir
+async function updateSyncStatusBanner() {
+  const banner = document.getElementById('syncStatusBanner');
+  if (!banner) return;
+
+  // Yerel versiyon zamanı
+  let localTime = 0;
+  let localData = null;
+  try {
+    const cached = localStorage.getItem('ts_codes');
+    if (cached) {
+      localData = JSON.parse(cached);
+      localTime = localData.savedAt ? new Date(localData.savedAt).getTime() : 0;
+    }
+  } catch(e) {}
+
+  // Uzak versiyon zamanı
+  let remoteTime = 0;
+  try {
+    const res = await fetch('codes.json', { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      remoteTime = data.exportedAt ? new Date(data.exportedAt).getTime() : 0;
+    }
+  } catch(e) {}
+
+  const fmt = t => t ? new Date(t).toLocaleString() : '—';
+
+  if (!localTime && !remoteTime) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  if (localTime > remoteTime) {
+    // Yerel daha yeni — kullanıcının upload etmesi gerek
+    banner.style.display = 'block';
+    banner.style.background = '#fef3c7';
+    banner.style.color = '#92400e';
+    banner.style.border = '1px solid #f59e0b';
+    banner.innerHTML = `⚠ <b>Local changes not yet uploaded to GitHub.</b><br>
+      Local saved: ${fmt(localTime)} &nbsp;•&nbsp; GitHub codes.json: ${fmt(remoteTime)}<br>
+      Click <b>⬇ Export JSON</b> to download, then upload to GitHub to make permanent.`;
+  } else {
+    // Senkron veya uzak daha yeni
+    banner.style.display = 'block';
+    banner.style.background = '#dcfce7';
+    banner.style.color = '#166534';
+    banner.style.border = '1px solid #16a34a';
+    banner.innerHTML = `✓ <b>In sync with GitHub.</b> &nbsp;•&nbsp; Last GitHub update: ${fmt(remoteTime)}`;
+  }
 }
 
 function numInput(val, onChange) {
@@ -1801,10 +1856,13 @@ function saveCodesEdit() {
   if (_ovRows) { const newOV = rowsToCodeObj(_ovRows); Object.keys(OV_CODES).forEach(k=>delete OV_CODES[k]); Object.assign(OV_CODES, newOV); _ovRows=null; }
   if (_mhiRows) { const newMHI = rowsToMHIObj(_mhiRows); Object.keys(MHI_CODES).forEach(k=>delete MHI_CODES[k]); Object.assign(MHI_CODES, newMHI); _mhiRows=null; }
   // localStorage'a kaydet ki sayfa yenilenince kaybolmasın
-  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS })); } catch(e) {}
+  // savedAt önemli: yerel düzenleme remote codes.json'dan daha yeni mi kontrolü için
+  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, savedAt: new Date().toISOString() })); } catch(e) {}
   renderOutcome(); renderCodesEditor(); renderTimesheet();
   // SOR sekmesini de tazele (yeni eklenen kodlar SOR'a yansısın)
   try { populateSORRegions(); populateSORPlants(); renderSORTable(); } catch(e) {}
+  // Banner'ı tazele — yerel versiyon artık daha yeni
+  updateSyncStatusBanner();
 
   let msg = 'Codes saved successfully!\n\n';
   msg += '⚠ IMPORTANT: Changes are stored only in this browser.\n';
@@ -2046,12 +2104,13 @@ function importCodesJSON(input) {
       Object.keys({...OV_CODES, ...MHI_CODES}).forEach(p => {
         if (!PLANTS.includes(p)) PLANTS.push(p);
       });
-      try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS })); } catch(err) {}
+      try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, savedAt: new Date().toISOString() })); } catch(err) {}
       _ovRows = null;
       _mhiRows = null;
       renderCodesEditor();
       renderTimesheet();
       renderOutcome();
+      updateSyncStatusBanner();
       alert('Codes imported successfully!');
     } catch (err) {
       alert('Could not read JSON: ' + err.message);
@@ -2082,30 +2141,60 @@ async function loadCodesFromFile() {
     return true;
   }
 
-  // 1) Önce aynı dizindeki codes.json
-  try {
-    const res = await fetch('codes.json', { cache: 'no-store' });
-    if (res.ok) {
-      const data = await res.json();
-      if (applyData(data)) {
-        renderTimesheet();
-        renderOutcome();
-        return;
-      }
-    }
-  } catch(e) { /* file:// veya 404 — sessizce geç */ }
-
-  // 2) localStorage fallback
+  // localStorage'daki kullanıcı düzenlemesini oku
+  let localData = null;
+  let localTime = 0;
   try {
     const cached = localStorage.getItem('ts_codes');
     if (cached) {
-      const data = JSON.parse(cached);
-      if (applyData(data)) {
-        renderTimesheet();
-        renderOutcome();
-      }
+      localData = JSON.parse(cached);
+      // "savedAt" yoksa eski format — yine de var sayılır
+      localTime = localData.savedAt ? new Date(localData.savedAt).getTime() : 1;
     }
   } catch(e) {}
+
+  // GitHub'daki codes.json'u oku
+  let remoteData = null;
+  let remoteTime = 0;
+  try {
+    const res = await fetch('codes.json', { cache: 'no-store' });
+    if (res.ok) {
+      remoteData = await res.json();
+      remoteTime = remoteData.exportedAt ? new Date(remoteData.exportedAt).getTime() : 0;
+    }
+  } catch(e) { /* file:// veya 404 — sessizce geç */ }
+
+  // ─── KAYNAK SEÇİMİ ─────────────────────────────────────────────
+  // 1. Eğer yerel (localStorage) versiyon REMOTE'tan daha yeni ise → yerel kullan
+  //    (kullanıcı son düzenlemesini henüz GitHub'a yüklememiş olabilir)
+  // 2. Yoksa remote (codes.json) kullan
+  // 3. Hiçbiri yoksa hardcoded default'a düş
+  let chosen = null;
+  let source = '';
+  if (localData && localTime > remoteTime) {
+    chosen = localData;
+    source = 'local';
+  } else if (remoteData) {
+    chosen = remoteData;
+    source = 'remote';
+  } else if (localData) {
+    chosen = localData;
+    source = 'local-fallback';
+  }
+
+  if (chosen && applyData(chosen)) {
+    console.log('[codes] loaded from:', source, 'localTime:', localTime, 'remoteTime:', remoteTime);
+    // Eğer remote daha yeniyse, localStorage'ı remote ile senkronize et
+    // (eski cache'in sürekli "yeni" görünmesini önle)
+    if (source === 'remote') {
+      try { localStorage.setItem('ts_codes', JSON.stringify({
+        OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS,
+        savedAt: chosen.exportedAt || new Date().toISOString()
+      })); } catch(e) {}
+    }
+    renderTimesheet();
+    renderOutcome();
+  }
 }
 
 // ─── ADMIN SUB-TABS ─────────────────────────────────────────────
@@ -2170,7 +2259,7 @@ function saveDropDown() {
   const newEnfList = DD_DATA.enforcement;
   ENF_LIST.length = 0; ENF_LIST.push(...newEnfList);
   // localStorage'a region/plant kaydı
-  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS })); } catch(e) {}
+  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, savedAt: new Date().toISOString() })); } catch(e) {}
   renderTimesheet();
   renderOutcome();
   renderAllDD();

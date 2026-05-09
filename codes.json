@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-09T13:15:47.693Z",
+  "exportedAt": "2026-05-09T13:25:33.706Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -206,7 +206,7 @@
       }
     },
     "4392": {
-      "OV Only": {
+      "TUESDAY_OV Only": {
         "arr": "07:30",
         "dep": "11:00",
         "MAIN_ABSORB": "INSP",
@@ -220,6 +220,22 @@
         "HLVI": 0.5,
         "GNTB": 0.5,
         "GFSA": 0.5,
+        "RCP": null
+      },
+      "WEDNESDAY_OV Only": {
+        "arr": "07:30",
+        "dep": "11:00",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": null,
+        "GBPS": 0.25,
+        "GSRM": 0.5,
+        "GPAS": 0.25,
+        "GWAG": null,
+        "GAVI": null,
+        "INSP": 2.75,
+        "HLVI": null,
+        "GNTB": null,
+        "GFSA": null,
         "RCP": null
       }
     },
@@ -718,7 +734,19 @@
       }
     },
     "4392": {
-      "OV Only": {
+      "TUESDAY_OV Only": {
+        "arr": "11:00",
+        "dep": "14:30",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "INSP": 3,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "WEDNESDAY_OV Only": {
         "arr": "11:00",
         "dep": "14:30",
         "MAIN_ABSORB": "INSP",

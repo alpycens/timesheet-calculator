@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-09T09:18:38.120Z",
+  "exportedAt": "2026-05-09T12:15:01.678Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -54,7 +54,7 @@
       }
     },
     "2690": {
-      "OV": {
+      "MONDAY_OV": {
         "arr": "07:00",
         "dep": "16:00",
         "MAIN_ABSORB": "INSP",
@@ -68,6 +68,38 @@
         "HLVI": 0.5,
         "GNTB": 0.5,
         "GFSA": 0.5,
+        "RCP": null
+      },
+      "TUESDAY_OV": {
+        "arr": "07:00",
+        "dep": "16:00",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": 0.5,
+        "GSRM": 0.5,
+        "GPAS": 0.25,
+        "GWAG": null,
+        "GAVI": null,
+        "INSP": 7.25,
+        "HLVI": null,
+        "GNTB": null,
+        "GFSA": null,
+        "RCP": null
+      },
+      "THURSDAY_OV": {
+        "arr": "07:00",
+        "dep": "16:00",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": 0.5,
+        "GSRM": 0.5,
+        "GPAS": 0.25,
+        "GWAG": null,
+        "GAVI": null,
+        "INSP": 7.25,
+        "HLVI": null,
+        "GNTB": null,
+        "GFSA": null,
         "RCP": null
       }
     },
@@ -140,7 +172,7 @@
       }
     },
     "4138": {
-      "OV Only": {
+      "TUESDAY_OV Only": {
         "arr": "07:00",
         "dep": "10:00",
         "MAIN_ABSORB": "INSP",
@@ -154,6 +186,22 @@
         "HLVI": 0.5,
         "GNTB": 0.5,
         "GFSA": 0.5,
+        "RCP": null
+      },
+      "THURSDAY_OV Only": {
+        "arr": "07:00",
+        "dep": "10:00",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": null,
+        "GBPS": 0.5,
+        "GSRM": 0.5,
+        "GPAS": 0.25,
+        "GWAG": null,
+        "GAVI": null,
+        "INSP": 1.75,
+        "HLVI": null,
+        "GNTB": null,
+        "GFSA": null,
         "RCP": null
       }
     },
@@ -570,18 +618,6 @@
       }
     },
     "2690": {
-      "MHI": {
-        "arr": "07:00",
-        "dep": "11:00",
-        "MAIN_ABSORB": "INSP",
-        "BREAK": null,
-        "GBPS": null,
-        "GSRM": 0.25,
-        "GPAS": null,
-        "INSP": 3.75,
-        "GNTB": null,
-        "GFSA": null
-      },
       "MONDAY_MHI": {
         "arr": "07:00",
         "dep": "11:00",
@@ -660,7 +696,19 @@
       }
     },
     "4138": {
-      "OV Only": {
+      "TUESDAY_OV Only": {
+        "arr": "10:00",
+        "dep": "17:00",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "INSP": 6.5,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "THURSDAY_OV Only": {
         "arr": "10:00",
         "dep": "17:00",
         "MAIN_ABSORB": "INSP",

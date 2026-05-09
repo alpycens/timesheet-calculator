@@ -934,18 +934,18 @@ const SOR_DAY_STATUSES = {
 };
 
 function getSORValidStatuses(day, plant) {
-  const restrictions = SOR_DAY_STATUSES[String(plant)];
-  if (restrictions) {
-    return restrictions[day] || [];
-  }
-  // No restriction - use normal statuses
+  // Artık tamamen codes-driven. Schedule'daki getValidStatuses ile aynı.
   return getValidStatuses(day, plant);
 }
 
 function getSOR(day, plant, status) {
-  const p = SOR_CODES[String(plant)];
-  if (!p || !status) return '';
-  return p[day + '_' + status] || p[status] || '';
+  // Codes tablolarından arr-dep türet. Önce OV_CODES, sonra MHI_CODES'a bak.
+  if (!plant || !status) return '';
+  const ov = lookupOV(day, plant, status);
+  if (ov && ov.arr && ov.dep) return `${ov.arr}-${ov.dep}`;
+  const mhi = lookupMHI(day, plant, status);
+  if (mhi && mhi.arr && mhi.dep) return `${mhi.arr}-${mhi.dep}`;
+  return '';
 }
 
 const ENF_CODES = {

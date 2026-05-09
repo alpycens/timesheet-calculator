@@ -1231,7 +1231,8 @@ function computeOutcome() {
     const hasUserTimes = !!(d.arrival || d.departure);
     const cancelled = d.plantStatus === 'Cancelled';
 
-    const isOV = OV_TYPES.some(t => statusType === t);
+    // OV mı MHI mi: hardcoded liste yerine codes tablolarındaki varlığa göre belirle
+    const isOV = !!lookupOV(day, d.plant, statusType);
     const isOVOnly = (statusType === 'OV Only');
 
     if (isOV) {
@@ -1397,8 +1398,8 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('panel-' + tab).classList.add('active');
   if (typeof event !== 'undefined' && event && event.target) event.target.classList.add('active');
-  if (tab === 'outcome') renderOutcome();
-  if (tab === 'sor') { populateSORRegions(); populateSORPlants(); renderSORTable(); }
+  if (tab === 'outcome') { commitPendingCodeRows(); renderOutcome(); }
+  if (tab === 'sor') { commitPendingCodeRows(); populateSORRegions(); populateSORPlants(); renderSORTable(); }
   if (tab === 'codes') lockCodes();
 }
 
@@ -1531,8 +1532,8 @@ function updateMHICode(i, field, val) {
 }
 function deleteOVRow(i) { getOVRowsMutable().splice(i,1); renderOVCodesTable(); }
 function deleteMHIRow(i) { getMHIRowsMutable().splice(i,1); renderMHICodesTable(); }
-function addOVRow() { getOVRowsMutable().push({day:'',region:'',plant:'',status:'',arr:'',dep:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null,RCP:null}); renderOVCodesTable(); }
-function addMHIRow() { getMHIRowsMutable().push({day:'',region:'',plant:'',status:'',arr:'',dep:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null}); renderMHICodesTable(); }
+function addOVRow() { getOVRowsMutable().push({day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null,RCP:null}); renderOVCodesTable(); }
+function addMHIRow() { getMHIRowsMutable().push({day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null}); renderMHICodesTable(); }
 
 function rowsToCodeObj(rows) {
   const obj = {};
@@ -1610,10 +1611,17 @@ function clearCodesFilter() {
 function saveCodesEdit() {
   // Önce satırlardan PLANT_REGIONS'u güncelle (tüm plantlar için)
   const allRows = [...(_ovRows || []), ...(_mhiRows || [])];
+  const orphanPlants = []; // region'ı boş olan plantlar
   if (allRows.length > 0) {
     allRows.forEach(r => {
-      if (r.plant && r.region) {
-        PLANT_REGIONS[String(r.plant)] = r.region;
+      const p = String(r.plant || '');
+      if (!p) return;
+      if (r.region) {
+        PLANT_REGIONS[p] = r.region;
+      } else if (!PLANT_REGIONS[p]) {
+        // Region seçilmemiş ve PLANT_REGIONS'da da yok → default
+        PLANT_REGIONS[p] = REGIONS[0] || 'Cluster27';
+        orphanPlants.push(p);
       }
     });
     // Tablo dışında kalan plantları da koruyalım — PLANTS dropdown'una yeni plantları ekle
@@ -1627,7 +1635,12 @@ function saveCodesEdit() {
   if (_mhiRows) { const newMHI = rowsToMHIObj(_mhiRows); Object.keys(MHI_CODES).forEach(k=>delete MHI_CODES[k]); Object.assign(MHI_CODES, newMHI); _mhiRows=null; }
   // localStorage'a kaydet ki sayfa yenilenince kaybolmasın
   try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS })); } catch(e) {}
-  renderOutcome(); renderCodesEditor(); renderTimesheet(); alert('Codes saved! (Kalıcı yapmak için Export JSON ile codes.json indir ve GitHub\'a yükle.)');
+  renderOutcome(); renderCodesEditor(); renderTimesheet();
+  let msg = 'Codes saved! (Kalıcı yapmak için Export JSON ile codes.json indir ve GitHub\'a yükle.)';
+  if (orphanPlants.length) {
+    msg += `\n\nUyarı: Region seçilmemiş plant(lar) bulundu, varsayılan ${REGIONS[0] || 'Cluster27'} atandı: ${[...new Set(orphanPlants)].join(', ')}`;
+  }
+  alert(msg);
 }
 
 // ─── SOR TABLE ──────────────────────────────────────────────────
@@ -1678,14 +1691,11 @@ function renderSORTable() {
   // Build rows: for each day, find OV and MHI codes
   const rows = [];
   DAYS.forEach(day => {
-    const ovStatuses = getValidStatuses(day, plant).filter(s => OV_TYPES.includes(s));
-    const mhiStatuses = getValidStatuses(day, plant).filter(s => MHI_TYPES.includes(s) || (MHI_CODES[plant] && MHI_CODES[plant][day+'_'+s]));
-
     const allStatuses = getSORValidStatuses(day, plant);
     const seen = new Set();
     allStatuses.forEach(status => {
-      const isOV = OV_TYPES.some(t => status === t);
-      const ovCodes = isOV ? lookupOV(day, plant, status) : null;
+      // OV/MHI tipi: hardcoded liste yerine codes tablolarındaki varlığa göre
+      const ovCodes = lookupOV(day, plant, status);
       const mhiCodes = lookupMHI(day, plant, status);
       if (!ovCodes && !mhiCodes) return;
 
@@ -1762,6 +1772,23 @@ function renderSORTable() {
 // varsa yüklüyor, yoksa gömülü default değerlere fallback yapıyor.
 
 function commitPendingCodeRows() {
+  // Region ve Plant bilgilerini de tazele (saveCodesEdit ile aynı mantık)
+  const allRows = [...(_ovRows || []), ...(_mhiRows || [])];
+  if (allRows.length > 0) {
+    allRows.forEach(r => {
+      const p = String(r.plant || '');
+      if (!p) return;
+      if (r.region) {
+        PLANT_REGIONS[p] = r.region;
+      } else if (!PLANT_REGIONS[p]) {
+        PLANT_REGIONS[p] = REGIONS[0] || 'Cluster27';
+      }
+    });
+    const tablePlants = new Set(allRows.map(r => String(r.plant)).filter(p => p));
+    tablePlants.forEach(p => {
+      if (!PLANTS.includes(p)) PLANTS.push(p);
+    });
+  }
   if (_ovRows) {
     const newOV = rowsToCodeObj(_ovRows);
     Object.keys(OV_CODES).forEach(k => delete OV_CODES[k]);

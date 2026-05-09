@@ -580,18 +580,15 @@
       </div>
       <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
         <div style="display:flex;align-items:center;gap:6px">
+          <label style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-muted)">Region:</label>
+          <select id="filterRegion" onchange="applyCodesFilter()" style="font-size:13px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text)">
+            <option value="">All</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
           <label style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-muted)">Plant:</label>
           <select id="filterPlant" onchange="applyCodesFilter()" style="font-size:13px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text)">
             <option value="">All</option>
-            <option value="2172">2172</option>
-            <option value="2690">2690</option>
-            <option value="4015">4015</option>
-            <option value="4133">4133</option>
-            <option value="4138">4138</option>
-            <option value="4392">4392</option>
-            <option value="8072">8072</option>
-            <option value="8145">8145</option>
-            <option value="8165">8165</option>
           </select>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
@@ -1707,58 +1704,74 @@ function rowsToMHIObj(rows) {
 }
 
 function applyCodesFilter() {
-  // Dynamically refresh plant filter options (so newly-added plants appear)
+  const ovRows = getOVRowsMutable();
+  const mhiRows = getMHIRowsMutable();
+  const allRows = [...ovRows, ...mhiRows];
+
+  // Region filter — populate options
+  const regionSel = document.getElementById('filterRegion');
+  if (regionSel) {
+    const currentRegion = regionSel.value;
+    // Region listesi: REGIONS sabitinden + satırlardan toplananlar
+    const allRegionsSet = new Set(REGIONS);
+    allRows.forEach(r => { if (r.region) allRegionsSet.add(r.region); });
+    regionSel.innerHTML = '<option value="">All</option>' +
+      [...allRegionsSet].sort().map(rg => `<option value="${rg}" ${rg===currentRegion?'selected':''}>${rg}</option>`).join('');
+  }
+  const region = regionSel ? regionSel.value : '';
+
+  // Plant filter — refresh options based on region
   const plantSel = document.getElementById('filterPlant');
   if (plantSel) {
     const currentPlant = plantSel.value;
     const allPlants = new Set();
-    [...getOVRows(), ...getMHIRows()].forEach(r => { if (r.plant) allPlants.add(String(r.plant)); });
+    allRows.forEach(r => {
+      if (!r.plant) return;
+      // Region seçildiyse sadece o region'daki plantları göster
+      if (region && r.region !== region) return;
+      allPlants.add(String(r.plant));
+    });
     plantSel.innerHTML = '<option value="">All</option>' +
       [...allPlants].sort().map(p => `<option value="${p}" ${p===currentPlant?'selected':''}>${p}</option>`).join('');
   }
-  const plant = document.getElementById('filterPlant').value;
-  const status = document.getElementById('filterStatus').value;
+  const plant = plantSel ? plantSel.value : '';
 
-  // Update status options based on plant
+  // Status filter — refresh options based on region+plant
   const statusSel = document.getElementById('filterStatus');
   const currentStatus = statusSel.value;
   const allStatuses = new Set();
-  [...getOVRows(), ...getMHIRows()].forEach(r => {
-    if (!plant || String(r.plant) === plant) allStatuses.add(r.status);
+  allRows.forEach(r => {
+    if (region && r.region !== region) return;
+    if (plant && String(r.plant) !== plant) return;
+    if (r.status) allStatuses.add(r.status);
   });
   statusSel.innerHTML = '<option value="">All</option>' +
     [...allStatuses].sort().map(s => `<option value="${s}" ${s===currentStatus?'selected':''}>${s}</option>`).join('');
+  const status = statusSel.value;
 
-  // Filter OV table rows
-  const ovTbody = document.getElementById('ovCodesBody');
-  if (ovTbody) {
-    Array.from(ovTbody.querySelectorAll('tr')).forEach(tr => {
-      const inputs = tr.querySelectorAll('input[type="text"], input:not([type])');
-      if (inputs.length < 3) { tr.style.display=''; return; } // add row
-      const rowPlant = inputs[1]?.value || '';
-      const rowStatus = inputs[2]?.value || '';
-      const show = (!plant || rowPlant === plant) && (!status || rowStatus === status);
-      tr.style.display = show ? '' : 'none';
+  // Helper: belirli bir tbody'deki TR'leri rows dizisine göre göster/gizle
+  const filterTable = (tbodyId, rows) => {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    const trs = Array.from(tbody.querySelectorAll('tr'));
+    // Son TR add-row butonu
+    rows.forEach((r, i) => {
+      if (!trs[i]) return;
+      const matchRegion = !region || r.region === region;
+      const matchPlant  = !plant  || String(r.plant) === plant;
+      const matchStatus = !status || r.status === status;
+      trs[i].style.display = (matchRegion && matchPlant && matchStatus) ? '' : 'none';
     });
-  }
+  };
 
-  // Filter MHI table rows
-  const mhiTbody = document.getElementById('mhiCodesBody');
-  if (mhiTbody) {
-    Array.from(mhiTbody.querySelectorAll('tr')).forEach(tr => {
-      const inputs = tr.querySelectorAll('input[type="text"], input:not([type])');
-      if (inputs.length < 3) { tr.style.display=''; return; }
-      const rowPlant = inputs[1]?.value || '';
-      const rowStatus = inputs[2]?.value || '';
-      const show = (!plant || rowPlant === plant) && (!status || rowStatus === status);
-      tr.style.display = show ? '' : 'none';
-    });
-  }
+  filterTable('ovCodesBody', ovRows);
+  filterTable('mhiCodesBody', mhiRows);
 }
 
 function clearCodesFilter() {
-  document.getElementById('filterPlant').value = '';
-  document.getElementById('filterStatus').value = '';
+  const r = document.getElementById('filterRegion'); if (r) r.value = '';
+  const p = document.getElementById('filterPlant');  if (p) p.value = '';
+  const s = document.getElementById('filterStatus'); if (s) s.value = '';
   applyCodesFilter();
 }
 
@@ -1847,6 +1860,11 @@ function renderSORTable() {
     return;
   }
 
+  container.innerHTML = renderSORTableForPlant(plant, region);
+}
+
+// SOR tablosunu tek plant için oluştur — HTML string döner
+function renderSORTableForPlant(plant, region) {
   const FIELDS_OV  = ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA'];
   const FIELDS_MHI = ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA'];
 
@@ -1896,8 +1914,7 @@ function renderSORTable() {
   });
 
   if (!rows.length) {
-    container.innerHTML = "<div style='color:var(--text-muted);font-size:14px'>No codes found.</div>";
-    return;
+    return "<div style='color:var(--text-muted);font-size:14px;padding:8px'>No codes found for this plant.</div>";
   }
 
   // Group rows by day
@@ -1937,7 +1954,7 @@ function renderSORTable() {
   });
 
   html += '</div></div>';
-  container.innerHTML = html;
+  return html;
 }
 
 // ─── JSON EXPORT / IMPORT ───────────────────────────────────────

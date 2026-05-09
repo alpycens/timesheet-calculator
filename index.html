@@ -1175,9 +1175,10 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   // O fark RCP olarak ayrı satırda gösterilir (rcpRange + GSRM saati).
   // Hesaplama mantığı:
   //   - sorTotal'den rcpVal düşülür (toplam çalışılan zaman RCP hariç)
-  //   - IUWT/extraDep hesabı gerçek departure üzerinden yapılır (RCP penaltısı yok)
+  //   - effectiveDep = actualDep - rcpVal → Time sütununda gösterilen departure
   //   - rcpVal saatleri ayrı bir satırda RCP olarak gösterilir
   let rcpRange = null;
+  let effectiveDep = actualDep; // RCP yoksa olduğu gibi kalır
   if (rcpVal > 0 && actualDep) {
     const depH = timeToH(actualDep);
     const rcpStartH = depH - rcpVal;
@@ -1186,7 +1187,9 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
       const mm = Math.round((h - hh) * 60);
       return String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
     };
-    rcpRange = fmt(rcpStartH) + '-' + actualDep;
+    const rcpStart = fmt(rcpStartH);
+    rcpRange = rcpStart + '-' + actualDep;
+    effectiveDep = rcpStart; // Time sütununda gösterilecek "RCP düşülmüş" departure
   }
 
   let IUWT = null;
@@ -1309,7 +1312,9 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     IUWT, IENF, NENF,
     // RCP ayrı section için: saat aralığı (örn "16:00-17:00") ve değer (1 GSRM)
     rcpRange: rcpRange,
-    rcpHours: (rcpVal > 0 ? rcpVal : null)
+    rcpHours: (rcpVal > 0 ? rcpVal : null),
+    // Time sütununda gösterilecek effective departure (RCP düşülmüş)
+    effectiveDep: effectiveDep
   };
 }
 
@@ -1594,9 +1599,7 @@ function formatCodes(entry) {
   if (!entry) return '';
   const fields = ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','IUWT','IENF','NENF'];
   let parts = fields.filter(k => entry[k] != null && entry[k] !== '').map(k => `${entry[k]} ${k}`);
-
-  // GSRM-RCP satırı kırmızı renkte, ayrı bir blok olarak (yan yana sıkışmasın)
-  if (entry._rcp) parts.push(`<span style="color:#dc2626;font-weight:600;display:inline-block;width:100%">${entry._rcp} GSRM-RCP</span>`);
+  // RCP artık ayrı bir section'da gösteriliyor — burada tekrar yazmaya gerek yok
   return parts.join('\n');
 }
 
@@ -1614,7 +1617,7 @@ function renderOutcomeSection(containerId, sectionData) {
 
   [['', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
    ['SOR', (e) => e?.sorStr || '', 'var(--text-muted)', '400'],
-   ['Time', (e) => (e && !e._empty && e.arr && e.dep) ? `${e.arr}-${e.dep}` : '', 'var(--accent)', '400'],
+   ['Time', (e) => (e && !e._empty && e.arr && e.dep) ? `${e.arr}-${e.effectiveDep || e.dep}` : '', 'var(--accent)', '400'],
    ['', (e) => (e && !e._empty) ? formatCodes(e) : '', '#d97706', '400']
   ].forEach(([label, fn, color, weight]) => {
     const lc = document.createElement('div'); lc.className='og-cell og-row-label'; lc.textContent=label; container.appendChild(lc);

@@ -150,6 +150,51 @@
   }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
+  /* ─── SOR FILTER ROW (Region + Plant) ─── */
+  /* Her grup (label + select) atomik bir blok — wrap yapsa bile birlikte kalır.
+     Mobilde de iki grup yan yana sığsın diye küçük genişlikler kullanıyoruz. */
+  .sor-filter-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  .sor-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .sor-filter-group label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .sor-filter-group select {
+    font-size: 15px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text);
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 100%;
+  }
+  @media (max-width: 600px) {
+    .sor-filter-row { gap: 8px; }
+    .sor-filter-group { gap: 6px; }
+    .sor-filter-group label { font-size: 13px; }
+    .sor-filter-group select { font-size: 13px; padding: 6px 6px; }
+  }
+  @media (max-width: 380px) {
+    .sor-filter-group label { font-size: 12px; }
+    .sor-filter-group select { font-size: 12px; }
+  }
+
   /* ─── TIMESHEET TABLE ─── */
   .ts-table-wrap {
     overflow-x: auto;
@@ -532,15 +577,19 @@
   <div class="panel" id="panel-sor">
     <div style="margin-bottom:20px">
       <div class="section-label">Plant SOR Reference</div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-        <label style="font-family:'IBM Plex Mono',monospace;font-size:15px;color:var(--text-muted)">Region:</label>
-        <select id="sorRegionSelect" onchange="onSORRegionChange()" style="font-size:15px;padding:6px 12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);width:140px">
-          <option value="">— Select —</option>
-        </select>
-        <label style="font-family:'IBM Plex Mono',monospace;font-size:15px;color:var(--text-muted)">Plant:</label>
-        <select id="sorPlantSelect" onchange="renderSORTable()" style="font-size:15px;padding:6px 12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);width:120px">
-          <option value="">— Select —</option>
-        </select>
+      <div class="sor-filter-row">
+        <div class="sor-filter-group">
+          <label>Region:</label>
+          <select id="sorRegionSelect" onchange="onSORRegionChange()">
+            <option value="">— Select —</option>
+          </select>
+        </div>
+        <div class="sor-filter-group">
+          <label>Plant:</label>
+          <select id="sorPlantSelect" onchange="renderSORTable()">
+            <option value="">— Select —</option>
+          </select>
+        </div>
       </div>
       <div id="sorTableContainer"></div>
     </div>

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-09T00:54:54.116Z",
+  "exportedAt": "2026-05-09T06:53:13.995Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -21,223 +21,252 @@
       "Inside OV": {
         "arr": "08:00",
         "dep": "18:00",
+        "MAIN_ABSORB": "HLVI",
         "BREAK": 0.5,
         "GBPS": 0.5,
         "GSRM": null,
         "GPAS": null,
         "GWAG": 0.75,
-        "INSP": null,
         "GAVI": null,
+        "INSP": null,
         "HLVI": 9,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       },
       "Lairage OV": {
         "arr": "06:30",
         "dep": "17:30",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.5,
         "GSRM": null,
         "GPAS": 0.5,
         "GWAG": 0.75,
-        "INSP": 9.5,
         "GAVI": null,
+        "INSP": 9.5,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       }
     },
     "2690": {
       "OV": {
         "arr": "07:00",
         "dep": "16:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.5,
         "GSRM": 0.5,
         "GPAS": 0.25,
         "GWAG": 0.75,
-        "INSP": 7.25,
         "GAVI": null,
+        "INSP": 7.25,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       }
     },
     "4015": {
       "OV": {
         "arr": "07:00",
         "dep": "18:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.5,
         "GSRM": null,
         "GPAS": null,
         "GWAG": 0.75,
-        "INSP": 10,
         "GAVI": 0.5,
+        "INSP": 10,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       }
     },
     "4133": {
       "OV": {
         "arr": "05:30",
         "dep": "15:30",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 0.25,
         "GPAS": null,
         "GWAG": 0.75,
-        "INSP": 9,
         "GAVI": null,
+        "INSP": 9,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       },
       "THURSDAY_OV": {
         "arr": "05:30",
         "dep": "16:30",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 0.25,
         "GPAS": null,
         "GWAG": 0.75,
-        "INSP": 10,
         "GAVI": null,
+        "INSP": 10,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       },
       "FRIDAY_OV": {
         "arr": "05:30",
         "dep": "16:30",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 0.25,
         "GPAS": null,
         "GWAG": 0.75,
-        "INSP": 10,
         "GAVI": null,
+        "INSP": 10,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       }
     },
     "4138": {
       "OV Only": {
         "arr": "07:00",
         "dep": "10:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": null,
         "GBPS": 0.5,
         "GSRM": 0.5,
         "GPAS": 0.25,
         "GWAG": 0.75,
-        "INSP": 1.75,
         "GAVI": null,
+        "INSP": 1.75,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       }
     },
     "4392": {
       "OV Only": {
         "arr": "07:30",
         "dep": "11:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": null,
         "GBPS": 0.25,
         "GSRM": 0.5,
         "GPAS": 0.25,
         "GWAG": 0.75,
-        "INSP": 2.5,
         "GAVI": null,
+        "INSP": 2.5,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       }
     },
     "8072": {
       "OV": {
         "arr": "07:00",
         "dep": "15:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.5,
         "GSRM": null,
         "GPAS": 0.25,
         "GWAG": 0.75,
-        "INSP": 6.75,
         "GAVI": null,
+        "INSP": 6.75,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       },
       "FRIDAY_OV": {
         "arr": "06:30",
         "dep": "14:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": null,
         "GPAS": null,
         "GWAG": 0.75,
-        "INSP": 6.75,
         "GAVI": null,
+        "INSP": 6.75,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       },
       "MONDAY_TB OV": {
         "arr": "09:00",
         "dep": "16:00",
+        "MAIN_ABSORB": "GNTB",
         "BREAK": null,
         "GBPS": null,
         "GSRM": null,
         "GPAS": null,
         "GWAG": 0.75,
-        "INSP": null,
         "GAVI": null,
+        "INSP": null,
         "HLVI": 0.5,
         "GNTB": 7.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       },
       "TUESDAY_TB OV": {
         "arr": "10:00",
         "dep": "16:00",
+        "MAIN_ABSORB": "GNTB",
         "BREAK": null,
         "GBPS": null,
         "GSRM": null,
         "GPAS": null,
         "GWAG": 0.75,
-        "INSP": null,
         "GAVI": null,
+        "INSP": null,
         "HLVI": 0.5,
         "GNTB": 7.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       },
       "THURSDAY_TB OV": {
         "arr": "09:00",
         "dep": "16:00",
+        "MAIN_ABSORB": "GNTB",
         "BREAK": null,
         "GBPS": null,
         "GSRM": null,
         "GPAS": null,
         "GWAG": 0.75,
-        "INSP": null,
         "GAVI": null,
+        "INSP": null,
         "HLVI": 0.5,
         "GNTB": 7.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       }
     },
     "8145": {
       "OV": {
         "arr": "08:00",
         "dep": "17:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": null,
         "GBPS": 0.5,
         "GSRM": 0.5,
         "GPAS": 0.5,
         "GWAG": 0.75,
-        "INSP": 7.5,
         "GAVI": null,
+        "INSP": 7.5,
         "HLVI": 0.5,
         "GNTB": 0.5,
         "GFSA": 0.5,
@@ -246,43 +275,46 @@
       "WEDNESDAY_OV": {
         "arr": "08:00",
         "dep": "17:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": null,
         "GBPS": 0.5,
         "GSRM": 0.5,
         "GPAS": 0.5,
         "GWAG": 0.75,
-        "INSP": 7.5,
         "GAVI": null,
+        "INSP": 7.5,
         "HLVI": 0.5,
         "GNTB": 0.5,
         "GFSA": 0.5,
         "RCP": 1
       },
-      "OV Afternoon": {
+      "Afternoon OV": {
         "arr": "15:00",
         "dep": "20:30",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.5,
         "GSRM": 0.5,
         "GPAS": null,
         "GWAG": 0.75,
-        "INSP": 4,
         "GAVI": null,
+        "INSP": 4,
         "HLVI": 0.5,
         "GNTB": 0.5,
         "GFSA": 0.75,
         "RCP": null
       },
-      "OV Morning": {
+      "Morning OV": {
         "arr": "07:30",
         "dep": "15:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": null,
         "GSRM": 0.5,
         "GPAS": null,
         "GWAG": 0.75,
-        "INSP": 6.5,
         "GAVI": null,
+        "INSP": 6.5,
         "HLVI": 0.5,
         "GNTB": 0.5,
         "GFSA": 0.5,
@@ -293,72 +325,82 @@
       "MONDAY_OV": {
         "arr": "06:45",
         "dep": "18:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 1,
         "GPAS": 0.5,
         "GWAG": 0.75,
-        "INSP": 9,
         "GAVI": null,
+        "INSP": 9,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       },
       "TUESDAY_OV": {
         "arr": "06:45",
         "dep": "17:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 1,
         "GPAS": 0.5,
         "GWAG": 0.75,
-        "INSP": 8,
         "GAVI": null,
+        "INSP": 8,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       },
       "WEDNESDAY_OV": {
         "arr": "06:45",
         "dep": "17:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 1,
         "GPAS": 0.5,
         "GWAG": 0.75,
-        "INSP": 8,
         "GAVI": null,
+        "INSP": 8,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       },
       "THURSDAY_OV": {
         "arr": "06:45",
         "dep": "16:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 1,
         "GPAS": 0.5,
         "GWAG": 0.75,
-        "INSP": 7,
         "GAVI": null,
+        "INSP": 7,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       },
       "FRIDAY_OV": {
         "arr": "06:45",
         "dep": "13:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 1,
         "GPAS": 0.5,
         "GWAG": 0.75,
-        "INSP": 4,
         "GAVI": null,
+        "INSP": 4,
         "HLVI": 0.5,
         "GNTB": 0.5,
-        "GFSA": 0.5
+        "GFSA": 0.5,
+        "RCP": null
       }
     }
   },
@@ -367,6 +409,7 @@
       "MHI": {
         "arr": "07:00",
         "dep": "17:30",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": null,
         "GSRM": 0.5,
@@ -380,6 +423,7 @@
       "MHI": {
         "arr": "07:00",
         "dep": "11:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": null,
         "GBPS": null,
         "GSRM": 0.25,
@@ -391,6 +435,7 @@
       "MONDAY_MHI": {
         "arr": "07:00",
         "dep": "11:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": null,
         "GBPS": null,
         "GSRM": 0.25,
@@ -402,6 +447,7 @@
       "THURSDAY_MHI": {
         "arr": "07:00",
         "dep": "11:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": null,
         "GBPS": null,
         "GSRM": 0.25,
@@ -415,6 +461,7 @@
       "MHI": {
         "arr": "07:30",
         "dep": "18:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": null,
         "GSRM": null,
@@ -428,6 +475,7 @@
       "MHI": {
         "arr": "06:00",
         "dep": "15:15",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": null,
         "GSRM": 0.5,
@@ -439,6 +487,7 @@
       "THURSDAY_MHI": {
         "arr": "06:00",
         "dep": "16:15",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": null,
         "GSRM": 0.5,
@@ -450,6 +499,7 @@
       "FRIDAY_MHI": {
         "arr": "06:00",
         "dep": "16:15",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": null,
         "GSRM": 0.5,
@@ -463,6 +513,7 @@
       "OV Only": {
         "arr": "10:00",
         "dep": "17:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": null,
         "GSRM": null,
@@ -476,6 +527,7 @@
       "OV Only": {
         "arr": "11:00",
         "dep": "14:30",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": null,
         "GSRM": null,
@@ -489,6 +541,7 @@
       "MHI1": {
         "arr": "07:15",
         "dep": "14:45",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": null,
         "GSRM": 0.5,
@@ -500,6 +553,7 @@
       "TUESDAY_MHI1": {
         "arr": "10:00",
         "dep": "16:00",
+        "MAIN_ABSORB": "GNTB",
         "BREAK": null,
         "GBPS": null,
         "GSRM": null,
@@ -511,6 +565,7 @@
       "FRIDAY_MHI1": {
         "arr": "07:00",
         "dep": "14:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": null,
         "GSRM": null,
@@ -522,6 +577,7 @@
       "MONDAY_MHI2": {
         "arr": "10:30",
         "dep": "15:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": null,
         "GBPS": null,
         "GSRM": 0.25,
@@ -533,6 +589,7 @@
       "TUESDAY_MHI2": {
         "arr": "10:30",
         "dep": "15:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": null,
         "GBPS": null,
         "GSRM": 0.25,
@@ -544,6 +601,7 @@
       "WEDNESDAY_MHI2": {
         "arr": "10:30",
         "dep": "15:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": null,
         "GBPS": null,
         "GSRM": 0.25,
@@ -555,6 +613,7 @@
       "THURSDAY_MHI2": {
         "arr": "09:00",
         "dep": "16:00",
+        "MAIN_ABSORB": "GNTB",
         "BREAK": null,
         "GBPS": null,
         "GSRM": null,
@@ -568,6 +627,7 @@
       "MONDAY_MHI": {
         "arr": "08:15",
         "dep": "14:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": null,
         "GBPS": null,
         "GSRM": 0.25,
@@ -579,6 +639,7 @@
       "MHI": {
         "arr": "08:15",
         "dep": "14:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": null,
         "GBPS": null,
         "GSRM": 0.25,
@@ -592,6 +653,7 @@
       "MONDAY_MHI": {
         "arr": "07:00",
         "dep": "18:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 0.75,
@@ -603,6 +665,7 @@
       "TUESDAY_MHI": {
         "arr": "07:00",
         "dep": "18:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 0.75,
@@ -614,6 +677,7 @@
       "WEDNESDAY_MHI": {
         "arr": "07:00",
         "dep": "17:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 0.75,
@@ -625,6 +689,7 @@
       "THURSDAY_MHI": {
         "arr": "07:00",
         "dep": "16:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 0.75,
@@ -636,6 +701,7 @@
       "FRIDAY_MHI": {
         "arr": "07:00",
         "dep": "13:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 0.75,
@@ -647,6 +713,7 @@
       "MHI": {
         "arr": "07:00",
         "dep": "18:00",
+        "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 0.75,

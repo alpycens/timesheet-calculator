@@ -1863,15 +1863,17 @@ function renderSORTable() {
 
       if (ovCodes) {
         const sorStr = `${ovCodes.arr}-${ovCodes.dep}`;
-        // Exclude conditional codes (checkbox-dependent)
+        const mainAbsorb = (ovCodes.MAIN_ABSORB || '').trim();
+        // Exclude conditional codes (checkbox-dependent) — UNLESS this code is the MAIN_ABSORB
         const isTBOVRow = status === 'TB OV';
         const isInsideOVRow = (plant === '2172' && status === 'Inside OV');
-        const OV_CONDITIONAL = ['GFSA','GWAG','GAVI',
+        const baseConditional = ['GFSA','GWAG','GAVI',
           ...(isTBOVRow ? [] : ['GNTB']),
           ...(isInsideOVRow ? [] : ['HLVI'])
         ];
+        // MAIN_ABSORB'da olan kod conditional olsa bile her zaman gösterilir
+        const OV_CONDITIONAL = baseConditional.filter(k => k !== mainAbsorb);
         const visibleKeys = FIELDS_OV.filter(k => ovCodes[k] != null && !OV_CONDITIONAL.includes(k));
-        const mainAbsorb = ovCodes.MAIN_ABSORB || '';
         const codeItems = visibleKeys.map(k => ({ k, v: ovCodes[k], isMain: k === mainAbsorb }));
         // RCP veri-odaklı: kodda RCP > 0 varsa not göster
         const rcpVal = (ovCodes.RCP != null && ovCodes.RCP > 0) ? ovCodes.RCP : null;
@@ -1880,11 +1882,13 @@ function renderSORTable() {
       }
       if (mhiCodes) {
         const sorStr = `${mhiCodes.arr}-${mhiCodes.dep}`;
+        const mainAbsorb = (mhiCodes.MAIN_ABSORB || '').trim();
         // GNTB is main code for TUESDAY_MHI1 and THURSDAY_MHI2
         const isGNTBMain = (day === 'TUESDAY' && status === 'MHI1') || (day === 'THURSDAY' && status === 'MHI2');
-        const MHI_CONDITIONAL = isGNTBMain ? ['GFSA','GWAG','GAVI','HLVI'] : ['GNTB','GFSA','GWAG','GAVI','HLVI'];
+        const baseConditional = isGNTBMain ? ['GFSA','GWAG','GAVI','HLVI'] : ['GNTB','GFSA','GWAG','GAVI','HLVI'];
+        // MAIN_ABSORB'da olan kod conditional olsa bile her zaman gösterilir
+        const MHI_CONDITIONAL = baseConditional.filter(k => k !== mainAbsorb);
         const visibleKeys = FIELDS_MHI.filter(k => mhiCodes[k] != null && !MHI_CONDITIONAL.includes(k));
-        const mainAbsorb = mhiCodes.MAIN_ABSORB || '';
         const codeItems = visibleKeys.map(k => ({ k, v: mhiCodes[k], isMain: k === mainAbsorb }));
         if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', sor: sorStr, codeItems, mainAbsorb, rcpNote: null, rcpInspNote: null, trichNote: false }); }
       }

@@ -177,6 +177,25 @@
     border-right: 1px solid var(--border);
     white-space: nowrap;
   }
+  /* Sticky header on vertical scroll (codes editor tables) */
+  .ts-table.sticky-head thead th {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+  }
+  .ts-table.sticky-head thead th:first-child {
+    position: sticky;
+    left: 0;
+    top: 0;
+    z-index: 5;
+    background: var(--surface2);
+    box-shadow: 2px 0 4px rgba(0,0,0,0.08);
+  }
+  /* Scrollable wrap for codes editor tables — vertical + horizontal */
+  .ts-table-wrap.scroll-y {
+    max-height: 65vh;
+    overflow: auto;
+  }
   .ts-table thead th:first-child {
     position: sticky;
     left: 0;
@@ -584,10 +603,11 @@
         <button onclick="clearCodesFilter()" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:4px 12px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:4px;cursor:pointer">Clear</button>
       </div>
       <div class="section-label">OV Codes</div>
-      <div class="ts-table-wrap" style="margin-bottom:24px">
-        <table class="ts-table" id="ovCodesTable">
+      <div class="ts-table-wrap scroll-y" style="margin-bottom:24px">
+        <table class="ts-table sticky-head" id="ovCodesTable">
           <thead><tr>
             <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
+            <th style="color:var(--accent)">Main Absorb</th>
             <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th><th>GWAG</th>
             <th>GAVI</th><th>INSP</th><th>HLVI</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th></th>
           </tr></thead>
@@ -595,10 +615,11 @@
         </table>
       </div>
       <div class="section-label">MHI Codes</div>
-      <div class="ts-table-wrap">
-        <table class="ts-table" id="mhiCodesTable">
+      <div class="ts-table-wrap scroll-y">
+        <table class="ts-table sticky-head" id="mhiCodesTable">
           <thead><tr>
             <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
+            <th style="color:var(--accent)">Main Absorb</th>
             <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th>
             <th>INSP</th><th>GNTB</th><th>GFSA</th><th></th>
           </tr></thead>
@@ -1002,23 +1023,35 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   const GBPS  = codes.GBPS  ?? null;
   const GSRM_base = codes.GSRM ?? null;
   // RCP: kodda RCP değeri varsa otomatik aktif. Ekstra GSRM-RCP olarak ayrı satır
-  // gösterilir; bu saatler INSP'ten (ana absorber) düşülür.
+  // gösterilir; bu saatler MAIN ABSORBER'dan düşülür.
   const rcpVal = (!isMHI && codes.RCP != null) ? codes.RCP : 0;
   const GSRM = GSRM_base;
   const rcpExtraHours = rcpVal;
   const GPAS  = codes.GPAS  ?? null;
   const isInsideOV = (!isMHI && String(d.plant) === '2172' && d.status === 'Inside OV');
   const isTBOV = (!isMHI && d.status === 'TB OV');
-  // GNTB as main absorber only for: TB OV (OV section), TUESDAY_MHI1 and THURSDAY_MHI2 (MHI section)
-  const hasGNTBAsMain = (codes.GNTB != null && codes.INSP == null && !isInsideOV && isTBOV) ||
-                        (isMHI && codes.GNTB != null && codes.INSP == null);
+
+  // ─── MAIN ABSORBER seçimi ───────────────────────────────────────
+  // 1. Öncelik: codes.MAIN_ABSORB (admin panelinden seçilen)
+  // 2. Fallback (geriye dönük uyumluluk için): eski hardcoded kurallar
+  let absorber;
+  if (codes.MAIN_ABSORB && codes.MAIN_ABSORB.trim()) {
+    absorber = codes.MAIN_ABSORB.trim();
+  } else {
+    // Eski hardcoded fallback — MAIN_ABSORB henüz seçilmediyse devreye girer
+    const hasGNTBAsMain = (codes.GNTB != null && codes.INSP == null && !isInsideOV && isTBOV) ||
+                          (isMHI && codes.GNTB != null && codes.INSP == null);
+    absorber = (isTBOV || hasGNTBAsMain) ? 'GNTB' : (isInsideOV ? 'HLVI' : 'INSP');
+  }
+
+  // Conditional kodlar: checkbox/sampling'e bağlı
   const GWAG  = d.cd                                  ? (codes.GWAG ?? null) : null;
   const GFSA  = (d.sampling && d.sampling !== '')     ? (codes.GFSA ?? null) : null;
-  const HLVI  = isInsideOV                            ? (codes.HLVI ?? null) : (d.sha ? (codes.HLVI ?? null) : null);
-  const GNTB  = (isTBOV || hasGNTBAsMain)             ? (codes.GNTB ?? null) : (d.tb  ? (codes.GNTB ?? null) : null);
+  // HLVI: Inside OV her zaman, diğer durumlarda SHA checkbox'a bağlı — AMA absorber HLVI ise koşulsuz aktif
+  const HLVI  = (absorber === 'HLVI' || isInsideOV)   ? (codes.HLVI ?? null) : (d.sha ? (codes.HLVI ?? null) : null);
+  // GNTB: absorber GNTB veya TB OV ise koşulsuz aktif, yoksa TB checkbox'a bağlı
+  const GNTB  = (absorber === 'GNTB' || isTBOV)       ? (codes.GNTB ?? null) : (d.tb  ? (codes.GNTB ?? null) : null);
   const GAVI  = d.ai                                  ? (codes.GAVI ?? null) : null;
-  const HLVI_is_absorber = isInsideOV;
-  const absorber = (isTBOV || hasGNTBAsMain) ? 'GNTB' : (isInsideOV ? 'HLVI' : 'INSP');
 
   const sorDep = sorDepTime(sorStr);
   let IUWT = null;
@@ -1040,36 +1073,104 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   const sorTotal = (sorArr && sorDep) ? round25(timeToH(sorDep) - timeToH(sorArr)) : null;
   const totalToFill = sorTotal;
 
+  // Sabit (absorber dışındaki) kodların toplamı — bunlar sabit kalır, absorber dengeyi alır
   const fixedSum = round25(
-    (BREAK||0)+(GBPS||0)+(GSRM||0)+(GPAS||0)+
-    (GWAG||0)+(GAVI||0)+(GFSA||0)+(IUWT||0)+rcpExtraHours+
-    (absorber==='HLVI' ? 0 : (HLVI||0))+
-    (absorber==='GNTB' ? 0 : (GNTB||0))
+    (absorber==='BREAK' ? 0 : (BREAK||0)) +
+    (absorber==='GBPS'  ? 0 : (GBPS ||0)) +
+    (absorber==='GSRM'  ? 0 : (GSRM ||0)) +
+    (absorber==='GPAS'  ? 0 : (GPAS ||0)) +
+    (absorber==='GWAG'  ? 0 : (GWAG ||0)) +
+    (absorber==='GAVI'  ? 0 : (GAVI ||0)) +
+    (absorber==='GFSA'  ? 0 : (GFSA ||0)) +
+    (absorber==='HLVI'  ? 0 : (HLVI ||0)) +
+    (absorber==='GNTB'  ? 0 : (GNTB ||0)) +
+    (absorber==='INSP'  ? 0 : 0) + // INSP başlangıçta 0
+    (absorber==='RCP'   ? 0 : rcpExtraHours) +
+    (IUWT||0)
   );
 
-  let INSP = null;
-  let HLVI_final = absorber === 'HLVI' ? null : HLVI;
-  let GNTB_final = GNTB;
+  // Final değerler — absorber hariç hepsi yukarıdaki değerleriyle kalır
+  let INSP = (absorber === 'INSP') ? null : null; // INSP normalde absorber, default null
+  let HLVI_final = (absorber === 'HLVI') ? null : HLVI;
+  let GNTB_final = (absorber === 'GNTB') ? null : GNTB;
+  let BREAK_final = BREAK;
+  let GBPS_final  = GBPS;
+  let GSRM_final  = GSRM;
+  let GPAS_final  = GPAS;
+  let GWAG_final  = GWAG;
+  let GAVI_final  = GAVI;
+  let GFSA_final  = GFSA;
+  let RCP_extra   = rcpExtraHours; // ayrı satırda gösterilen RCP/GSRM ekstrası
 
-  if (totalToFill !== null && absorber !== 'GNTB') {
-    const remainder = round25(totalToFill - fixedSum - lateArrival + extraDep);
-    if (absorber === 'HLVI') HLVI_final = remainder > 0 ? remainder : null;
-    else INSP = remainder > 0 ? remainder : null;
+  // Absorber'ın hesaplanması: totalToFill - fixedSum - lateArrival + extraDep
+  let absorberValue = null;
+  if (totalToFill !== null) {
+    absorberValue = round25(totalToFill - fixedSum - lateArrival + extraDep);
+    if (absorberValue < 0) absorberValue = 0;
   }
 
+  // Absorber'ı doğru değişkene yaz
+  const setAbsorber = (val) => {
+    switch (absorber) {
+      case 'BREAK': BREAK_final = val; break;
+      case 'GBPS':  GBPS_final  = val; break;
+      case 'GSRM':  GSRM_final  = val; break;
+      case 'GPAS':  GPAS_final  = val; break;
+      case 'GWAG':  GWAG_final  = val; break;
+      case 'GAVI':  GAVI_final  = val; break;
+      case 'GFSA':  GFSA_final  = val; break;
+      case 'HLVI':  HLVI_final  = val; break;
+      case 'GNTB':  GNTB_final  = val; break;
+      case 'INSP':  INSP        = val; break;
+      case 'RCP':   RCP_extra   = val; break;
+    }
+  };
+
+  if (absorberValue !== null) {
+    setAbsorber(absorberValue > 0 ? absorberValue : null);
+  }
+
+  // Enforcement: aktivite olduğu için absorber'dan düşülür
   const enfHours = (d.enforcement && d.enfInHours) ? (parseFloat(d.enfInHours) || 0) : 0;
   const enfClass = d.enforcement ? ENF_CODES[d.enforcement] : null;
   const IENF = (enfClass === 'IENF' && enfHours > 0) ? enfHours : null;
   const NENF = (enfClass === 'NENF' && enfHours > 0) ? enfHours : null;
 
-  let INSP_f = INSP, HLVI_f = HLVI_final, GNTB_f = GNTB_final;
   if (enfHours > 0) {
-    if (absorber === 'GNTB') GNTB_f = round25(Math.max(0, (GNTB_final||0) - enfHours));
-    else if (absorber === 'HLVI') HLVI_f = round25(Math.max(0, (HLVI_final||0) - enfHours));
-    else INSP_f = round25(Math.max(0, (INSP||0) - enfHours));
+    // Absorber'ın mevcut değerinden enf saatlerini düş
+    const getAbs = () => {
+      switch (absorber) {
+        case 'BREAK': return BREAK_final;
+        case 'GBPS':  return GBPS_final;
+        case 'GSRM':  return GSRM_final;
+        case 'GPAS':  return GPAS_final;
+        case 'GWAG':  return GWAG_final;
+        case 'GAVI':  return GAVI_final;
+        case 'GFSA':  return GFSA_final;
+        case 'HLVI':  return HLVI_final;
+        case 'GNTB':  return GNTB_final;
+        case 'INSP':  return INSP;
+        case 'RCP':   return RCP_extra;
+        default: return null;
+      }
+    };
+    const cur = getAbs() || 0;
+    setAbsorber(round25(Math.max(0, cur - enfHours)));
   }
 
-  return { BREAK, GBPS, GSRM, GPAS, GWAG, GAVI, HLVI: HLVI_f, GNTB: GNTB_f, GFSA, INSP: INSP_f, IUWT, IENF, NENF };
+  return {
+    BREAK: BREAK_final,
+    GBPS:  GBPS_final,
+    GSRM:  GSRM_final,
+    GPAS:  GPAS_final,
+    GWAG:  GWAG_final,
+    GAVI:  GAVI_final,
+    HLVI:  HLVI_final,
+    GNTB:  GNTB_final,
+    GFSA:  GFSA_final,
+    INSP:  INSP,
+    IUWT, IENF, NENF
+  };
 }
 
 function calcCancelledCodes(sorStr, codes) {
@@ -1464,6 +1565,31 @@ function regionSelect(currentVal, onChange) {
   return `<select style="width:95px;font-size:11px;padding:4px" onchange="${onChange}">${opts}</select>`;
 }
 
+// Time dropdown for codes editor (HH:MM format, 24h, 15-min steps)
+// table: 'OV' or 'MHI', field: 'arr' or 'dep'
+function codeTimeSelect(currentVal, table, idx, field) {
+  const parts = (currentVal || '').split(':');
+  const curH = parts[0] || '', curM = parts[1] || '';
+  const hours = Array.from({length:24},(_,i)=>String(i).padStart(2,'0'));
+  const mins = ['00','15','30','45'];
+  const hOpts = ['', ...hours].map(h=>`<option value="${h}" ${h===curH?'selected':''}>${h||'—'}</option>`).join('');
+  const mOpts = ['', ...mins].map(m=>`<option value="${m}" ${m===curM?'selected':''}>${m||'—'}</option>`).join('');
+  const fn = table === 'OV' ? 'updateOVCodeTime' : 'updateMHICodeTime';
+  return `<span style="display:inline-flex;gap:2px;align-items:center;white-space:nowrap">
+    <select style="width:46px;font-size:11px;padding:3px 1px" onchange="${fn}(${idx},'${field}','h',this.value)">${hOpts}</select>
+    <span style="color:#6b7280;font-size:11px">:</span>
+    <select style="width:46px;font-size:11px;padding:3px 1px" onchange="${fn}(${idx},'${field}','m',this.value)">${mOpts}</select>
+  </span>`;
+}
+
+// Main Absorb dropdown (which code is the main/absorbing one for this row)
+const OV_ABSORB_FIELDS  = ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','RCP'];
+const MHI_ABSORB_FIELDS = ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA'];
+function mainAbsorbSelect(currentVal, fields, onChange) {
+  const opts = ['', ...fields].map(f => `<option value="${f}" ${f===currentVal?'selected':''}>${f||'—'}</option>`).join('');
+  return `<select style="width:78px;font-size:11px;padding:4px;color:var(--accent);font-weight:600" onchange="${onChange}">${opts}</select>`;
+}
+
 function renderOVCodesTable() {
   const tbody = document.getElementById('ovCodesBody');
   tbody.innerHTML = '';
@@ -1475,8 +1601,9 @@ function renderOVCodesTable() {
       <td>${regionSelect(row.region, f('region'))}</td>
       <td><input style="width:55px;font-size:11px;padding:4px" value="${row.plant}" onchange="${f('plant')}"></td>
       <td><input style="width:100px;font-size:11px;padding:4px" value="${row.status}" onchange="${f('status')}"></td>
-      <td><input style="width:65px;font-size:11px;padding:4px" value="${row.arr||''}" onchange="${f('arr')}"></td>
-      <td><input style="width:65px;font-size:11px;padding:4px" value="${row.dep||''}" onchange="${f('dep')}"></td>
+      <td>${codeTimeSelect(row.arr, 'OV', i, 'arr')}</td>
+      <td>${codeTimeSelect(row.dep, 'OV', i, 'dep')}</td>
+      <td>${mainAbsorbSelect(row.MAIN_ABSORB || '', OV_ABSORB_FIELDS, f('MAIN_ABSORB'))}</td>
       <td>${numInput(row.BREAK, f('BREAK'))}</td><td>${numInput(row.GBPS, f('GBPS'))}</td>
       <td>${numInput(row.GSRM, f('GSRM'))}</td><td>${numInput(row.GPAS, f('GPAS'))}</td>
       <td>${numInput(row.GWAG, f('GWAG'))}</td><td>${numInput(row.GAVI, f('GAVI'))}</td>
@@ -1488,7 +1615,7 @@ function renderOVCodesTable() {
     tbody.appendChild(tr);
   });
   const addTr = document.createElement('tr');
-  addTr.innerHTML = `<td colspan="18" style="padding:8px"><button onclick="addOVRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
+  addTr.innerHTML = `<td colspan="19" style="padding:8px"><button onclick="addOVRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
   tbody.appendChild(addTr);
 }
 
@@ -1503,8 +1630,9 @@ function renderMHICodesTable() {
       <td>${regionSelect(row.region, f('region'))}</td>
       <td><input style="width:55px;font-size:11px;padding:4px" value="${row.plant}" onchange="${f('plant')}"></td>
       <td><input style="width:100px;font-size:11px;padding:4px" value="${row.status}" onchange="${f('status')}"></td>
-      <td><input style="width:65px;font-size:11px;padding:4px" value="${row.arr||''}" onchange="${f('arr')}"></td>
-      <td><input style="width:65px;font-size:11px;padding:4px" value="${row.dep||''}" onchange="${f('dep')}"></td>
+      <td>${codeTimeSelect(row.arr, 'MHI', i, 'arr')}</td>
+      <td>${codeTimeSelect(row.dep, 'MHI', i, 'dep')}</td>
+      <td>${mainAbsorbSelect(row.MAIN_ABSORB || '', MHI_ABSORB_FIELDS, f('MAIN_ABSORB'))}</td>
       <td>${numInput(row.BREAK, f('BREAK'))}</td><td>${numInput(row.GBPS, f('GBPS'))}</td>
       <td>${numInput(row.GSRM, f('GSRM'))}</td><td>${numInput(row.GPAS, f('GPAS'))}</td>
       <td>${numInput(row.INSP, f('INSP'))}</td><td>${numInput(row.GNTB, f('GNTB'))}</td>
@@ -1514,7 +1642,7 @@ function renderMHICodesTable() {
     tbody.appendChild(tr);
   });
   const addTr = document.createElement('tr');
-  addTr.innerHTML = `<td colspan="14" style="padding:8px"><button onclick="addMHIRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
+  addTr.innerHTML = `<td colspan="15" style="padding:8px"><button onclick="addMHIRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
   tbody.appendChild(addTr);
 }
 
@@ -1524,16 +1652,31 @@ function getMHIRowsMutable() { if (!_mhiRows) _mhiRows = getMHIRows(); return _m
 
 function updateOVCode(i, field, val) {
   const rows = getOVRowsMutable();
-  rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep'].includes(field) ? val : parseFloat(val));
+  rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep','MAIN_ABSORB'].includes(field) ? val : parseFloat(val));
 }
 function updateMHICode(i, field, val) {
   const rows = getMHIRowsMutable();
-  rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep'].includes(field) ? val : parseFloat(val));
+  rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep','MAIN_ABSORB'].includes(field) ? val : parseFloat(val));
+}
+// Time dropdown updates: merge h/m parts. field = 'arr' or 'dep', part = 'h' or 'm'
+function _mergeTimePart(current, part, value) {
+  const cur = (current || ':').split(':');
+  if (part === 'h') cur[0] = value;
+  else cur[1] = value;
+  return (cur[0] || cur[1]) ? (cur[0]||'00')+':'+(cur[1]||'00') : '';
+}
+function updateOVCodeTime(i, field, part, value) {
+  const rows = getOVRowsMutable();
+  rows[i][field] = _mergeTimePart(rows[i][field], part, value);
+}
+function updateMHICodeTime(i, field, part, value) {
+  const rows = getMHIRowsMutable();
+  rows[i][field] = _mergeTimePart(rows[i][field], part, value);
 }
 function deleteOVRow(i) { getOVRowsMutable().splice(i,1); renderOVCodesTable(); }
 function deleteMHIRow(i) { getMHIRowsMutable().splice(i,1); renderMHICodesTable(); }
-function addOVRow() { getOVRowsMutable().push({day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null,RCP:null}); renderOVCodesTable(); }
-function addMHIRow() { getMHIRowsMutable().push({day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null}); renderMHICodesTable(); }
+function addOVRow() { getOVRowsMutable().push({day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null,RCP:null}); renderOVCodesTable(); }
+function addMHIRow() { getMHIRowsMutable().push({day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null}); renderMHICodesTable(); }
 
 function rowsToCodeObj(rows) {
   const obj = {};
@@ -1542,6 +1685,7 @@ function rowsToCodeObj(rows) {
     if (!obj[plant]) obj[plant] = {};
     const key = r.day ? `${r.day}_${r.status}` : r.status;
     const entry = { arr:r.arr, dep:r.dep };
+    if (r.MAIN_ABSORB) entry.MAIN_ABSORB = r.MAIN_ABSORB;
     ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','RCP'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     obj[plant][key] = entry;
   });
@@ -1555,6 +1699,7 @@ function rowsToMHIObj(rows) {
     if (!obj[plant]) obj[plant] = {};
     const key = r.day ? `${r.day}_${r.status}` : r.status;
     const entry = { arr:r.arr, dep:r.dep };
+    if (r.MAIN_ABSORB) entry.MAIN_ABSORB = r.MAIN_ABSORB;
     ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     obj[plant][key] = entry;
   });
@@ -1562,6 +1707,15 @@ function rowsToMHIObj(rows) {
 }
 
 function applyCodesFilter() {
+  // Dynamically refresh plant filter options (so newly-added plants appear)
+  const plantSel = document.getElementById('filterPlant');
+  if (plantSel) {
+    const currentPlant = plantSel.value;
+    const allPlants = new Set();
+    [...getOVRows(), ...getMHIRows()].forEach(r => { if (r.plant) allPlants.add(String(r.plant)); });
+    plantSel.innerHTML = '<option value="">All</option>' +
+      [...allPlants].sort().map(p => `<option value="${p}" ${p===currentPlant?'selected':''}>${p}</option>`).join('');
+  }
   const plant = document.getElementById('filterPlant').value;
   const status = document.getElementById('filterStatus').value;
 
@@ -1636,9 +1790,17 @@ function saveCodesEdit() {
   // localStorage'a kaydet ki sayfa yenilenince kaybolmasın
   try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS })); } catch(e) {}
   renderOutcome(); renderCodesEditor(); renderTimesheet();
-  let msg = 'Codes saved! (Kalıcı yapmak için Export JSON ile codes.json indir ve GitHub\'a yükle.)';
+  // SOR sekmesini de tazele (yeni eklenen kodlar SOR'a yansısın)
+  try { populateSORRegions(); populateSORPlants(); renderSORTable(); } catch(e) {}
+
+  let msg = 'Codes saved successfully!\n\n';
+  msg += '⚠ IMPORTANT: Changes are stored only in this browser.\n';
+  msg += 'To make them permanent across devices, please:\n';
+  msg += '  1) Click "⬇ Export JSON" to download codes.json\n';
+  msg += '  2) Upload the downloaded codes.json to GitHub (replace the existing one).\n\n';
+  msg += 'Otherwise your changes will be lost if you clear browser data or open the app on another device.';
   if (orphanPlants.length) {
-    msg += `\n\nUyarı: Region seçilmemiş plant(lar) bulundu, varsayılan ${REGIONS[0] || 'Cluster27'} atandı: ${[...new Set(orphanPlants)].join(', ')}`;
+    msg += `\n\nNote: Plant(s) without a region were assigned default ${REGIONS[0] || 'Cluster27'}: ${[...new Set(orphanPlants)].join(', ')}`;
   }
   alert(msg);
 }
@@ -1708,19 +1870,23 @@ function renderSORTable() {
           ...(isTBOVRow ? [] : ['GNTB']),
           ...(isInsideOVRow ? [] : ['HLVI'])
         ];
-        const codes = FIELDS_OV.filter(k => ovCodes[k] != null && !OV_CONDITIONAL.includes(k)).map(k => `${ovCodes[k]} ${k}`).join(' | ');
+        const visibleKeys = FIELDS_OV.filter(k => ovCodes[k] != null && !OV_CONDITIONAL.includes(k));
+        const mainAbsorb = ovCodes.MAIN_ABSORB || '';
+        const codeItems = visibleKeys.map(k => ({ k, v: ovCodes[k], isMain: k === mainAbsorb }));
         // RCP veri-odaklı: kodda RCP > 0 varsa not göster
         const rcpVal = (ovCodes.RCP != null && ovCodes.RCP > 0) ? ovCodes.RCP : null;
         const inspAfterRcp = (rcpVal != null && ovCodes.INSP != null) ? round25(ovCodes.INSP - rcpVal) : null;
-        if (!seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', sor: sorStr, codes, rcpNote: rcpVal, rcpInspNote: inspAfterRcp, trichNote: (plant==='8145' && status==='OV Afternoon') }); }
+        if (!seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', sor: sorStr, codeItems, mainAbsorb, rcpNote: rcpVal, rcpInspNote: inspAfterRcp, trichNote: (plant==='8145' && status==='OV Afternoon') }); }
       }
       if (mhiCodes) {
         const sorStr = `${mhiCodes.arr}-${mhiCodes.dep}`;
         // GNTB is main code for TUESDAY_MHI1 and THURSDAY_MHI2
         const isGNTBMain = (day === 'TUESDAY' && status === 'MHI1') || (day === 'THURSDAY' && status === 'MHI2');
         const MHI_CONDITIONAL = isGNTBMain ? ['GFSA','GWAG','GAVI','HLVI'] : ['GNTB','GFSA','GWAG','GAVI','HLVI'];
-        const codes = FIELDS_MHI.filter(k => mhiCodes[k] != null && !MHI_CONDITIONAL.includes(k)).map(k => `${mhiCodes[k]} ${k}`).join(' | ');
-        if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', sor: sorStr, codes, rcpNote: null, rcpInspNote: null, trichNote: false }); }
+        const visibleKeys = FIELDS_MHI.filter(k => mhiCodes[k] != null && !MHI_CONDITIONAL.includes(k));
+        const mainAbsorb = mhiCodes.MAIN_ABSORB || '';
+        const codeItems = visibleKeys.map(k => ({ k, v: mhiCodes[k], isMain: k === mainAbsorb }));
+        if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', sor: sorStr, codeItems, mainAbsorb, rcpNote: null, rcpInspNote: null, trichNote: false }); }
       }
     });
   });
@@ -1751,7 +1917,11 @@ function renderSORTable() {
         html += '<div style="font-weight:600;font-size:14px;margin-bottom:4px">' + r.status + '</div>';
         html += '<div style="font-size:12px;color:' + typeColor + ';font-family:monospace;margin-bottom:4px">' + r.type + '</div>';
         html += '<div style="background:#fefce8;color:#92580a;font-family:monospace;font-size:12px;padding:2px 6px;border-radius:3px;margin-bottom:6px;display:inline-block">' + r.sor + '</div>';
-        let codesHtml = r.codes.split(' | ').join('<br>');
+        // Render code list (no special highlighting for main absorb in SOR view)
+        let codesHtml = '';
+        if (r.codeItems && r.codeItems.length) {
+          codesHtml = r.codeItems.map(item => `${item.v} ${item.k}`).join('<br>');
+        }
         if (r.rcpNote != null) codesHtml += `<br><span style="color:#dc2626;font-weight:600">RCP: ${r.rcpNote} GSRM</span>`;
         if (r.rcpInspNote != null) codesHtml += `<br><span style="color:#dc2626;font-weight:600">${r.rcpInspNote} INSP (if RCP)</span>`;
         if (r.trichNote) codesHtml += '<br><span style="color:#06b6d4;font-weight:600">0.75 GFSA (if Trich)</span>';
@@ -1836,7 +2006,7 @@ function importCodesJSON(input) {
     try {
       const data = JSON.parse(e.target.result);
       if (!data.OV_CODES || !data.MHI_CODES) {
-        alert('Geçersiz dosya: OV_CODES veya MHI_CODES bulunamadı.');
+        alert('Invalid file: OV_CODES or MHI_CODES not found.');
         return;
       }
       Object.keys(OV_CODES).forEach(k => delete OV_CODES[k]);
@@ -1861,9 +2031,9 @@ function importCodesJSON(input) {
       renderCodesEditor();
       renderTimesheet();
       renderOutcome();
-      alert('Kodlar başarıyla yüklendi!');
+      alert('Codes imported successfully!');
     } catch (err) {
-      alert('JSON okunamadı: ' + err.message);
+      alert('Could not read JSON: ' + err.message);
     }
     input.value = '';
   };

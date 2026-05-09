@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-09T07:28:29.920Z",
+  "exportedAt": "2026-05-09T07:35:28.873Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -206,6 +206,22 @@
         "GNTB": null,
         "GFSA": null,
         "RCP": null
+      },
+      "Evening OV": {
+        "arr": "13:30",
+        "dep": "22:30",
+        "MAIN_ABSORB": "HLVI",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "GWAG": null,
+        "GAVI": null,
+        "INSP": null,
+        "HLVI": 7.5,
+        "GNTB": null,
+        "GFSA": null,
+        "RCP": 1
       }
     },
     "8072": {

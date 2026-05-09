@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-09T12:43:08.257Z",
+  "exportedAt": "2026-05-09T13:06:45.525Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -342,7 +342,7 @@
         "arr": "09:00",
         "dep": "16:00",
         "MAIN_ABSORB": "GNTB",
-        "BREAK": null,
+        "BREAK": 0.5,
         "GBPS": null,
         "GSRM": null,
         "GPAS": null,
@@ -350,7 +350,7 @@
         "GAVI": null,
         "INSP": null,
         "HLVI": 0.5,
-        "GNTB": 7.5,
+        "GNTB": 6.5,
         "GFSA": 0.5,
         "RCP": null
       },
@@ -358,7 +358,7 @@
         "arr": "10:00",
         "dep": "16:00",
         "MAIN_ABSORB": "GNTB",
-        "BREAK": null,
+        "BREAK": 0.5,
         "GBPS": null,
         "GSRM": null,
         "GPAS": null,
@@ -366,7 +366,7 @@
         "GAVI": null,
         "INSP": null,
         "HLVI": 0.5,
-        "GNTB": 7.5,
+        "GNTB": 5.5,
         "GFSA": 0.5,
         "RCP": null
       },
@@ -374,7 +374,7 @@
         "arr": "09:00",
         "dep": "16:00",
         "MAIN_ABSORB": "GNTB",
-        "BREAK": null,
+        "BREAK": 0.5,
         "GBPS": null,
         "GSRM": null,
         "GPAS": null,
@@ -382,7 +382,7 @@
         "GAVI": null,
         "INSP": null,
         "HLVI": 0.5,
-        "GNTB": 7.5,
+        "GNTB": 6.5,
         "GFSA": 0.5,
         "RCP": null
       }

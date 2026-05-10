@@ -664,6 +664,7 @@
       <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:2px solid var(--border);padding-bottom:0">
         <button id="adminTab-codes" onclick="switchAdminTab('codes')" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:8px 20px;border:none;background:var(--accent2);color:#fff;border-radius:4px 4px 0 0;cursor:pointer">Codes</button>
         <button id="adminTab-dropdown" onclick="switchAdminTab('dropdown')" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:8px 20px;border:none;background:transparent;color:var(--text-muted);border-radius:4px 4px 0 0;cursor:pointer;border:1px solid var(--border);border-bottom:none">Drop-Down</button>
+        <button id="adminTab-sor-display" onclick="switchAdminTab('sor-display')" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:8px 20px;border:none;background:transparent;color:var(--text-muted);border-radius:4px 4px 0 0;cursor:pointer;border:1px solid var(--border);border-bottom:none">SOR Display</button>
       </div>
 
       <!-- CODES section -->
@@ -783,6 +784,20 @@
         </div>
       </div><!-- end adminSection-dropdown -->
 
+      <!-- SOR DISPLAY section -->
+      <div id="adminSection-sor-display" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="ts-title">SOR Display Days</div>
+          <button onclick="saveSORDisplay()" style="font-family:'IBM Plex Mono',monospace;font-size:16px;padding:6px 16px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:4px;cursor:pointer">Save Changes</button>
+        </div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px;line-height:1.5">
+          For each plant/status, tick the days you want to appear in the <b>SOR</b> tab.
+          Tick <b>All</b> to show on every day. If nothing is ticked for a row, that
+          plant/status will not appear in SOR at all.
+        </div>
+        <div id="sorDisplayContainer"></div>
+      </div><!-- end adminSection-sor-display -->
+
     </div>
   </div>
 </main>
@@ -814,6 +829,15 @@ function getPlantsByRegion(region) {
   if (!region) return [];
   return PLANTS.filter(p => p && PLANT_REGIONS[p] === region);
 }
+
+// SOR DISPLAY DAYS — kullanıcının ayarlardan seçtiği, hangi günlerde
+// hangi plant/status'un SOR sekmesinde gösterileceği.
+// Yapı: { "PLANT": { "TYPE|STATUS": ["MONDAY","TUESDAY",...] } }
+//   - TYPE: 'OV' veya 'MHI'
+// Eğer bir plant/status için kayıt YOK ise → o plant/status SOR'da
+// kod tablolarındaki kayıtların gerçek gün dağılımına göre gösterilir
+// (geriye dönük uyumluluk).
+let SOR_DISPLAY_DAYS = {};
 
 // Valid statuses per plant+day (exact from OV CODES + MHI CODES sheets)
 // Key: 'plant' or 'DAY_plant', value: array of valid statuses
@@ -2286,7 +2310,7 @@ function saveCodesEdit() {
   if (_mhiRows) { const newMHI = rowsToMHIObj(_mhiRows); Object.keys(MHI_CODES).forEach(k=>delete MHI_CODES[k]); Object.assign(MHI_CODES, newMHI); _mhiRows=null; }
   // localStorage'a kaydet ki sayfa yenilenince kaybolmasın
   // savedAt önemli: yerel düzenleme remote codes.json'dan daha yeni mi kontrolü için
-  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES, savedAt: new Date().toISOString() })); } catch(e) {}
+  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES, SOR_DISPLAY_DAYS, savedAt: new Date().toISOString() })); } catch(e) {}
   renderOutcome(); renderCodesEditor(); renderTimesheet();
   // SOR sekmesini de tazele (yeni eklenen kodlar SOR'a yansısın)
   try { populateSORRegions(); populateSORPlants(); renderSORTable(); } catch(e) {}
@@ -2359,16 +2383,71 @@ function renderSORTableForPlant(plant, region) {
 
   // Build rows: for each day, find OV and MHI codes
   const rows = [];
+  // SOR_DISPLAY_DAYS yardımcısı: plant+type+status için hangi günlerde gösterileceği.
+  // Tanımlı değilse null döner → bu durumda fallback davranışı (gerçek kayıtlar) çalışır.
+  const _allowedDays = (type, status) => {
+    const m = SOR_DISPLAY_DAYS[String(plant)];
+    if (!m) return null;
+    const arr = m[type + '|' + status];
+    if (!arr || !arr.length) return null;
+    return new Set(arr);
+  };
+
   DAYS.forEach(day => {
     const allStatuses = getSORValidStatuses(day, plant);
     const seen = new Set();
-    allStatuses.forEach(status => {
-      // OV/MHI tipi: hardcoded liste yerine codes tablolarındaki varlığa göre
-      const ovCodes = lookupOV(day, plant, status);
-      const mhiCodes = lookupMHI(day, plant, status);
-      if (!ovCodes && !mhiCodes) return;
+    // SOR için STRICT lookup — lookupOV/lookupMHI'ın hafta-içi fallback'ini kullanmıyoruz.
+    // Sadece (a) bu günün day-specific kaydı veya (b) generic kayıt + hafta içi.
+    const strictLookup = (table, day, plant, status) => {
+      const p = table[String(plant)];
+      if (!p) return null;
+      const ds = p[day + '_' + status];
+      if (ds) return ds;
+      if (p[status] && WEEKDAYS.includes(day)) return p[status];
+      return null;
+    };
+    // Eğer SOR_DISPLAY_DAYS bu plant için herhangi bir kayıt içeriyorsa — yani
+    // kullanıcı ayarlardan açıkça konfigüre etmişse — getSORValidStatuses'in
+    // dışında SOR_DISPLAY_DAYS'te listelenmiş statusları da aday olarak alalım.
+    const planConf = SOR_DISPLAY_DAYS[String(plant)];
+    const candidateStatuses = new Set(allStatuses);
+    if (planConf) {
+      Object.keys(planConf).forEach(k => {
+        const parts = k.split('|');
+        if (parts.length === 2) candidateStatuses.add(parts[1]);
+      });
+    }
+    candidateStatuses.forEach(status => {
+      // Bu status için OV ve MHI ayrı ayrı: kullanıcı tikleri ne diyor?
+      const ovAllow  = _allowedDays('OV',  status);
+      const mhiAllow = _allowedDays('MHI', status);
 
-      if (ovCodes) {
+      // Tik varsa o günde göster/gösterme. Tik yoksa eski davranış (codes).
+      const wantOV  = ovAllow  ? ovAllow.has(day)  : null;
+      const wantMHI = mhiAllow ? mhiAllow.has(day) : null;
+
+      // Kullanıcı tikledi ama bu günde kod yoksa → başka bir günün kaydını fallback al.
+      const fallbackLookup = (table) => {
+        const p = table[String(plant)];
+        if (!p) return null;
+        for (const wd of DAYS) {
+          if (p[wd + '_' + status]) return p[wd + '_' + status];
+        }
+        if (p[status]) return p[status];
+        return null;
+      };
+
+      let ovCodes = strictLookup(OV_CODES, day, plant, status);
+      if (!ovCodes && wantOV) ovCodes = fallbackLookup(OV_CODES);
+      let mhiCodes = strictLookup(MHI_CODES, day, plant, status);
+      if (!mhiCodes && wantMHI) mhiCodes = fallbackLookup(MHI_CODES);
+
+      const showOV  = ovCodes  && (wantOV  === null ? true : wantOV);
+      const showMHI = mhiCodes && (wantMHI === null ? true : wantMHI);
+
+      if (!showOV && !showMHI) return;
+
+      if (showOV) {
         const sorStr = `${ovCodes.arr}-${ovCodes.dep}`;
         const mainAbsorb = (ovCodes.MAIN_ABSORB || '').trim();
         const alwaysActive = new Set(Array.isArray(ovCodes.ALWAYS_ACTIVE) ? ovCodes.ALWAYS_ACTIVE : []);
@@ -2388,7 +2467,7 @@ function renderSORTableForPlant(plant, region) {
         const inspAfterRcp = (rcpVal != null && ovCodes.INSP != null) ? round25(ovCodes.INSP - rcpVal) : null;
         if (!seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', sor: sorStr, codeItems, mainAbsorb, rcpNote: rcpVal, rcpInspNote: inspAfterRcp, trichNote: (plant==='8145' && status==='OV Afternoon') }); }
       }
-      if (mhiCodes) {
+      if (showMHI) {
         const sorStr = `${mhiCodes.arr}-${mhiCodes.dep}`;
         const mainAbsorb = (mhiCodes.MAIN_ABSORB || '').trim();
         const alwaysActive = new Set(Array.isArray(mhiCodes.ALWAYS_ACTIVE) ? mhiCodes.ALWAYS_ACTIVE : []);
@@ -2498,6 +2577,7 @@ function exportCodesJSON() {
     REGIONS: REGIONS,
     PLANT_REGIONS: PLANT_REGIONS,
     EXTRA_CODES: EXTRA_CODES,
+    SOR_DISPLAY_DAYS: SOR_DISPLAY_DAYS,
     OV_CODES: OV_CODES,
     MHI_CODES: MHI_CODES,
   };
@@ -2540,11 +2620,15 @@ function importCodesJSON(input) {
         EXTRA_CODES.length = 0;
         EXTRA_CODES.push(...data.EXTRA_CODES);
       }
+      if (data.SOR_DISPLAY_DAYS && typeof data.SOR_DISPLAY_DAYS === 'object') {
+        Object.keys(SOR_DISPLAY_DAYS).forEach(k => delete SOR_DISPLAY_DAYS[k]);
+        Object.assign(SOR_DISPLAY_DAYS, data.SOR_DISPLAY_DAYS);
+      }
       // PLANTS'ı tazele (yeni eklenmiş plantlar olabilir)
       Object.keys({...OV_CODES, ...MHI_CODES}).forEach(p => {
         if (!PLANTS.includes(p)) PLANTS.push(p);
       });
-      try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES, savedAt: new Date().toISOString() })); } catch(err) {}
+      try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES, SOR_DISPLAY_DAYS, savedAt: new Date().toISOString() })); } catch(err) {}
       _ovRows = null;
       _mhiRows = null;
       renderCodesEditor();
@@ -2578,6 +2662,10 @@ async function loadCodesFromFile() {
     if (data.EXTRA_CODES && Array.isArray(data.EXTRA_CODES)) {
       EXTRA_CODES.length = 0;
       EXTRA_CODES.push(...data.EXTRA_CODES);
+    }
+    if (data.SOR_DISPLAY_DAYS && typeof data.SOR_DISPLAY_DAYS === 'object') {
+      Object.keys(SOR_DISPLAY_DAYS).forEach(k => delete SOR_DISPLAY_DAYS[k]);
+      Object.assign(SOR_DISPLAY_DAYS, data.SOR_DISPLAY_DAYS);
     }
     Object.keys({...OV_CODES, ...MHI_CODES}).forEach(p => {
       if (!PLANTS.includes(p)) PLANTS.push(p);
@@ -2632,7 +2720,7 @@ async function loadCodesFromFile() {
     // (eski cache'in sürekli "yeni" görünmesini önle)
     if (source === 'remote') {
       try { localStorage.setItem('ts_codes', JSON.stringify({
-        OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES,
+        OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES, SOR_DISPLAY_DAYS,
         savedAt: chosen.exportedAt || new Date().toISOString()
       })); } catch(e) {}
     }
@@ -2643,14 +2731,156 @@ async function loadCodesFromFile() {
 
 // ─── ADMIN SUB-TABS ─────────────────────────────────────────────
 function switchAdminTab(tab) {
-  ['codes','dropdown'].forEach(t => {
-    document.getElementById('adminSection-'+t).style.display = t===tab ? 'block' : 'none';
+  ['codes','dropdown','sor-display'].forEach(t => {
+    const sec = document.getElementById('adminSection-'+t);
+    if (sec) sec.style.display = t===tab ? 'block' : 'none';
     const btn = document.getElementById('adminTab-'+t);
     if (btn) {
       btn.style.background = t===tab ? 'var(--accent2)' : 'transparent';
       btn.style.color = t===tab ? '#fff' : 'var(--text-muted)';
     }
   });
+  if (tab === 'sor-display') renderSORDisplaySettings();
+}
+
+// ─── SOR DISPLAY SETTINGS ──────────────────────────────────────
+// Her plant'in OV ve MHI tablolarında tanımlı tüm uniq base statusları
+// (day prefix'leri çıkarılmış) için bir satır göster. Her satırda 7 gün
+// + "All" checkbox'ları olur. Mevcut SOR_DISPLAY_DAYS değerleri tikli gelir.
+const _SOR_DAY_LABELS = [
+  ['MONDAY','Mon'], ['TUESDAY','Tue'], ['WEDNESDAY','Wed'], ['THURSDAY','Thu'],
+  ['FRIDAY','Fri'], ['SATURDAY','Sat'], ['SUNDAY','Sun']
+];
+
+function _baseStatusesFor(plant, table) {
+  const p = table[String(plant)];
+  if (!p) return [];
+  const ALL_PREFIXES = DAYS.map(d => d + '_');
+  const set = new Set();
+  for (const key of Object.keys(p)) {
+    const matched = ALL_PREFIXES.find(pre => key.startsWith(pre));
+    const base = matched ? key.slice(matched.length) : key;
+    if (base) set.add(base);
+  }
+  return [...set];
+}
+
+function renderSORDisplaySettings() {
+  const container = document.getElementById('sorDisplayContainer');
+  if (!container) return;
+  const byRegion = {};
+  REGIONS.forEach(r => byRegion[r] = []);
+  byRegion['Other'] = [];
+  PLANTS.filter(p => p).forEach(p => {
+    const r = PLANT_REGIONS[p] || 'Other';
+    if (!byRegion[r]) byRegion[r] = [];
+    byRegion[r].push(p);
+  });
+  Object.keys(byRegion).forEach(r => byRegion[r].sort());
+
+  let html = '';
+  const regionOrder = [...REGIONS, 'Other'].filter(r => byRegion[r] && byRegion[r].length);
+
+  regionOrder.forEach(region => {
+    html += `<div style="margin-bottom:28px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;color:var(--accent2);padding:8px 0;border-bottom:2px solid var(--accent2);margin-bottom:12px">${region}</div>`;
+
+    byRegion[region].forEach(plant => {
+      const ovStatuses  = _baseStatusesFor(plant, OV_CODES);
+      const mhiStatuses = _baseStatusesFor(plant, MHI_CODES);
+      if (ovStatuses.length === 0 && mhiStatuses.length === 0) return;
+
+      html += `<div style="margin-bottom:18px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">Plant ${plant}</div>`;
+
+      ovStatuses.forEach(status => {
+        html += _renderSORDisplayRow(plant, 'OV', status);
+      });
+      mhiStatuses.forEach(status => {
+        html += _renderSORDisplayRow(plant, 'MHI', status);
+      });
+
+      html += '</div>';
+    });
+
+    html += '</div>';
+  });
+
+  if (!html) {
+    html = '<div style="color:var(--text-muted);font-size:14px;padding:8px">No plants with codes found.</div>';
+  }
+  container.innerHTML = html;
+}
+
+function _renderSORDisplayRow(plant, type, status) {
+  const key = type + '|' + status;
+  const saved = (SOR_DISPLAY_DAYS[plant] && SOR_DISPLAY_DAYS[plant][key]) || [];
+  const savedSet = new Set(saved);
+  const allTicked = _SOR_DAY_LABELS.every(([d]) => savedSet.has(d));
+  const dataAttr = `data-plant="${plant}" data-key="${key}"`;
+
+  let row = `<div class="sor-disp-row" ${dataAttr}
+    style="display:flex;align-items:center;gap:8px;padding:6px 0;flex-wrap:wrap">
+    <div style="min-width:200px;font-size:13px;color:var(--text)">
+      <span style="color:${type==='OV'?'var(--accent2)':'var(--accent)'};font-family:monospace;font-weight:600">${type}</span>
+      &nbsp;<span style="color:var(--text-muted)">${status}</span>
+    </div>
+    <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-family:'IBM Plex Mono',monospace;cursor:pointer;padding:2px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px">
+      <input type="checkbox" class="sor-disp-all" ${allTicked?'checked':''}
+        onchange="_sorDispToggleAll(this)"> All
+    </label>`;
+  _SOR_DAY_LABELS.forEach(([day, lbl]) => {
+    const checked = savedSet.has(day) ? 'checked' : '';
+    row += `<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-family:'IBM Plex Mono',monospace;cursor:pointer">
+      <input type="checkbox" class="sor-disp-day" data-day="${day}" ${checked}
+        onchange="_sorDispToggleDay(this)"> ${lbl}
+    </label>`;
+  });
+  row += '</div>';
+  return row;
+}
+
+function _sorDispToggleAll(el) {
+  const row = el.closest('.sor-disp-row');
+  if (!row) return;
+  row.querySelectorAll('.sor-disp-day').forEach(b => { b.checked = el.checked; });
+}
+
+function _sorDispToggleDay(el) {
+  const row = el.closest('.sor-disp-row');
+  if (!row) return;
+  const allBox = row.querySelector('.sor-disp-all');
+  const dayBoxes = row.querySelectorAll('.sor-disp-day');
+  const allChecked = [...dayBoxes].every(b => b.checked);
+  if (allBox) allBox.checked = allChecked;
+}
+
+function saveSORDisplay() {
+  const container = document.getElementById('sorDisplayContainer');
+  if (!container) return;
+  const next = {};
+  container.querySelectorAll('.sor-disp-row').forEach(row => {
+    const plant = row.getAttribute('data-plant');
+    const key   = row.getAttribute('data-key');
+    const days = [];
+    row.querySelectorAll('.sor-disp-day').forEach(b => {
+      if (b.checked) days.push(b.getAttribute('data-day'));
+    });
+    if (days.length > 0) {
+      if (!next[plant]) next[plant] = {};
+      next[plant][key] = days;
+    }
+  });
+  Object.keys(SOR_DISPLAY_DAYS).forEach(k => delete SOR_DISPLAY_DAYS[k]);
+  Object.assign(SOR_DISPLAY_DAYS, next);
+  try {
+    const cached = JSON.parse(localStorage.getItem('ts_codes') || '{}');
+    cached.SOR_DISPLAY_DAYS = SOR_DISPLAY_DAYS;
+    cached.savedAt = new Date().toISOString();
+    localStorage.setItem('ts_codes', JSON.stringify(cached));
+  } catch(e) {}
+  try { renderSORTable(); } catch(e) {}
+  alert('SOR display settings saved!');
 }
 
 // ─── DROP-DOWN EDITOR ───────────────────────────────────────────
@@ -2721,7 +2951,7 @@ function saveDropDown() {
     }
   });
   // localStorage'a region/plant/extra-codes kaydı
-  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES, savedAt: new Date().toISOString() })); } catch(e) {}
+  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES, SOR_DISPLAY_DAYS, savedAt: new Date().toISOString() })); } catch(e) {}
   // Codes tablolarını yeniden render et — yeni sütunlar görünsün
   renderCodesEditor();
   renderTimesheet();

@@ -1640,6 +1640,41 @@ function renderOutcomeSection(containerId, sectionData) {
       container.appendChild(cell);
     });
   });
+
+  // ─── RCP satırlarını OV grid'in içine ekle (sadece ovGrid için) ───
+  // İstek: RCP'yi ayrı bir section yerine OV grid'in içinde göster, çizgiler
+  // kesintisiz uzansın. Sıralama: RCP label → SOR (aralık) → Time (aralık) → 1 GSRM
+  if (containerId === 'ovGrid') {
+    // Hangi günlerde RCP var?
+    const rcpData = {};
+    let hasAnyRCP = false;
+    Object.entries(sectionData || {}).forEach(([day, e]) => {
+      if (e && e.rcpRange && e.rcpHours != null && e.rcpHours > 0) {
+        rcpData[day] = { plant: e.plant, status: e.status, sorStr: e.rcpRange, hours: e.rcpHours };
+        hasAnyRCP = true;
+      }
+    });
+    if (hasAnyRCP) {
+      [
+        ['RCP',  (d) => rcpData[d] ? `${rcpData[d].plant} ${rcpData[d].status}` : '', '#dc2626', '600'],
+        ['Time', (d) => rcpData[d] ? rcpData[d].sorStr : '',                          '#dc2626', '400'],
+        ['',     (d) => rcpData[d] ? `${rcpData[d].hours} GSRM` : '',                 '#dc2626', '600'],
+      ].forEach(([label, fn, color, weight]) => {
+        const lc = document.createElement('div');
+        lc.className='og-cell og-row-label';
+        lc.textContent=label;
+        if (label === 'RCP') { lc.style.color = color; lc.style.fontWeight = weight; }
+        container.appendChild(lc);
+        DAYS.forEach(day => {
+          const cell = document.createElement('div');
+          cell.className='og-cell og-value';
+          cell.style.color=color; cell.style.fontWeight=weight; cell.style.fontSize='15px';
+          cell.textContent = fn(day);
+          container.appendChild(cell);
+        });
+      });
+    }
+  }
 }
 
 function renderEnfSection(containerId, sectionData) {
@@ -1671,49 +1706,10 @@ function renderEnfSection(containerId, sectionData) {
 }
 
 function renderRCPSection(out) {
-  // RCP datasını OV girdilerinden topla — sadece rcpRange ve rcpHours dolu olanlar
-  const rcpData = {};
-  let hasAny = false;
-  Object.entries(out.ov || {}).forEach(([day, e]) => {
-    if (e && e.rcpRange && e.rcpHours != null && e.rcpHours > 0) {
-      rcpData[day] = { plant: e.plant, status: e.status, sorStr: e.rcpRange, hours: e.rcpHours };
-      hasAny = true;
-    }
-  });
-
-  // RCP section'ı sadece içerik varsa görünür
+  // RCP artık OV grid'in içinde gösteriliyor (renderOutcomeSection'da).
+  // Eski ayrı section'ı kalıcı olarak gizliyoruz ki boş yer kaplamasın.
   const section = document.getElementById('rcpSection');
-  if (section) section.style.display = hasAny ? 'block' : 'none';
-  if (!hasAny) return;
-
-  const container = document.getElementById('rcpGrid');
-  if (!container) return;
-  container.innerHTML = '';
-  container.style.gridTemplateColumns = `70px repeat(${DAYS.length}, minmax(120px, 1fr))`;
-
-  // Header satırı
-  ['', ...DAYS].forEach((d, i) => {
-    const cell = document.createElement('div');
-    cell.className = 'og-cell og-header' + (i > 0 ? ' day-col' : '');
-    cell.textContent = d;
-    container.appendChild(cell);
-  });
-
-  // 1) Plant + Status satırı
-  // 2) RCP saat aralığı (örn 16:00-17:00)
-  // 3) Saat değeri (örn "1 GSRM") — kırmızı, RCP zaten section başlığında
-  [['', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
-   ['RCP', (e) => e ? e.sorStr : '', '#dc2626', '600'],
-   ['', (e) => e ? `${e.hours} GSRM` : '', '#dc2626', '600']
-  ].forEach(([label, fn, color, weight]) => {
-    const lc = document.createElement('div'); lc.className='og-cell og-row-label'; lc.textContent=label; container.appendChild(lc);
-    DAYS.forEach(day => {
-      const cell = document.createElement('div'); cell.className='og-cell og-value';
-      cell.style.color=color; cell.style.fontWeight=weight; cell.style.fontSize='15px';
-      cell.textContent = fn(rcpData[day]) || '';
-      container.appendChild(cell);
-    });
-  });
+  if (section) section.style.display = 'none';
 }
 
 function renderOutcome() {

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-10T13:19:24.336Z",
+  "exportedAt": "2026-05-10T13:30:18.755Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -1044,6 +1044,44 @@
         "GSRM": 0.75,
         "GPAS": null,
         "INSP": 9.5,
+        "GNTB": null,
+        "GFSA": null
+      }
+    },
+    "8201": {
+      "MONDAY_MHI": {
+        "arr": "06:45",
+        "dep": "16:30",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": null,
+        "GPAS": 0.25,
+        "INSP": 8.75,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "MHI": {
+        "arr": "06:45",
+        "dep": "16:15",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.25,
+        "GPAS": 0.25,
+        "INSP": 8.25,
+        "GNTB": null,
+        "GFSA": null
+      },
+      "FRIDAY_MHI": {
+        "arr": "06:45",
+        "dep": "14:30",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.25,
+        "GPAS": 0.5,
+        "INSP": 6.25,
         "GNTB": null,
         "GFSA": null
       }

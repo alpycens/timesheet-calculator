@@ -1606,7 +1606,9 @@ function computeOutcome() {
 
 function formatCodes(entry) {
   if (!entry) return '';
-  const fields = ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','IUWT','IENF','NENF'];
+  // Sabit kodlar + Drop-Down'dan eklenen ekstra kodlar (örn 'GNED').
+  // Böylece kullanıcının yeni eklediği kodlar Timesheet hücrelerinde de görünür.
+  const fields = ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA', ...EXTRA_CODES, 'IUWT','IENF','NENF'];
   let parts = fields.filter(k => entry[k] != null && entry[k] !== '').map(k => `${entry[k]} ${k}`);
   // RCP artık ayrı bir section'da gösteriliyor — burada tekrar yazmaya gerek yok
   return parts.join('\n');
@@ -2267,8 +2269,10 @@ function renderSORTable() {
 
 // SOR tablosunu tek plant için oluştur — HTML string döner
 function renderSORTableForPlant(plant, region) {
-  const FIELDS_OV  = ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA'];
-  const FIELDS_MHI = ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA'];
+  // Sabit kodlar + Drop-Down'dan eklenen ekstra kodlar (örn 'GNED')
+  // Böylece kullanıcının yeni eklediği kodlar SOR satırlarında da görünür.
+  const FIELDS_OV  = ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA', ...EXTRA_CODES];
+  const FIELDS_MHI = ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA', ...EXTRA_CODES];
 
   // Build rows: for each day, find OV and MHI codes
   const rows = [];

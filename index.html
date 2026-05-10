@@ -2078,6 +2078,8 @@ function rowsToCodeObj(rows) {
     if (r.MAIN_ABSORB) entry.MAIN_ABSORB = r.MAIN_ABSORB;
     if (r.ALWAYS_ACTIVE && r.ALWAYS_ACTIVE.length) entry.ALWAYS_ACTIVE = [...r.ALWAYS_ACTIVE];
     ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','RCP'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
+    // Drop-Down'dan eklenen ekstra kodları da kopyala (örn 'GNED')
+    EXTRA_CODES.forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     obj[plant][key] = entry;
   });
   return obj;
@@ -2093,6 +2095,8 @@ function rowsToMHIObj(rows) {
     if (r.MAIN_ABSORB) entry.MAIN_ABSORB = r.MAIN_ABSORB;
     if (r.ALWAYS_ACTIVE && r.ALWAYS_ACTIVE.length) entry.ALWAYS_ACTIVE = [...r.ALWAYS_ACTIVE];
     ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
+    // Drop-Down'dan eklenen ekstra kodları da kopyala (örn 'GNED')
+    EXTRA_CODES.forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     obj[plant][key] = entry;
   });
   return obj;

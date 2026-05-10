@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-10T14:45:31.163Z",
+  "exportedAt": "2026-05-10T15:22:16.219Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -23,6 +23,226 @@
   "EXTRA_CODES": [
     "GNED"
   ],
+  "SOR_DISPLAY_DAYS": {
+    "2172": {
+      "OV|Inside OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "OV|Lairage OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ]
+    },
+    "2690": {
+      "OV|OV": [
+        "MONDAY",
+        "TUESDAY",
+        "THURSDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "THURSDAY"
+      ]
+    },
+    "2900": {
+      "OV|OV Only": [
+        "WEDNESDAY"
+      ]
+    },
+    "4015": {
+      "OV|OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ]
+    },
+    "4133": {
+      "OV|OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ]
+    },
+    "4138": {
+      "OV|OV Only": [
+        "TUESDAY",
+        "THURSDAY"
+      ],
+      "MHI|OV Only": [
+        "TUESDAY",
+        "THURSDAY"
+      ]
+    },
+    "4392": {
+      "OV|OV Only": [
+        "TUESDAY",
+        "WEDNESDAY"
+      ],
+      "MHI|OV Only": [
+        "TUESDAY",
+        "WEDNESDAY"
+      ]
+    },
+    "8061": {
+      "OV|Morning OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY"
+      ],
+      "OV|Evening OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY"
+      ],
+      "OV|Lairage OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ]
+    },
+    "8072": {
+      "OV|OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "OV|TB OV": [
+        "MONDAY",
+        "TUESDAY",
+        "THURSDAY"
+      ],
+      "MHI|MHI1": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "MHI|MHI2": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY"
+      ]
+    },
+    "8119": {
+      "OV|OV": [
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "MHI|MHI": [
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ]
+    },
+    "8145": {
+      "OV|OV": [
+        "WEDNESDAY"
+      ],
+      "OV|Afternoon OV": [
+        "MONDAY"
+      ],
+      "OV|Morning OV": [
+        "MONDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY"
+      ]
+    },
+    "8165": {
+      "OV|OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ]
+    },
+    "8201": {
+      "OV|OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "OV|OV (Horse)": [
+        "MONDAY",
+        "THURSDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "MHI|MHI2": [
+        "MONDAY",
+        "THURSDAY"
+      ]
+    }
+  },
   "OV_CODES": {
     "2172": {
       "Inside OV": {

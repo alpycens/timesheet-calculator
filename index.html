@@ -2492,17 +2492,24 @@ function renderSORTableForPlant(plant, region) {
   DAYS.forEach(d => { byDay[d] = []; });
   rows.forEach(r => byDay[r.day].push(r));
 
-  // Sadece dolu günleri göster (kodu olmayan günler hiç render edilmez)
-  const activeDays = DAYS.filter(d => byDay[d].length > 0);
-  const colCount = activeDays.length;
+  // Tüm 7 günü göster — kullanıcı dolu olmayan günleri de görmek istiyor.
+  // Hiç dolu satırı olmayan günler boş kart olarak kalır.
+  const colCount = DAYS.length;
   const minWidth = Math.max(300, colCount * 150);
 
   let html = `<div style="overflow-x:auto"><div style="display:grid;grid-template-columns:repeat(${colCount},minmax(150px,1fr));gap:12px;min-width:${minWidth}px">`;
 
-  activeDays.forEach(day => {
+  DAYS.forEach(day => {
     const dayRows = byDay[day];
     html += '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">';
     html += '<div style="background:var(--surface2);padding:8px 12px;font-family:\'IBM Plex Mono\',monospace;font-size:13px;font-weight:600;color:var(--accent2);border-bottom:1px solid var(--border)">' + day + '</div>';
+
+    if (!dayRows.length) {
+      // Boş gün — minimal yükseklikte placeholder
+      html += '<div style="padding:18px 12px;color:var(--text-muted);font-size:12px;text-align:center;font-style:italic">—</div>';
+      html += '</div>';
+      return;
+    }
 
     dayRows.forEach(r => {
       const typeColor = r.type === 'OV' ? 'var(--accent2)' : 'var(--accent)';

@@ -889,10 +889,15 @@ const DAY_PLANT_STATUSES = {
 
 function getValidStatuses(day, plant) {
   // Codes tablolarından otomatik türet — Day + Plant + Status kombinasyonuna göre:
-  // Bir status, bu (day, plant) için geçerlidir eğer:
   //   - Day-specific kayıt (DAY_status) varsa  → her durumda geçerli
   //   - Generic kayıt (status) varsa            → SADECE hafta içinde (Mon-Fri) geçerli
   // Cumartesi/Pazar için sadece day-specific kayıtlar geçerli; generic'ler değil.
+  //
+  // FALLBACK (hafta içi): yukarıdaki kurallar bu (day, plant) için hiçbir status
+  // üretmediyse — yani o gün "boş" ise — kullanıcı yine de bir şey seçebilsin diye
+  // bu plantin OV_CODES + MHI_CODES'ta gerçekten tanımlı olduğu TÜM base statusları
+  // (day prefix'leri çıkarılmış halde, uniq) döndürürüz. Böylece örn 4138 MONDAY için
+  // dropdown'da 'OV Only' görünür; 2690 WEDNESDAY için 'OV','MHI' görünür vs.
   if (!plant) return [];
   const result = new Set();
   const sources = [OV_CODES[String(plant)], MHI_CODES[String(plant)]];
@@ -916,6 +921,20 @@ function getValidStatuses(day, plant) {
       // 3) Generic kayıt — sadece hafta içi günlerde geçerli
       if (!isWeekend) {
         result.add(key);
+      }
+    }
+  }
+
+  // ─── FALLBACK: hafta içi & sonuç boş ise, plantin tüm base statuslarını aç ───
+  // Böylece plantin normalde çalışmadığı bir günde de kullanıcı isterse bir status seçebilir.
+  if (result.size === 0 && !isWeekend) {
+    for (const src of sources) {
+      if (!src) continue;
+      for (const key of Object.keys(src)) {
+        // Day prefix varsa kaldır, yoksa aynen al → base status adı
+        const matchedPrefix = ALL_DAY_PREFIXES.find(p => key.startsWith(p));
+        const base = matchedPrefix ? key.slice(matchedPrefix.length) : key;
+        if (base) result.add(base);
       }
     }
   }
@@ -1018,25 +1037,49 @@ const MHI_CODES = {
 // Hafta içi günleri (default kodlar sadece bu günler için geçerli)
 const WEEKDAYS = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY'];
 
+// Bir plant'in OV/MHI kayıtlarında verilen status için ilk uygun day-specific kaydı bul.
+// (Hafta içi fallback olarak kullanılır — örn 4138'in MONDAY_OV Only kaydı yok ama
+// TUESDAY_OV Only var → bu fonksiyon o kaydı döndürür.)
+function _firstDaySpecificForStatus(p, status) {
+  if (!p) return null;
+  for (const wd of WEEKDAYS) {
+    const k = wd + '_' + status;
+    if (p[k]) return p[k];
+  }
+  return null;
+}
+
 function lookupOV(day, plant, status) {
   const p = OV_CODES[String(plant)];
   if (!p) return null;
-  // Gün-spesifik kod varsa onu kullan
+  // 1) Bu günün day-specific kodu varsa onu kullan (örn TUESDAY_OV Only)
   const daySpecific = p[day + '_' + status];
   if (daySpecific) return daySpecific;
-  // Default kod (gün belirtilmemiş) sadece Pzt-Cuma için geçerli
+  // 2) Generic kod (gün belirtilmemiş) — sadece Pzt-Cuma için geçerli
   if (p[status] && WEEKDAYS.includes(day)) return p[status];
+  // 3) Hafta içi fallback — bu günün ne day-specific'i ne generic'i var, ama
+  //    plantte bu statusun başka bir gün-spesifik kaydı varsa onu kullan.
+  //    (örn 4138 MONDAY 'OV Only' → TUESDAY_OV Only kaydı kullanılır)
+  if (WEEKDAYS.includes(day)) {
+    const fallback = _firstDaySpecificForStatus(p, status);
+    if (fallback) return fallback;
+  }
   return null;
 }
 
 function lookupMHI(day, plant, status) {
   const p = MHI_CODES[String(plant)];
   if (!p) return null;
-  // Gün-spesifik kod varsa onu kullan
+  // 1) Bu günün day-specific kodu varsa onu kullan
   const daySpecific = p[day + '_' + status];
   if (daySpecific) return daySpecific;
-  // Default kod (gün belirtilmemiş) sadece Pzt-Cuma için geçerli
+  // 2) Generic kod — sadece Pzt-Cuma için geçerli
   if (p[status] && WEEKDAYS.includes(day)) return p[status];
+  // 3) Hafta içi fallback — başka bir günün day-specific kaydı
+  if (WEEKDAYS.includes(day)) {
+    const fallback = _firstDaySpecificForStatus(p, status);
+    if (fallback) return fallback;
+  }
   return null;
 }
 
@@ -1076,13 +1119,57 @@ const SOR_DAY_STATUSES = {
 };
 
 function getSORValidStatuses(day, plant) {
-  // Artık tamamen codes-driven. Schedule'daki getValidStatuses ile aynı.
-  return getValidStatuses(day, plant);
+  // SOR tablosu için strict mantık — Schedule'daki gibi "boş gün fallback" YOK.
+  // Bir status, bu (day, plant) için SOR'a düşer eğer:
+  //   - Codes tablolarında TAM olarak 'DAY_status' kaydı varsa     → o gün
+  //   - Veya generic 'status' kaydı varsa (gün belirtilmemiş)      → SADECE Pzt-Cuma
+  // Hafta sonu için yalnızca DAY_status kayıtları geçerli.
+  // Böylece 4138 SOR yalnızca Salı/Perşembe, 4392 yalnızca Salı/Çarşamba çıkar.
+  if (!plant) return [];
+  const result = new Set();
+  const sources = [OV_CODES[String(plant)], MHI_CODES[String(plant)]];
+  const isWeekend = (day === 'SATURDAY' || day === 'SUNDAY');
+  const dayPrefix = day + '_';
+  const ALL_DAY_PREFIXES = DAYS.map(d => d + '_');
+
+  for (const src of sources) {
+    if (!src) continue;
+    for (const key of Object.keys(src)) {
+      // 1) Bu günün day-specific kaydı
+      if (key.startsWith(dayPrefix)) {
+        result.add(key.slice(dayPrefix.length));
+        continue;
+      }
+      // 2) Başka günün day-specific kaydı → atla
+      const isOtherDaySpecific = ALL_DAY_PREFIXES.some(p => key.startsWith(p));
+      if (isOtherDaySpecific) continue;
+      // 3) Generic kayıt — sadece hafta içi
+      if (!isWeekend) result.add(key);
+    }
+  }
+  return [...result];
 }
 
 function getSOR(day, plant, status) {
-  // Codes tablolarından arr-dep türet. Önce OV_CODES, sonra MHI_CODES'a bak.
+  // Codes tablolarından arr-dep türet.
+  // Özel kural — 'OV Only' statusu (örn 4138, 4392):
+  //   arr = OV.arr
+  //   dep = MHI.dep varsa → MHI.dep, yoksa OV.dep
+  //   (Plant'in MHI kodunda dep tanımlıysa onu kullan; örn 4138 MHI.dep=17:00,
+  //    4392 MHI.dep=14:30. MHI.dep yoksa, örn 2900, OV.dep kullanılır.)
+  // Diğer statuslar:
+  //   Önce OV_CODES'a, sonra MHI_CODES'a bakılır.
   if (!plant || !status) return '';
+
+  if (status === 'OV Only') {
+    const ov  = lookupOV(day, plant, status);
+    const mhi = lookupMHI(day, plant, status);
+    const arr = ov  && ov.arr  ? ov.arr  : (mhi && mhi.arr ? mhi.arr : null);
+    const dep = mhi && mhi.dep ? mhi.dep : (ov  && ov.dep  ? ov.dep  : null);
+    if (arr && dep) return `${arr}-${dep}`;
+    return '';
+  }
+
   const ov = lookupOV(day, plant, status);
   if (ov && ov.arr && ov.dep) return `${ov.arr}-${ov.dep}`;
   const mhi = lookupMHI(day, plant, status);

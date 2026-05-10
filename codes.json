@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-09T13:26:46.966Z",
+  "exportedAt": "2026-05-10T10:01:53.827Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -996,6 +996,204 @@
         "GNTB": null,
         "GFSA": null
       }
+    }
+  },
+  "SOR_DISPLAY_DAYS": {
+    "2172": {
+      "OV|Inside OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY"
+      ],
+      "OV|Lairage OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY"
+      ]
+    },
+    "2690": {
+      "OV|OV": [
+        "MONDAY",
+        "TUESDAY",
+        "THURSDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "THURSDAY"
+      ]
+    },
+    "4015": {
+      "OV|OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY"
+      ]
+    },
+    "4133": {
+      "OV|OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY"
+      ]
+    },
+    "4138": {
+      "OV|OV Only": [
+        "TUESDAY",
+        "THURSDAY"
+      ],
+      "MHI|OV Only": [
+        "TUESDAY",
+        "THURSDAY"
+      ]
+    },
+    "4392": {
+      "OV|OV Only": [
+        "MONDAY",
+        "WEDNESDAY"
+      ],
+      "MHI|OV Only": [
+        "MONDAY",
+        "WEDNESDAY"
+      ]
+    },
+    "8061": {
+      "OV|Morning OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY"
+      ],
+      "OV|Evening OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY"
+      ],
+      "OV|Lairage OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ]
+    },
+    "8072": {
+      "OV|OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "OV|TB OV": [
+        "MONDAY",
+        "TUESDAY",
+        "THURSDAY"
+      ],
+      "MHI|MHI1": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "MHI|MHI2": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY"
+      ]
+    },
+    "8119": {
+      "OV|OV": [
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "MHI|MHI": [
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ]
+    },
+    "8145": {
+      "OV|OV": [
+        "WEDNESDAY"
+      ],
+      "OV|Afternoon OV": [
+        "MONDAY"
+      ],
+      "OV|Morning OV": [
+        "MONDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY"
+      ]
+    },
+    "8165": {
+      "OV|OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ]
     }
   }
 }

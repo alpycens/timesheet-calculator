@@ -1719,9 +1719,21 @@ function formatCodes(entry) {
   if (!entry) return '';
   // Sabit kodlar + Drop-Down'dan eklenen ekstra kodlar (örn 'GNED').
   // Böylece kullanıcının yeni eklediği kodlar Timesheet hücrelerinde de görünür.
-  const fields = ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA', ...EXTRA_CODES, 'IUWT','IENF','NENF'];
-  let parts = fields.filter(k => entry[k] != null && entry[k] !== '').map(k => `${entry[k]} ${k}`);
+  const fields = ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA', ...EXTRA_CODES, 'IENF','NENF'];
+  // Sıralama: önce normal kodlar (MAIN_ABSORB hariç) → sonra MAIN_ABSORB → en son IUWT
   // RCP artık ayrı bir section'da gösteriliyor — burada tekrar yazmaya gerek yok
+  const mainAbsorb = (entry.MAIN_ABSORB || '').trim();
+  const present = fields.filter(k => entry[k] != null && entry[k] !== '');
+  const normal  = present.filter(k => k !== mainAbsorb);
+  const parts = normal.map(k => `${entry[k]} ${k}`);
+  // MAIN_ABSORB satırı (varsa ve değeri varsa) → en altın bir üstüne
+  if (mainAbsorb && entry[mainAbsorb] != null && entry[mainAbsorb] !== '') {
+    parts.push(`${entry[mainAbsorb]} ${mainAbsorb}`);
+  }
+  // IUWT en altta
+  if (entry.IUWT != null && entry.IUWT !== '') {
+    parts.push(`${entry.IUWT} IUWT`);
+  }
   return parts.join('\n');
 }
 
@@ -1741,13 +1753,25 @@ function renderOutcomeSection(containerId, sectionData) {
    ['SOR', (e) => e?.sorStr || '', 'var(--text-muted)', '400'],
    ['Time', (e) => (e && !e._empty && e.arr && e.dep) ? `${e.arr}-${e.effectiveDep || e.dep}` : '', 'var(--accent)', '400'],
    ['', (e) => (e && !e._empty) ? formatCodes(e) : '', '#d97706', '400']
-  ].forEach(([label, fn, color, weight]) => {
+  ].forEach(([label, fn, color, weight], rowIdx) => {
     const lc = document.createElement('div'); lc.className='og-cell og-row-label'; lc.textContent=label; container.appendChild(lc);
+    const isCodesRow = (rowIdx === 3); // 4. satır = kodlar satırı
     DAYS.forEach(day => {
       const cell = document.createElement('div'); cell.className='og-cell og-value';
       cell.style.color=color; cell.style.fontWeight=weight; cell.style.fontSize='15px'; cell.style.whiteSpace='normal'; cell.style.lineHeight='1.6';
       const _v = fn(sectionData[day]) || '';
       if (_v.includes('\n')) { cell.innerHTML = _v.split('\n').join('<br>'); } else { cell.textContent = _v; }
+      // Codes hücresinde, sadece ovGrid'de, status === 'OV Only' ise kodların
+      // altına küçük kırmızı uyarı ekle (4138, 4392 gibi plantler için).
+      if (isCodesRow && containerId === 'ovGrid') {
+        const e = sectionData[day];
+        if (e && e.status === 'OV Only') {
+          const warn = document.createElement('div');
+          warn.style.cssText = 'color:#dc2626;font-size:10px;font-weight:600;font-style:italic;margin-top:6px;line-height:1.3';
+          warn.textContent = '⚠ Don\u2019t forget MHI timesheet';
+          cell.appendChild(warn);
+        }
+      }
       container.appendChild(cell);
     });
   });

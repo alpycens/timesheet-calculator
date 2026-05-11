@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-11T04:32:00.368Z",
+  "exportedAt": "2026-05-11T11:52:59.447Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -525,7 +525,7 @@
         "GWAG": 0.75,
         "GAVI": null,
         "INSP": null,
-        "HLVI": 7.25,
+        "HLVI": 6.25,
         "GNTB": 0.5,
         "GFSA": 0.5,
         "RCP": 1,

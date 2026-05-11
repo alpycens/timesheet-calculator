@@ -1571,8 +1571,11 @@ function updateField(day, field, value) {
       enfOutHours: ''
     };
   }
-  // Plant değiştiyse o satırdaki diğer tüm alanları sıfırla (region korunur)
-  else if (field === 'plant' && state.days[day].plant !== value) {
+  // Plant değiştiyse (veya aynı plant tekrar seçildiyse) o satırdaki diğer
+  // tüm alanları sıfırla — region korunur. Kullanıcı plant'i değiştirdiğinde
+  // status/arrival/departure/sampling/cd/sha/tb/ai/enforcement/saatler
+  // hepsi temiz halde başlasın.
+  else if (field === 'plant') {
     state.days[day] = {
       region: state.days[day].region,
       plant: value,

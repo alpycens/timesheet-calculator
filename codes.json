@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-11T16:12:54.970Z",
+  "exportedAt": "2026-05-11T16:30:57.368Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -67,22 +67,6 @@
       ]
     },
     "4015": {
-      "OV|OV": [
-        "MONDAY",
-        "TUESDAY",
-        "WEDNESDAY",
-        "THURSDAY",
-        "FRIDAY"
-      ],
-      "MHI|MHI": [
-        "MONDAY",
-        "TUESDAY",
-        "WEDNESDAY",
-        "THURSDAY",
-        "FRIDAY"
-      ]
-    },
-    "4067": {
       "OV|OV": [
         "MONDAY",
         "TUESDAY",
@@ -259,6 +243,22 @@
       "MHI|MHI2": [
         "MONDAY",
         "THURSDAY"
+      ]
+    },
+    "8249": {
+      "OV|OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
       ]
     }
   },
@@ -1561,6 +1561,73 @@
         "GSRM": null,
         "GPAS": 5,
         "INSP": null,
+        "GNTB": null,
+        "GFSA": null,
+        "GNED": null
+      }
+    },
+    "8249": {
+      "MONDAY_MHI": {
+        "arr": "06:45",
+        "dep": "16:00",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "INSP": 8.5,
+        "GNTB": null,
+        "GFSA": null,
+        "GNED": null
+      },
+      "TUESDAY_MHI": {
+        "arr": "06:15",
+        "dep": "16:00",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "INSP": 9,
+        "GNTB": null,
+        "GFSA": null,
+        "GNED": null
+      },
+      "WEDNESDAY_MHI": {
+        "arr": "06:15",
+        "dep": "15:30",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": 0.25,
+        "GPAS": 0.25,
+        "INSP": 8.25,
+        "GNTB": null,
+        "GFSA": null,
+        "GNED": null
+      },
+      "THURSDAY_MHI": {
+        "arr": "06:15",
+        "dep": "15:00",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "INSP": 8,
+        "GNTB": null,
+        "GFSA": null,
+        "GNED": null
+      },
+      "FRIDAY_MHI": {
+        "arr": "06:15",
+        "dep": "14:00",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": null,
+        "GSRM": 0.25,
+        "GPAS": 0.25,
+        "INSP": 6.75,
         "GNTB": null,
         "GFSA": null,
         "GNED": null

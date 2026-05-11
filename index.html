@@ -573,7 +573,18 @@
       <div class="ts-title">Weekly Schedule</div>
     </div>
 
-    <div class="section-label">Daily Entries</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="section-label" style="margin:0">Daily Entries</div>
+      <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+        <button id="slotTab-1st" onclick="switchSlot('1st')"
+          style="font-family:'IBM Plex Mono',monospace;font-size:12px;padding:6px 16px;border:none;background:var(--accent2);color:#fff;cursor:pointer">1st</button>
+        <button id="slotTab-2nd" onclick="switchSlot('2nd')"
+          style="font-family:'IBM Plex Mono',monospace;font-size:12px;padding:6px 16px;border:none;background:transparent;color:var(--text-muted);cursor:pointer">2nd</button>
+      </div>
+    </div>
+    <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:10px;line-height:1.4">
+      <b>2nd</b> location is for days when you visited two different places — fill the entries the same way; the Timesheet will combine them.
+    </div>
     <div class="ts-table-wrap">
       <table class="ts-table">
         <thead>
@@ -1211,17 +1222,25 @@ const SAMPLING_OPTS = ['','RIM','Trichinella','TSE (Goats and Sheep) (including 
 
 let state = loadState();
 
+function _emptyDay() {
+  return { region:'', plant:'', plantStatus:'', status:'', arrival:'', departure:'', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'' };
+}
+
 function defaultState() {
-  const emptyDay = { region:'', plant:'', plantStatus:'', status:'', arrival:'', departure:'', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'' };
-  return { days: {
-    'MONDAY':    { ...emptyDay },
-    'TUESDAY':   { ...emptyDay },
-    'WEDNESDAY': { ...emptyDay },
-    'THURSDAY':  { ...emptyDay },
-    'FRIDAY':    { ...emptyDay },
-    'SATURDAY':  { ...emptyDay },
-    'SUNDAY':    { ...emptyDay },
-  }};
+  const mk = () => ({
+    'MONDAY':    _emptyDay(),
+    'TUESDAY':   _emptyDay(),
+    'WEDNESDAY': _emptyDay(),
+    'THURSDAY':  _emptyDay(),
+    'FRIDAY':    _emptyDay(),
+    'SATURDAY':  _emptyDay(),
+    'SUNDAY':    _emptyDay(),
+  });
+  return {
+    activeSlot: '1st',  // '1st' or '2nd' — Schedule sekmesindeki aktif sayfa
+    days:  mk(),        // 1st location
+    days2: mk(),        // 2nd location (aynı gün ikinci ziyaret için)
+  };
 }
 
 function loadState() {
@@ -1232,10 +1251,23 @@ function loadState() {
       const saved = JSON.parse(s);
       if (!saved.days) saved.days = {};
       DAYS.forEach(day => { saved.days[day] = Object.assign({}, def.days[day], saved.days[day] || {}); });
+      // 2. slot için migration — eski kayıtlarda days2 yok, boş init
+      if (!saved.days2) saved.days2 = def.days2;
+      else DAYS.forEach(day => { saved.days2[day] = Object.assign({}, def.days2[day], saved.days2[day] || {}); });
+      if (!saved.activeSlot) saved.activeSlot = '1st';
       return saved;
     }
   } catch(e) {}
   return def;
+}
+
+// Aktif slot'a göre günleri okuyan helper — Schedule sekmesi bunu kullanır.
+// state.days = 1. yer; state.days2 = 2. yer.
+function activeDaysMap() {
+  return state.activeSlot === '2nd' ? state.days2 : state.days;
+}
+function slotDaysMap(slot) {
+  return slot === '2nd' ? state.days2 : state.days;
 }
 
 function saveData() { try { localStorage.setItem('ts_state', JSON.stringify(state)); } catch(e) {} }
@@ -1482,7 +1514,7 @@ function renderTimesheet() {
   };
 
   DAYS.forEach(day => {
-    const d = state.days[day];
+    const d = activeDaysMap()[day];
     if (!d) return;
     const cancelled = d.plantStatus === 'Cancelled';
     // Region seçilmediyse plant dropdown boş; seçildiyse o region'a ait plantlar
@@ -1551,9 +1583,11 @@ function renderTimesheet() {
 }
 
 function updateField(day, field, value) {
+  // Aktif slot (1st veya 2nd) üzerinde çalışıyoruz
+  const M = activeDaysMap();
   // Region değiştiyse o satırdaki TÜM alanları sıfırla (region dahil yeni değer)
-  if (field === 'region' && state.days[day].region !== value) {
-    state.days[day] = {
+  if (field === 'region' && M[day].region !== value) {
+    M[day] = {
       region: value,
       plant: '',
       plantStatus: '',
@@ -1572,12 +1606,10 @@ function updateField(day, field, value) {
     };
   }
   // Plant değiştiyse (veya aynı plant tekrar seçildiyse) o satırdaki diğer
-  // tüm alanları sıfırla — region korunur. Kullanıcı plant'i değiştirdiğinde
-  // status/arrival/departure/sampling/cd/sha/tb/ai/enforcement/saatler
-  // hepsi temiz halde başlasın.
+  // tüm alanları sıfırla — region korunur.
   else if (field === 'plant') {
-    state.days[day] = {
-      region: state.days[day].region,
+    M[day] = {
+      region: M[day].region,
       plant: value,
       plantStatus: '',
       status: '',
@@ -1594,7 +1626,7 @@ function updateField(day, field, value) {
       enfOutHours: ''
     };
   } else {
-    state.days[day][field] = value;
+    M[day][field] = value;
   }
   saveData();
   renderTimesheet();
@@ -1602,29 +1634,51 @@ function updateField(day, field, value) {
 }
 
 function updateTime(day, field, part, value) {
-  const cur = (state.days[day][field] || ':').split(':');
+  const M = activeDaysMap();
+  const cur = (M[day][field] || ':').split(':');
   if (part === 'h') cur[0] = value;
   else cur[1] = value;
-  state.days[day][field] = (cur[0] || cur[1]) ? (cur[0]||'00')+':'+(cur[1]||'00') : '';
+  M[day][field] = (cur[0] || cur[1]) ? (cur[0]||'00')+':'+(cur[1]||'00') : '';
   saveData();
   renderTimesheet();
   renderOutcome();
 }
 
 function resetColumn(field) {
+  const M = activeDaysMap();
   DAYS.forEach(day => {
-    state.days[day][field] = '';
-    if (field === 'plant') state.days[day]['status'] = '';
+    M[day][field] = '';
+    if (field === 'plant') M[day]['status'] = '';
   });
   saveData();
   renderTimesheet();
   renderOutcome();
 }
 
-function computeOutcome() {
+// Schedule'da 1st / 2nd sayfa arası geçiş.
+function switchSlot(slot) {
+  if (slot !== '1st' && slot !== '2nd') return;
+  state.activeSlot = slot;
+  saveData();
+  // Sekme butonlarının görünümünü güncelle
+  ['1st','2nd'].forEach(s => {
+    const btn = document.getElementById('slotTab-' + s);
+    if (btn) {
+      btn.style.background = s===slot ? 'var(--accent2)' : 'transparent';
+      btn.style.color      = s===slot ? '#fff' : 'var(--text-muted)';
+    }
+  });
+  // Schedule yeniden çiz; Timesheet de tek hücrede her iki slotu birleştirir
+  renderTimesheet();
+  renderOutcome();
+}
+
+function computeOutcome(daysMap) {
+  // daysMap verilmezse 1. slot kullanılır (geriye dönük uyumluluk)
+  const M = daysMap || state.days;
   const result = { ov:{}, mhi:{}, enf:{} };
   DAYS.forEach(day => {
-    const d = state.days[day];
+    const d = M[day];
     if (!d || !d.plant) return;
     const statusType = d.status;
 
@@ -1740,7 +1794,10 @@ function formatCodes(entry) {
   return parts.join('\n');
 }
 
-function renderOutcomeSection(containerId, sectionData) {
+function renderOutcomeSection(containerId, sectionData, sectionData2) {
+  // sectionData = 1. slot outcome'u, sectionData2 = 2. slot outcome'u (opsiyonel)
+  // İki slot da bir gün için doluysa, satırdaki değer slot1 + '+' + slot2 olarak gösterilir.
+  const data2 = sectionData2 || {};
   const container = document.getElementById(containerId);
   container.innerHTML = '';
   container.style.gridTemplateColumns = `70px repeat(${DAYS.length}, minmax(120px, 1fr))`;
@@ -1762,13 +1819,45 @@ function renderOutcomeSection(containerId, sectionData) {
     DAYS.forEach(day => {
       const cell = document.createElement('div'); cell.className='og-cell og-value';
       cell.style.color=color; cell.style.fontWeight=weight; cell.style.fontSize='15px'; cell.style.whiteSpace='normal'; cell.style.lineHeight='1.6';
-      const _v = fn(sectionData[day]) || '';
-      if (_v.includes('\n')) { cell.innerHTML = _v.split('\n').join('<br>'); } else { cell.textContent = _v; }
-      // Codes hücresinde, sadece ovGrid'de, status === 'OV Only' ise kodların
-      // altına küçük kırmızı uyarı ekle (4138, 4392 gibi plantler için).
+
+      const e1 = sectionData[day];
+      const e2 = data2[day];
+      const v1 = e1 ? (fn(e1) || '') : '';
+      const v2 = e2 ? (fn(e2) || '') : '';
+
+      // Codes satırında 1. slot IUWT girilmişse '(if early finish)' notu ekle
+      // (sadece 2. slot da doluysa anlamlı, ama kullanıcı tek slotta da
+      //  IUWT girip 'erken bitince' notunu görmek isteyebilir; bu yüzden
+      //  IUWT'nin yanına her durumda not eklemeyiz — sadece e2 doluysa).
+      const renderSlotBlock = (text, isSlot1) => {
+        if (!text) return '';
+        let html = text.split('\n').map(line => {
+          if (isCodesRow && isSlot1 && e2 && /\bIUWT$/.test(line)) {
+            return line + ' <span style="font-size:10px;font-style:italic;color:#dc2626">(if early finish)</span>';
+          }
+          return line;
+        }).join('<br>');
+        return html;
+      };
+
+      const block1 = renderSlotBlock(v1, true);
+      const block2 = renderSlotBlock(v2, false);
+
+      if (block1 && block2) {
+        cell.innerHTML = `<div>${block1}</div><div style="text-align:center;color:var(--text-muted);font-size:14px;margin:4px 0">+</div><div>${block2}</div>`;
+      } else if (block1) {
+        cell.innerHTML = block1;
+      } else if (block2) {
+        cell.innerHTML = block2;
+      } else {
+        cell.textContent = '';
+      }
+
+      // Codes hücresinde, sadece ovGrid'de, herhangi bir slotun statusu === 'OV Only' ise
+      // kodların altına küçük kırmızı uyarı ekle.
       if (isCodesRow && containerId === 'ovGrid') {
-        const e = sectionData[day];
-        if (e && e.status === 'OV Only') {
+        const isOVOnly = (e1 && e1.status === 'OV Only') || (e2 && e2.status === 'OV Only');
+        if (isOVOnly) {
           const warn = document.createElement('div');
           warn.style.cssText = 'color:#dc2626;font-size:10px;font-weight:600;font-style:italic;margin-top:6px;line-height:1.3';
           warn.textContent = '⚠ Don\u2019t forget MHI timesheet';
@@ -1851,13 +1940,22 @@ function renderRCPSection(out) {
 }
 
 function renderOutcome() {
-  const out = computeOutcome();
+  // Her iki slotun outcome'unu hesapla; render fonksiyonlarına ayrı geçir.
+  const out1 = computeOutcome(state.days);
+  const out2 = computeOutcome(state.days2);
   document.getElementById('totalsStrip').innerHTML = '';
-  renderOutcomeSection('ovGrid', out.ov);
-  renderRCPSection(out);
-  renderOutcomeSection('mhiGrid', out.mhi);
+  // OV ve MHI grid: 1. ve 2. slot aynı hücrede '+' ile birleşik render edilir
+  renderOutcomeSection('ovGrid',  out1.ov,  out2.ov);
+  renderOutcomeSection('mhiGrid', out1.mhi, out2.mhi);
+  // RCP & Enforcement: yalnızca 1. slot'tan (sade tutmak için)
+  renderRCPSection(out1);
   const outEnf = {};
-  Object.entries(out.enf).forEach(([day, v]) => { if (v.outHours > 0) outEnf[day] = { ...v, sorStr:'00:00-00:00', arr:'00:00', dep:'00:00' }; });
+  // Hem 1. hem 2. slot enforcement'larını birleştir (out hours > 0 olanlar)
+  [out1.enf, out2.enf].forEach(src => {
+    Object.entries(src || {}).forEach(([day, v]) => {
+      if (v.outHours > 0 && !outEnf[day]) outEnf[day] = { ...v, sorStr:'00:00-00:00', arr:'00:00', dep:'00:00' };
+    });
+  });
   renderEnfSection('enfGrid', outEnf);
 }
 
@@ -2995,6 +3093,17 @@ function saveDropDown() {
 }
 
 // ─── INIT ───────────────────────────────────────────────────────
+// Aktif slot butonunu state'e göre senkronize et
+(function _initSlotButtons() {
+  const slot = state.activeSlot || '1st';
+  ['1st','2nd'].forEach(s => {
+    const btn = document.getElementById('slotTab-' + s);
+    if (btn) {
+      btn.style.background = s===slot ? 'var(--accent2)' : 'transparent';
+      btn.style.color      = s===slot ? '#fff' : 'var(--text-muted)';
+    }
+  });
+})();
 renderTimesheet();
 renderOutcome();
 loadCodesFromFile(); // codes.json varsa otomatik yükle (yoksa default'a fallback)

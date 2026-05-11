@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-11T11:52:59.447Z",
+  "exportedAt": "2026-05-11T16:12:54.970Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -16,10 +16,12 @@
     "4392": "Cluster27",
     "8061": "Cluster26",
     "8072": "Cluster27",
+    "8090": "Cluster27",
     "8119": "Cluster26",
     "8145": "Cluster27",
     "8165": "Cluster27",
-    "8201": "Cluster26"
+    "8201": "Cluster26",
+    "8249": "Cluster26"
   },
   "EXTRA_CODES": [
     "GNED"
@@ -994,6 +996,93 @@
         "GFSA": null,
         "RCP": null,
         "GNED": 5
+      }
+    },
+    "8249": {
+      "MONDAY_OV": {
+        "arr": "06:30",
+        "dep": "16:15",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "GWAG": null,
+        "GAVI": null,
+        "INSP": 8.75,
+        "HLVI": null,
+        "GNTB": null,
+        "GFSA": null,
+        "RCP": null,
+        "GNED": null
+      },
+      "TUESDAY_OV": {
+        "arr": "06:00",
+        "dep": "16:15",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.5,
+        "GPAS": null,
+        "GWAG": null,
+        "GAVI": null,
+        "INSP": 9,
+        "HLVI": null,
+        "GNTB": null,
+        "GFSA": null,
+        "RCP": null,
+        "GNED": null
+      },
+      "WEDNESDAY_OV": {
+        "arr": "06:00",
+        "dep": "15:45",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.5,
+        "GPAS": 0.5,
+        "GWAG": null,
+        "GAVI": null,
+        "INSP": 8,
+        "HLVI": null,
+        "GNTB": null,
+        "GFSA": null,
+        "RCP": null,
+        "GNED": null
+      },
+      "THURSDAY_OV": {
+        "arr": "06:00",
+        "dep": "15:15",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.25,
+        "GPAS": null,
+        "GWAG": null,
+        "GAVI": null,
+        "INSP": 8.25,
+        "HLVI": null,
+        "GNTB": null,
+        "GFSA": null,
+        "RCP": null,
+        "GNED": null
+      },
+      "FRIDAY_OV": {
+        "arr": "06:00",
+        "dep": "14:15",
+        "MAIN_ABSORB": "INSP",
+        "BREAK": 0.5,
+        "GBPS": 0.25,
+        "GSRM": 0.5,
+        "GPAS": 0.5,
+        "GWAG": null,
+        "GAVI": null,
+        "INSP": 6.5,
+        "HLVI": null,
+        "GNTB": null,
+        "GFSA": null,
+        "RCP": null,
+        "GNED": null
       }
     }
   },

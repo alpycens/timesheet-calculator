@@ -1220,10 +1220,12 @@ function getSORValidStatuses(day, plant) {
   //   - Codes tablolarında TAM olarak 'DAY_status' kaydı varsa     → o gün
   //   - Veya generic 'status' kaydı varsa (gün belirtilmemiş)      → SADECE Pzt-Cuma
   // Hafta sonu için yalnızca DAY_status kayıtları geçerli.
-  // Böylece 4138 SOR yalnızca Salı/Perşembe, 4392 yalnızca Salı/Çarşamba çıkar.
+  // TEMP_OV_CODES / TEMP_MHI_CODES da kontrol edilir — kullanıcı temp ekleyince
+  // o gün için SOR'da çıkması gerekir.
   if (!plant) return [];
   const result = new Set();
-  const sources = [OV_CODES[String(plant)], MHI_CODES[String(plant)]];
+  const sources = [OV_CODES[String(plant)], MHI_CODES[String(plant)],
+                   TEMP_OV_CODES[String(plant)], TEMP_MHI_CODES[String(plant)]];
   const isWeekend = (day === 'SATURDAY' || day === 'SUNDAY');
   const dayPrefix = day + '_';
   const ALL_DAY_PREFIXES = DAYS.map(d => d + '_');
@@ -3116,8 +3118,14 @@ function renderSORTableForPlant(plant, region) {
       let mhiCodes = strictLookup(MERGED_MHI, day, plant, status);
       if (!mhiCodes && wantMHI) mhiCodes = fallbackLookup(MERGED_MHI);
 
-      const showOV  = ovCodes  && (wantOV  === null ? true : wantOV);
-      const showMHI = mhiCodes && (wantMHI === null ? true : wantMHI);
+      // TEMP override: bu (day, plant, status) için TEMP'te kayıt varsa, kullanıcı
+      // açıkça o günü temp'e ekleyerek görmek istiyor demektir. Kullanıcının
+      // SOR_DISPLAY tiklerini ezip her zaman göster.
+      const tempHasOV  = !!(TEMP_OV_CODES[String(plant)]  && TEMP_OV_CODES[String(plant)][day + '_' + status]);
+      const tempHasMHI = !!(TEMP_MHI_CODES[String(plant)] && TEMP_MHI_CODES[String(plant)][day + '_' + status]);
+
+      const showOV  = ovCodes  && (tempHasOV  ? true : (wantOV  === null ? true : wantOV));
+      const showMHI = mhiCodes && (tempHasMHI ? true : (wantMHI === null ? true : wantMHI));
 
       if (!showOV && !showMHI) return;
 

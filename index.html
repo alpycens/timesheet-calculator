@@ -970,6 +970,9 @@ function getValidStatuses(day, plant) {
   //   - Generic kayıt (status) varsa            → SADECE hafta içinde (Mon-Fri) geçerli
   // Cumartesi/Pazar için sadece day-specific kayıtlar geçerli; generic'ler değil.
   //
+  // TEMP_OV_CODES / TEMP_MHI_CODES da kaynaklar arasında — kullanıcı temp ekleyince
+  // o gün için Schedule'da status dropdown'unda görünmeli.
+  //
   // FALLBACK (hafta içi): yukarıdaki kurallar bu (day, plant) için hiçbir status
   // üretmediyse — yani o gün "boş" ise — kullanıcı yine de bir şey seçebilsin diye
   // bu plantin OV_CODES + MHI_CODES'ta gerçekten tanımlı olduğu TÜM base statusları
@@ -977,7 +980,8 @@ function getValidStatuses(day, plant) {
   // dropdown'da 'OV Only' görünür; 2690 WEDNESDAY için 'OV','MHI' görünür vs.
   if (!plant) return [];
   const result = new Set();
-  const sources = [OV_CODES[String(plant)], MHI_CODES[String(plant)]];
+  const sources = [OV_CODES[String(plant)], MHI_CODES[String(plant)],
+                   TEMP_OV_CODES[String(plant)], TEMP_MHI_CODES[String(plant)]];
   const isWeekend = (day === 'SATURDAY' || day === 'SUNDAY');
   const dayPrefix = day + '_';
   const ALL_DAY_PREFIXES = DAYS.map(d => d + '_');
@@ -1550,6 +1554,11 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     // ve '(if early finish)' notlarını ekler. GNTB absorber'da gösterilmez.
     _iuwtLate:  absorberIsGNTB ? 0 : (iuwtLate  > 0 ? iuwtLate  : 0),
     _iuwtEarly: absorberIsGNTB ? 0 : (iuwtEarly > 0 ? iuwtEarly : 0),
+    // GNTB absorber için ayrı: IUWT yerine '+X GNTB (if late start)' /
+    // '+X GNTB (if early finish)' satırları gösterilir. Bu sayede ana GNTB
+    // değeri düşülmüş halde kalır ve fark ayrı satır olarak görünür.
+    _gntbLate:  absorberIsGNTB ? (iuwtLate  > 0 ? iuwtLate  : 0) : 0,
+    _gntbEarly: absorberIsGNTB ? (iuwtEarly > 0 ? iuwtEarly : 0) : 0,
     // RCP ayrı section için: saat aralığı (örn "16:00-17:00") ve değer (1 GSRM)
     rcpRange: rcpRange,
     rcpHours: (rcpVal > 0 ? rcpVal : null),
@@ -1789,8 +1798,13 @@ function clearAllDailyEntries() {
       });
     });
     saveData();
-    renderTimesheet();
-    renderOutcome();
+    // Clear sonrası otomatik 1st sayfaya geç ki kullanıcı veriyi oradan girmeye başlasın
+    if (typeof switchSlot === 'function') {
+      switchSlot('1st');
+    } else {
+      renderTimesheet();
+      renderOutcome();
+    }
     console.log('[clearAllDailyEntries] OK — all entries cleared');
   } catch (e) {
     console.error('[clearAllDailyEntries] ERROR:', e);
@@ -1939,6 +1953,10 @@ function formatCodes(entry) {
   } else if (entry.IUWT != null && entry.IUWT !== '') {
     parts.push(`${entry.IUWT} IUWT`);
   }
+  // GNTB absorber özel durumu: IUWT yerine ek GNTB satırları.
+  // Ana GNTB değeri düşülmüş, fark burada görünür (örn 6.5 GNTB + 1 GNTB if late start)
+  if ((entry._gntbLate  || 0) > 0) parts.push(`${entry._gntbLate} GNTB (if late start)`);
+  if ((entry._gntbEarly || 0) > 0) parts.push(`${entry._gntbEarly} GNTB (if early finish)`);
   return parts.join('\n');
 }
 

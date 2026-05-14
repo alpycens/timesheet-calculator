@@ -438,9 +438,8 @@
     gap: 0;
     border: 1px solid var(--border);
     border-radius: 8px;
-    overflow: hidden;
     margin-bottom: 24px;
-    min-width: 700px;
+    min-width: 910px; /* 70 + 7*120 = 910, scroll wrapper handles overflow */
   }
 
   .og-cell {
@@ -625,18 +624,18 @@
     <div class="totals-strip" id="totalsStrip"></div>
 
     <div class="section-label">OV Timesheet</div>
-    <div style="overflow-x:auto"><div class="outcome-grid" id="ovGrid"></div></div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="ovGrid"></div></div>
 
     <div id="rcpSection" style="display:none">
       <div class="section-label">RCP</div>
-      <div style="overflow-x:auto"><div class="outcome-grid" id="rcpGrid"></div></div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="rcpGrid"></div></div>
     </div>
 
     <div class="section-label">MHI Timesheet</div>
-    <div style="overflow-x:auto"><div class="outcome-grid" id="mhiGrid"></div></div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="mhiGrid"></div></div>
 
     <div class="section-label">Out of Work Activities</div>
-    <div style="overflow-x:auto"><div class="outcome-grid" id="enfGrid"></div></div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="enfGrid"></div></div>
   </div>
 
 
@@ -1429,8 +1428,14 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   }
 
   // Toplam IUWT — fixedSum'a dahil edilir, böylece absorber'dan otomatik düşer
+  // ÖZEL DURUM: Absorber GNTB ise (TB OV, 8072 Thursday MHI2 gibi GNTB-merkezli kodlar)
+  // IUWT hiç görünmesin; geç başlangıç / erken bitiş farkı doğrudan GNTB'den düşülsün.
+  // Mantık: IUWT_total'i fixedSum'a dahil ETMEYİZ, böylece absorberValue (=GNTB) hesabında
+  // totalToFill'in azalmasıyla otomatik olarak GNTB azalır.
+  const absorberIsGNTB = (codes.MAIN_ABSORB && codes.MAIN_ABSORB.trim() === 'GNTB')
+    || ((isTBOV || (isMHI && codes.GNTB != null && codes.INSP == null)) && !codes.MAIN_ABSORB);
   const IUWT_total = round25(iuwtEarly + iuwtLate);
-  const IUWT = IUWT_total > 0 ? IUWT_total : null;
+  const IUWT = (absorberIsGNTB) ? null : (IUWT_total > 0 ? IUWT_total : null);
 
   const sorTotal = (sorArr && sorDep) ? round25(timeToH(sorDep) - timeToH(sorArr)) : null;
   // RCP saati ayrı bir satırda gösterileceği için sorTotal'den düşülür
@@ -1440,6 +1445,8 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   // Sabit (absorber dışındaki) kodların toplamı — bunlar sabit kalır, absorber dengeyi alır
   // NOT: RCP artık sorTotal'den çıkarıldığı için fixedSum'a eklenmez
   // NOT: IUWT_total (early+late) burada zaten dahil — absorber otomatik düşer
+  // ÖZEL DURUM: Absorber GNTB ise IUWT görmüyoruz; geç başlangıç farkını yine de
+  // GNTB'den düşmek için fixedSum'a IUWT_total'i ekleriz, sadece IUWT göstermeyiz.
   const fixedSum = round25(
     (absorber==='BREAK' ? 0 : (BREAK||0)) +
     (absorber==='GBPS'  ? 0 : (GBPS ||0)) +
@@ -1538,9 +1545,9 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     INSP:  INSP,
     IUWT, IENF, NENF,
     // IUWT'nin iki bileşeni — render katmanı bunları kullanarak '(if late start)'
-    // ve '(if early finish)' notlarını ekler.
-    _iuwtLate:  iuwtLate  > 0 ? iuwtLate  : 0,
-    _iuwtEarly: iuwtEarly > 0 ? iuwtEarly : 0,
+    // ve '(if early finish)' notlarını ekler. GNTB absorber'da gösterilmez.
+    _iuwtLate:  absorberIsGNTB ? 0 : (iuwtLate  > 0 ? iuwtLate  : 0),
+    _iuwtEarly: absorberIsGNTB ? 0 : (iuwtEarly > 0 ? iuwtEarly : 0),
     // RCP ayrı section için: saat aralığı (örn "16:00-17:00") ve değer (1 GSRM)
     rcpRange: rcpRange,
     rcpHours: (rcpVal > 0 ? rcpVal : null),
@@ -2789,8 +2796,8 @@ function renderTempOVCodesTable() {
     });
     tr.innerHTML = `
       <td>${daySelect(row.day, f('day'))}</td>
-      <td>${regionSelect(row.region, f('region'))}</td>
-      <td>${tempPlantSelect(row.plant, `updateTempOVPlant(${i},this.value)`)}</td>
+      <td>${regionSelect(row.region, `updateTempOVRegion(${i},this.value)`)}</td>
+      <td>${tempPlantSelect(row.plant, row.region, `updateTempOVPlant(${i},this.value)`)}</td>
       <td>${tempStatusSelect(row.status, row.plant, 'OV', f('status'))}</td>
       <td>${codeTimeSelectGeneric(row.arr, 'updateTempOVCodeTime', i, 'arr')}</td>
       <td>${codeTimeSelectGeneric(row.dep, 'updateTempOVCodeTime', i, 'dep')}</td>
@@ -2826,8 +2833,8 @@ function renderTempMHICodesTable() {
     });
     tr.innerHTML = `
       <td>${daySelect(row.day, f('day'))}</td>
-      <td>${regionSelect(row.region, f('region'))}</td>
-      <td>${tempPlantSelect(row.plant, `updateTempMHIPlant(${i},this.value)`)}</td>
+      <td>${regionSelect(row.region, `updateTempMHIRegion(${i},this.value)`)}</td>
+      <td>${tempPlantSelect(row.plant, row.region, `updateTempMHIPlant(${i},this.value)`)}</td>
       <td>${tempStatusSelect(row.status, row.plant, 'MHI', f('status'))}</td>
       <td>${codeTimeSelectGeneric(row.arr, 'updateTempMHICodeTime', i, 'arr')}</td>
       <td>${codeTimeSelectGeneric(row.dep, 'updateTempMHICodeTime', i, 'dep')}</td>
@@ -2864,8 +2871,17 @@ function codeTimeSelectGeneric(currentVal, fnName, idx, field) {
 }
 
 // Plant dropdown — PLANTS listesinden seç. value'da kalan değer plant string.
-function tempPlantSelect(currentVal, onChange) {
-  const opts = ['', ...PLANTS.filter(p => p)].map(p => `<option value="${p}" ${String(p)===String(currentVal)?'selected':''}>${p||'—'}</option>`).join('');
+function tempPlantSelect(currentVal, region, onChange) {
+  // PLANT_REGIONS map'inden region'a ait plantleri bul. Region boşsa hiçbiri.
+  let plantsForRegion;
+  if (!region) {
+    plantsForRegion = [];
+  } else {
+    plantsForRegion = PLANTS.filter(p => p && PLANT_REGIONS[p] === region);
+  }
+  // Mevcut değer listede yoksa (örn region değişmiş) onu da ekle (kullanıcı düzeltsin)
+  if (currentVal && !plantsForRegion.includes(String(currentVal))) plantsForRegion.push(String(currentVal));
+  const opts = ['', ...plantsForRegion].map(p => `<option value="${p}" ${String(p)===String(currentVal)?'selected':''}>${p||'—'}</option>`).join('');
   return `<select style="width:75px;font-size:11px;padding:4px" onchange="${onChange}">${opts}</select>`;
 }
 
@@ -2899,6 +2915,23 @@ function updateTempOVPlant(i, val) {
 function updateTempMHIPlant(i, val) {
   const rows = getTempMHIRowsMutable();
   rows[i].plant = val;
+  rows[i].status = '';
+  renderTempMHICodesTable();
+}
+
+// Region değişince o satırın plant'ı ve status'u sıfırlanır (eski plant yeni
+// regiona uymayabilir). Tablo yeniden render edilir.
+function updateTempOVRegion(i, val) {
+  const rows = getTempOVRowsMutable();
+  rows[i].region = val;
+  rows[i].plant = '';
+  rows[i].status = '';
+  renderTempOVCodesTable();
+}
+function updateTempMHIRegion(i, val) {
+  const rows = getTempMHIRowsMutable();
+  rows[i].region = val;
+  rows[i].plant = '';
   rows[i].status = '';
   renderTempMHICodesTable();
 }
@@ -3103,10 +3136,10 @@ function renderSORTableForPlant(plant, region) {
         const OV_CONDITIONAL = baseConditional.filter(k => k !== mainAbsorb && !alwaysActive.has(k));
         const visibleKeys = FIELDS_OV.filter(k => ovCodes[k] != null && !OV_CONDITIONAL.includes(k));
         const codeItems = visibleKeys.map(k => ({ k, v: ovCodes[k], isMain: k === mainAbsorb }));
-        // RCP veri-odaklı: kodda RCP > 0 varsa not göster
+        // RCP veri-odaklı: kodda RCP > 0 varsa not göster. RCP_CODE varsa onu kullan.
         const rcpVal = (ovCodes.RCP != null && ovCodes.RCP > 0) ? ovCodes.RCP : null;
-        const inspAfterRcp = (rcpVal != null && ovCodes.INSP != null) ? round25(ovCodes.INSP - rcpVal) : null;
-        if (!seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', sor: sorStr, codeItems, mainAbsorb, rcpNote: rcpVal, rcpInspNote: inspAfterRcp, trichNote: (plant==='8145' && status==='OV Afternoon') }); }
+        const rcpCodeKey = (ovCodes.RCP_CODE && rcpVal != null) ? ovCodes.RCP_CODE : 'GSRM';
+        if (!seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', sor: sorStr, codeItems, mainAbsorb, rcpNote: rcpVal, rcpCode: rcpCodeKey, trichNote: (plant==='8145' && status==='OV Afternoon') }); }
       }
       if (showMHI) {
         const sorStr = `${mhiCodes.arr}-${mhiCodes.dep}`;
@@ -3119,7 +3152,7 @@ function renderSORTableForPlant(plant, region) {
         const MHI_CONDITIONAL = baseConditional.filter(k => k !== mainAbsorb && !alwaysActive.has(k));
         const visibleKeys = FIELDS_MHI.filter(k => mhiCodes[k] != null && !MHI_CONDITIONAL.includes(k));
         const codeItems = visibleKeys.map(k => ({ k, v: mhiCodes[k], isMain: k === mainAbsorb }));
-        if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', sor: sorStr, codeItems, mainAbsorb, rcpNote: null, rcpInspNote: null, trichNote: false }); }
+        if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', sor: sorStr, codeItems, mainAbsorb, rcpNote: null, rcpCode: null, trichNote: false }); }
       }
     });
   });
@@ -3163,8 +3196,7 @@ function renderSORTableForPlant(plant, region) {
       if (r.codeItems && r.codeItems.length) {
         codesHtml = r.codeItems.map(item => `${item.v} ${item.k}`).join('<br>');
       }
-      if (r.rcpNote != null) codesHtml += `<br><span style="color:#dc2626;font-weight:600">RCP: ${r.rcpNote} GSRM</span>`;
-      if (r.rcpInspNote != null) codesHtml += `<br><span style="color:#dc2626;font-weight:600">${r.rcpInspNote} INSP (if RCP)</span>`;
+      if (r.rcpNote != null) codesHtml += `<br><span style="color:#dc2626;font-weight:600">RCP: ${r.rcpNote} ${r.rcpCode || 'GSRM'}</span>`;
       if (r.trichNote) codesHtml += '<br><span style="color:#06b6d4;font-weight:600">0.75 GFSA (if Trich)</span>';
       html += '<div style="color:#d97706;font-size:11px;line-height:1.8">' + codesHtml + '</div>';
       html += '</div>';

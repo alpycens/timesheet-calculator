@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-14T13:39:07.747Z",
+  "exportedAt": "2026-05-14T18:37:58.282Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -10,6 +10,7 @@
     "2690": "Cluster27",
     "2900": "Cluster27",
     "4015": "Cluster27",
+    "4057": "Cluster27",
     "4067": "Cluster27",
     "4133": "Cluster27",
     "4138": "Cluster27",
@@ -387,6 +388,25 @@
         "GNTB": 0.5,
         "GFSA": 0.5,
         "RCP": null,
+        "GNED": null
+      }
+    },
+    "4067": {
+      "OV": {
+        "arr": "15:00",
+        "dep": "16:00",
+        "MAIN_ABSORB": "GSRM",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "GWAG": null,
+        "GAVI": null,
+        "INSP": null,
+        "HLVI": null,
+        "GNTB": null,
+        "GFSA": null,
+        "RCP": 1,
         "GNED": null
       }
     },
@@ -1101,6 +1121,7 @@
         "INSP": 9.5,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       }
     },
@@ -1116,6 +1137,7 @@
         "INSP": 3.75,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "THURSDAY_MHI": {
@@ -1129,6 +1151,7 @@
         "INSP": 3.75,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       }
     },
@@ -1144,6 +1167,24 @@
         "INSP": 10,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
+        "GNED": null
+      }
+    },
+    "4057": {
+      "MHI": {
+        "arr": "15:00",
+        "dep": "16:00",
+        "MAIN_ABSORB": "GSRM",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "INSP": null,
+        "GNTB": null,
+        "GFSA": null,
+        "RCP": 1,
+        "RCP_CODE": "GSRM",
         "GNED": null
       }
     },
@@ -1159,6 +1200,7 @@
         "INSP": 8.25,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "THURSDAY_MHI": {
@@ -1172,6 +1214,7 @@
         "INSP": 9.25,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "FRIDAY_MHI": {
@@ -1185,6 +1228,7 @@
         "INSP": 9.25,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       }
     },
@@ -1200,6 +1244,7 @@
         "INSP": 6.5,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "THURSDAY_OV Only": {
@@ -1213,6 +1258,7 @@
         "INSP": 6.5,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       }
     },
@@ -1228,6 +1274,7 @@
         "INSP": 3,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "WEDNESDAY_OV Only": {
@@ -1241,6 +1288,7 @@
         "INSP": 3,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       }
     },
@@ -1256,6 +1304,7 @@
         "INSP": 10.75,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       }
     },
@@ -1271,6 +1320,7 @@
         "INSP": 6.5,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "TUESDAY_MHI1": {
@@ -1284,6 +1334,7 @@
         "INSP": null,
         "GNTB": 5.5,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "FRIDAY_MHI1": {
@@ -1297,6 +1348,7 @@
         "INSP": 6.5,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "MONDAY_MHI2": {
@@ -1310,6 +1362,7 @@
         "INSP": 4.25,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "TUESDAY_MHI2": {
@@ -1323,6 +1376,7 @@
         "INSP": 4.25,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "WEDNESDAY_MHI2": {
@@ -1336,6 +1390,7 @@
         "INSP": 4.25,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "THURSDAY_MHI2": {
@@ -1349,6 +1404,7 @@
         "INSP": null,
         "GNTB": 7.5,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       }
     },
@@ -1364,6 +1420,7 @@
         "INSP": 10,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "WEDNESDAY_MHI": {
@@ -1377,6 +1434,7 @@
         "INSP": 8.5,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "THURSDAY_MHI": {
@@ -1390,6 +1448,7 @@
         "INSP": 8,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "FRIDAY_MHI": {
@@ -1403,6 +1462,7 @@
         "INSP": 10,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       }
     },
@@ -1418,6 +1478,7 @@
         "INSP": 5.5,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       }
     },
@@ -1433,6 +1494,7 @@
         "INSP": 9.5,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "TUESDAY_MHI": {
@@ -1446,6 +1508,7 @@
         "INSP": 9.5,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "WEDNESDAY_MHI": {
@@ -1459,6 +1522,7 @@
         "INSP": 8.5,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "THURSDAY_MHI": {
@@ -1472,6 +1536,7 @@
         "INSP": 7.5,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "FRIDAY_MHI": {
@@ -1485,6 +1550,7 @@
         "INSP": 4.5,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "MHI": {
@@ -1498,6 +1564,7 @@
         "INSP": 9.5,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       }
     },
@@ -1513,6 +1580,7 @@
         "INSP": 8.75,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "MHI": {
@@ -1526,6 +1594,7 @@
         "INSP": 8.25,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "FRIDAY_MHI": {
@@ -1539,6 +1608,7 @@
         "INSP": 6.25,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "MONDAY_MHI2": {
@@ -1552,6 +1622,7 @@
         "INSP": 5.25,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "THURSDAY_MHI2": {
@@ -1565,6 +1636,7 @@
         "INSP": null,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       }
     },
@@ -1580,6 +1652,7 @@
         "INSP": 8.5,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "TUESDAY_MHI": {
@@ -1593,6 +1666,7 @@
         "INSP": 9,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "WEDNESDAY_MHI": {
@@ -1606,6 +1680,7 @@
         "INSP": 8.25,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "THURSDAY_MHI": {
@@ -1619,6 +1694,7 @@
         "INSP": 8,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       },
       "FRIDAY_MHI": {
@@ -1632,6 +1708,7 @@
         "INSP": 6.75,
         "GNTB": null,
         "GFSA": null,
+        "RCP": null,
         "GNED": null
       }
     }

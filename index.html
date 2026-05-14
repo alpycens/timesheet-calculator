@@ -634,6 +634,11 @@
     <div class="section-label">MHI Timesheet</div>
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="mhiGrid"></div></div>
 
+    <div id="mhiRcpSection" style="display:none">
+      <div class="section-label">MHI RCP</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="mhiRcpGrid"></div></div>
+    </div>
+
     <div class="section-label">Out of Work Activities</div>
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="enfGrid"></div></div>
   </div>
@@ -736,7 +741,7 @@
             <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
             <th style="color:var(--accent)">Main Absorb</th>
             <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th>
-            <th>INSP</th><th>GNTB</th><th>GFSA</th><th class="mhi-extra-col-anchor"></th>
+            <th>INSP</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th class="mhi-extra-col-anchor"></th>
           </tr></thead>
           <tbody id="mhiCodesBody"></tbody>
         </table>
@@ -774,7 +779,7 @@
               <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
               <th style="color:var(--accent)">Main Absorb</th>
               <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th>
-              <th>INSP</th><th>GNTB</th><th>GFSA</th><th class="temp-mhi-extra-col-anchor"></th>
+              <th>INSP</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th class="temp-mhi-extra-col-anchor"></th>
             </tr></thead>
             <tbody id="tempMHICodesBody"></tbody>
           </table>
@@ -1353,9 +1358,10 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   const BREAK = codes.BREAK ?? null;
   const GBPS  = codes.GBPS  ?? null;
   const GSRM_base = codes.GSRM ?? null;
-  // RCP: kodda RCP değeri varsa otomatik aktif. Ekstra GSRM-RCP olarak ayrı satır
-  // gösterilir; bu saatler MAIN ABSORBER'dan düşülür.
-  const rcpVal = (!isMHI && codes.RCP != null) ? codes.RCP : 0;
+  // RCP: kodda RCP değeri varsa otomatik aktif. Ekstra (default GSRM) RCP olarak
+  // ayrı satır gösterilir; bu saatler MAIN ABSORBER'dan düşülür. Hem OV hem
+  // MHI için çalışır.
+  const rcpVal = (codes.RCP != null) ? codes.RCP : 0;
   const GSRM = GSRM_base;
   const rcpExtraHours = rcpVal;
   const GPAS  = codes.GPAS  ?? null;
@@ -2107,6 +2113,65 @@ function renderRCPSection(out) {
   if (section) section.style.display = 'none';
 }
 
+// MHI RCP ayrı section — kullanıcı isteği üzerine OV gibi içeride değil,
+// MHI bölümünün altında ayrı bir grid olarak göster. mhiGrid'in içine
+// eklenmiyor; bu fonksiyon mhiRcpSection/mhiRcpGrid'i populate eder.
+function renderMHIRcpSection(out) {
+  const section = document.getElementById('mhiRcpSection');
+  const container = document.getElementById('mhiRcpGrid');
+  if (!section || !container) return;
+  // 1. ve 2. slot MHI sectionlarından RCP'si olan günleri topla
+  const rcpData = {};
+  let hasAnyRCP = false;
+  [out.mhi, out.mhi2 || {}].forEach(src => {
+    Object.entries(src || {}).forEach(([day, e]) => {
+      if (e && e.rcpRange && e.rcpHours != null && e.rcpHours > 0) {
+        // Aynı günde 1. slot zaten dolduysa 2. slot üzerine yazmasın
+        if (rcpData[day]) return;
+        const rcpCode = (e.codes && e.codes.RCP_CODE) ? e.codes.RCP_CODE : 'GSRM';
+        rcpData[day] = { plant: e.plant, status: e.status, sorStr: e.rcpRange, hours: e.rcpHours, code: rcpCode };
+        hasAnyRCP = true;
+      }
+    });
+  });
+  if (!hasAnyRCP) {
+    section.style.display = 'none';
+    container.innerHTML = '';
+    return;
+  }
+  section.style.display = '';
+  container.innerHTML = '';
+  container.style.gridTemplateColumns = `70px repeat(${DAYS.length}, minmax(120px, 1fr))`;
+
+  // Header: '' + her gün
+  ['', ...DAYS].forEach((d, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'og-cell og-header' + (i > 0 ? ' day-col' : '');
+    cell.textContent = d;
+    container.appendChild(cell);
+  });
+
+  // Üç satır: RCP (plant+status) → Time (aralık) → değer (hours + code) — OV'deki gibi
+  [
+    ['RCP',  (d) => rcpData[d] ? `${rcpData[d].plant} ${rcpData[d].status}` : '', '#dc2626', '600'],
+    ['Time', (d) => rcpData[d] ? rcpData[d].sorStr : '',                          '#dc2626', '400'],
+    ['',     (d) => rcpData[d] ? `${rcpData[d].hours} ${rcpData[d].code}` : '',   '#dc2626', '600'],
+  ].forEach(([label, fn, color, weight]) => {
+    const lc = document.createElement('div');
+    lc.className = 'og-cell og-row-label';
+    lc.textContent = label;
+    if (label === 'RCP') { lc.style.color = color; lc.style.fontWeight = weight; }
+    container.appendChild(lc);
+    DAYS.forEach(day => {
+      const cell = document.createElement('div');
+      cell.className = 'og-cell og-value';
+      cell.style.color = color; cell.style.fontWeight = weight; cell.style.fontSize = '15px';
+      cell.textContent = fn(day);
+      container.appendChild(cell);
+    });
+  });
+}
+
 function renderOutcome() {
   // Her iki slotun outcome'unu hesapla; render fonksiyonlarına ayrı geçir.
   const out1 = computeOutcome(state.days);
@@ -2127,6 +2192,8 @@ function renderOutcome() {
   renderOutcomeSection('mhiGrid', out1.mhi, out2.mhi);
   // RCP & Enforcement: yalnızca 1. slot'tan (sade tutmak için)
   renderRCPSection(out1);
+  // MHI RCP ayrı section — kullanıcı isteği: OV gibi MHI'nin altında ayrı satır
+  renderMHIRcpSection({ mhi: out1.mhi, mhi2: out2.mhi });
   const outEnf = {};
   // Hem 1. hem 2. slot enforcement'larını birleştir (out hours > 0 olanlar)
   [out1.enf, out2.enf].forEach(src => {
@@ -2503,13 +2570,14 @@ function renderMHICodesTable() {
       <td>${numInput(row.GSRM, f('GSRM'))}</td><td>${numInput(row.GPAS, f('GPAS'))}</td>
       <td>${numInput(row.INSP, f('INSP'))}</td><td>${pin('GNTB')}</td>
       <td>${pin('GFSA')}</td>
+      <td>${rcpInput(row.RCP, row.RCP_CODE, 'MHI', i)}</td>
       ${extraTds}
       <td><button onclick="deleteMHIRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
   const addTr = document.createElement('tr');
-  const mhiColspan = 15 + EXTRA_CODES.length;
+  const mhiColspan = 16 + EXTRA_CODES.length;
   addTr.innerHTML = `<td colspan="${mhiColspan}" style="padding:8px"><button onclick="addMHIRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
   tbody.appendChild(addTr);
 }
@@ -2550,7 +2618,7 @@ function addOVRow() {
   renderOVCodesTable();
 }
 function addMHIRow() {
-  const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null};
+  const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null,RCP:null,RCP_CODE:'GSRM'};
   EXTRA_CODES.forEach(c => { newRow[c] = null; });
   getMHIRowsMutable().push(newRow);
   renderMHICodesTable();
@@ -2584,7 +2652,7 @@ function rowsToMHIObj(rows) {
     const entry = { arr:r.arr, dep:r.dep };
     if (r.MAIN_ABSORB) entry.MAIN_ABSORB = r.MAIN_ABSORB;
     if (r.ALWAYS_ACTIVE && r.ALWAYS_ACTIVE.length) entry.ALWAYS_ACTIVE = [...r.ALWAYS_ACTIVE];
-    ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
+    ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA','RCP'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     if (r.RCP_CODE) entry.RCP_CODE = r.RCP_CODE;
     // Drop-Down'dan eklenen ekstra kodları da kopyala (örn 'GNED')
     EXTRA_CODES.forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
@@ -2805,7 +2873,7 @@ function addTempOVRow() {
   renderTempOVCodesTable();
 }
 function addTempMHIRow() {
-  const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null};
+  const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null,RCP:null,RCP_CODE:'GSRM'};
   EXTRA_CODES.forEach(c => { newRow[c] = null; });
   getTempMHIRowsMutable().push(newRow);
   renderTempMHICodesTable();
@@ -2887,13 +2955,14 @@ function renderTempMHICodesTable() {
       <td>${numInput(row.GSRM, f('GSRM'))}</td><td>${numInput(row.GPAS, f('GPAS'))}</td>
       <td>${numInput(row.INSP, f('INSP'))}</td>
       <td>${numInput(row.GNTB, f('GNTB'))}</td><td>${numInput(row.GFSA, f('GFSA'))}</td>
+      <td>${rcpInputTemp(row.RCP, row.RCP_CODE, 'MHI', i)}</td>
       ${extraTds}
       <td><button onclick="deleteTempMHIRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
   const addTr = document.createElement('tr');
-  const mhiColspan = 15 + EXTRA_CODES.length;
+  const mhiColspan = 16 + EXTRA_CODES.length;
   addTr.innerHTML = `<td colspan="${mhiColspan}" style="padding:8px"><button onclick="addTempMHIRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
   tbody.appendChild(addTr);
 }

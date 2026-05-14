@@ -2748,32 +2748,56 @@ function _getTempMHIRows() {
 function getTempOVRowsMutable()  { if (!_tempOVRows)  _tempOVRows  = _getTempOVRows();  return _tempOVRows; }
 function getTempMHIRowsMutable() { if (!_tempMHIRows) _tempMHIRows = _getTempMHIRows(); return _tempMHIRows; }
 
+// Her değişiklikten sonra çağrılır: pending row'ları TEMP_OV_CODES /
+// TEMP_MHI_CODES objelerine yansıt ve localStorage'a kaydet. Sonra lookup ve
+// render'ları tazele. Save Changes butonuna basmaya gerek kalmasın.
+function _autoSaveTempCodes() {
+  if (_tempOVRows) {
+    const newOV = rowsToCodeObj(_tempOVRows);
+    Object.keys(TEMP_OV_CODES).forEach(k => delete TEMP_OV_CODES[k]);
+    Object.assign(TEMP_OV_CODES, newOV);
+  }
+  if (_tempMHIRows) {
+    const newMHI = rowsToMHIObj(_tempMHIRows);
+    Object.keys(TEMP_MHI_CODES).forEach(k => delete TEMP_MHI_CODES[k]);
+    Object.assign(TEMP_MHI_CODES, newMHI);
+  }
+  saveTempCodes();
+  try { renderTimesheet(); } catch(e) {}
+  try { renderOutcome(); } catch(e) {}
+  try { renderSORTable(); } catch(e) {}
+}
+
 function updateTempOVCode(i, field, val) {
   const rows = getTempOVRowsMutable();
-  if (field === 'ALWAYS_ACTIVE') { rows[i][field] = val; return; }
+  if (field === 'ALWAYS_ACTIVE') { rows[i][field] = val; _autoSaveTempCodes(); return; }
   rows[i][field] = (val === '' || val === null || val === undefined) ? null : (isNaN(Number(val)) ? val : Number(val));
   if (['day','region','plant','status','MAIN_ABSORB','RCP_CODE'].includes(field)) rows[i][field] = val;
+  _autoSaveTempCodes();
 }
 function updateTempMHICode(i, field, val) {
   const rows = getTempMHIRowsMutable();
-  if (field === 'ALWAYS_ACTIVE') { rows[i][field] = val; return; }
+  if (field === 'ALWAYS_ACTIVE') { rows[i][field] = val; _autoSaveTempCodes(); return; }
   rows[i][field] = (val === '' || val === null || val === undefined) ? null : (isNaN(Number(val)) ? val : Number(val));
   if (['day','region','plant','status','MAIN_ABSORB','RCP_CODE'].includes(field)) rows[i][field] = val;
+  _autoSaveTempCodes();
 }
 function updateTempOVCodeTime(i, field, part, value) {
   const rows = getTempOVRowsMutable();
   const cur = (rows[i][field] || '').split(':');
   if (part === 'h') cur[0] = value; else cur[1] = value;
   rows[i][field] = (cur[0] || cur[1]) ? (cur[0] || '00') + ':' + (cur[1] || '00') : '';
+  _autoSaveTempCodes();
 }
 function updateTempMHICodeTime(i, field, part, value) {
   const rows = getTempMHIRowsMutable();
   const cur = (rows[i][field] || '').split(':');
   if (part === 'h') cur[0] = value; else cur[1] = value;
   rows[i][field] = (cur[0] || cur[1]) ? (cur[0] || '00') + ':' + (cur[1] || '00') : '';
+  _autoSaveTempCodes();
 }
-function deleteTempOVRow(i)  { getTempOVRowsMutable().splice(i,1);  renderTempOVCodesTable(); }
-function deleteTempMHIRow(i) { getTempMHIRowsMutable().splice(i,1); renderTempMHICodesTable(); }
+function deleteTempOVRow(i)  { getTempOVRowsMutable().splice(i,1);  _autoSaveTempCodes(); renderTempOVCodesTable(); }
+function deleteTempMHIRow(i) { getTempMHIRowsMutable().splice(i,1); _autoSaveTempCodes(); renderTempMHICodesTable(); }
 function addTempOVRow() {
   const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null,RCP:null};
   EXTRA_CODES.forEach(c => { newRow[c] = null; });
@@ -2930,12 +2954,14 @@ function updateTempOVPlant(i, val) {
   const rows = getTempOVRowsMutable();
   rows[i].plant = val;
   rows[i].status = ''; // status invalid olabilir, sıfırla
+  _autoSaveTempCodes();
   renderTempOVCodesTable();
 }
 function updateTempMHIPlant(i, val) {
   const rows = getTempMHIRowsMutable();
   rows[i].plant = val;
   rows[i].status = '';
+  _autoSaveTempCodes();
   renderTempMHICodesTable();
 }
 
@@ -2946,6 +2972,7 @@ function updateTempOVRegion(i, val) {
   rows[i].region = val;
   rows[i].plant = '';
   rows[i].status = '';
+  _autoSaveTempCodes();
   renderTempOVCodesTable();
 }
 function updateTempMHIRegion(i, val) {
@@ -2953,6 +2980,7 @@ function updateTempMHIRegion(i, val) {
   rows[i].region = val;
   rows[i].plant = '';
   rows[i].status = '';
+  _autoSaveTempCodes();
   renderTempMHICodesTable();
 }
 

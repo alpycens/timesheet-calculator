@@ -577,7 +577,7 @@
       <div style="display:flex;align-items:center;gap:10px">
         <div class="section-label" style="margin:0">Daily Entries</div>
         <button onclick="clearAllDailyEntries()" title="Clear ALL data on both 1st and 2nd pages"
-          style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:4px 10px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:5px;cursor:pointer;letter-spacing:0.5px">Clear</button>
+          style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:4px 10px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:5px;cursor:pointer;letter-spacing:0.5px">Clear</button>
       </div>
       <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden">
         <button id="slotTab-1st" onclick="switchSlot('1st')"
@@ -595,7 +595,7 @@
           <tr>
             <th>Day</th>
             <th>Region <button onclick="resetColumn('region')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
-            <th>Plant <button onclick="resetColumn('plant')" title="Clear Status, Arrival, Departure, Sampling, C&amp;D, SHA, TB, AI Zone &amp; Enforcement on this page" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
+            <th>Plant <button onclick="resetColumn('plant')" title="Reset Plant and clear dependent fields (Status, Arrival, Departure, Sampling, C&amp;D, SHA, TB, AI Zone, Enforcement, In/Out Hours) on this page" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
             <th>Plant Status <button onclick="resetColumn('plantStatus')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
             <th>Status <button onclick="resetColumn('status')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
             <th class="group-time">Arrival <button onclick="resetColumn('arrival')" title="Reset" style="font-size:13px;padding:1px 5px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
@@ -1649,14 +1649,15 @@ function updateTime(day, field, part, value) {
 }
 
 function resetColumn(field) {
-  console.log('[resetColumn] called with field =', field, '— VERSION 2026-05-14-v3');
+  console.log('[resetColumn] called with field =', field, '— VERSION 2026-05-14-v4');
   const M = activeDaysMap();
-  // Plant ↺ butonu: aktif sayfada Status, Arrival, Departure, Sampling, C&D,
-  // SHA, TB, AI Zone ve Enforcement alanlarını siler. Region, Plant, Plant
-  // Status ve In/Out Hours alanlarına dokunmaz.
+  // Plant ↺ butonu: aktif sayfada Plant'ı sıfırlar ve bağımlı tüm alanları
+  // (status, arrival, departure, sampling, cd, sha, tb, ai, enforcement,
+  // enfInHours, enfOutHours) temizler. Region ve Plant Status korunur.
   if (field === 'plant') {
     DAYS.forEach(day => {
       const d = M[day];
+      d.plant       = '';
       d.status      = '';
       d.arrival     = '';
       d.departure   = '';
@@ -1666,6 +1667,8 @@ function resetColumn(field) {
       d.tb          = false;
       d.ai          = false;
       d.enforcement = '';
+      d.enfInHours  = '';
+      d.enfOutHours = '';
     });
   } else {
     DAYS.forEach(day => { M[day][field] = ''; });
@@ -1679,7 +1682,8 @@ function resetColumn(field) {
 // Sıfırlanan alanlar: region, plant, plantStatus, status, arrival, departure,
 // sampling, cd, sha, tb, ai, enforcement, enfInHours, enfOutHours.
 function clearAllDailyEntries() {
-  console.log('[clearAllDailyEntries] called — VERSION 2026-05-14-v3');
+  console.log('[clearAllDailyEntries] called — VERSION 2026-05-14-v5');
+  if (!confirm('Are you sure you want to delete all data?\n\nThis will clear all entries on both 1st and 2nd pages and cannot be undone.')) return;
   try {
     [state.days, state.days2].forEach(M => {
       DAYS.forEach(day => {

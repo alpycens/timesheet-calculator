@@ -678,6 +678,7 @@
       <!-- Admin sub-tabs -->
       <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:2px solid var(--border);padding-bottom:0">
         <button id="adminTab-codes" onclick="switchAdminTab('codes')" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:8px 20px;border:none;background:var(--accent2);color:#fff;border-radius:4px 4px 0 0;cursor:pointer">Codes</button>
+        <button id="adminTab-temporary" onclick="switchAdminTab('temporary')" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:8px 20px;border:none;background:transparent;color:var(--text-muted);border-radius:4px 4px 0 0;cursor:pointer;border:1px solid var(--border);border-bottom:none">Temporary Changes</button>
         <button id="adminTab-dropdown" onclick="switchAdminTab('dropdown')" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:8px 20px;border:none;background:transparent;color:var(--text-muted);border-radius:4px 4px 0 0;cursor:pointer;border:1px solid var(--border);border-bottom:none">Drop-Down</button>
         <button id="adminTab-sor-display" onclick="switchAdminTab('sor-display')" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:8px 20px;border:none;background:transparent;color:var(--text-muted);border-radius:4px 4px 0 0;cursor:pointer;border:1px solid var(--border);border-bottom:none">SOR Display</button>
       </div>
@@ -742,6 +743,44 @@
         </table>
       </div>
       </div><!-- end adminSection-codes -->
+
+      <!-- TEMPORARY CHANGES section -->
+      <div id="adminSection-temporary" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div class="ts-title">Temporary Changes</div>
+          <div style="display:flex;gap:8px">
+            <button onclick="saveTempCodesEdit()" style="font-family:'IBM Plex Mono',monospace;font-size:16px;padding:6px 16px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:4px;cursor:pointer">Save Changes</button>
+            <button onclick="clearAllTempCodes()" style="font-family:'IBM Plex Mono',monospace;font-size:16px;padding:6px 16px;border:1px solid var(--red);background:transparent;color:var(--red);border-radius:4px;cursor:pointer">Clear All</button>
+          </div>
+        </div>
+        <div style="padding:10px 14px;border-radius:6px;margin-bottom:16px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:#fef3c7;color:#92400e;border:1px solid #f59e0b;line-height:1.5">
+          ℹ Records here <b>override</b> the main Codes for the same Day + Plant + Status. Remove a row to fall back to the main Codes. Stored only in this browser.
+        </div>
+        <div class="section-label">OV Codes (Temporary)</div>
+        <div class="ts-table-wrap scroll-y" style="margin-bottom:24px">
+          <table class="ts-table sticky-head" id="tempOVCodesTable">
+            <thead><tr id="tempOVCodesHeadRow">
+              <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
+              <th style="color:var(--accent)">Main Absorb</th>
+              <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th><th>GWAG</th>
+              <th>GAVI</th><th>INSP</th><th>HLVI</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th class="temp-ov-extra-col-anchor"></th>
+            </tr></thead>
+            <tbody id="tempOVCodesBody"></tbody>
+          </table>
+        </div>
+        <div class="section-label">MHI Codes (Temporary)</div>
+        <div class="ts-table-wrap scroll-y">
+          <table class="ts-table sticky-head" id="tempMHICodesTable">
+            <thead><tr id="tempMHICodesHeadRow">
+              <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
+              <th style="color:var(--accent)">Main Absorb</th>
+              <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th>
+              <th>INSP</th><th>GNTB</th><th>GFSA</th><th class="temp-mhi-extra-col-anchor"></th>
+            </tr></thead>
+            <tbody id="tempMHICodesBody"></tbody>
+          </table>
+        </div>
+      </div><!-- end adminSection-temporary -->
 
       <!-- DROP-DOWN section -->
       <div id="adminSection-dropdown" style="display:none">
@@ -1076,6 +1115,27 @@ const MHI_CODES = {
 // Hafta içi günleri (default kodlar sadece bu günler için geçerli)
 const WEEKDAYS = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY'];
 
+// ── TEMPORARY CHANGES ─────────────────────────────────────────────
+// Admin > Temporary Changes sekmesi: aynı OV/MHI tablo yapısı, ama bu kayıtlar
+// lookup'ta önce gelir. Boşsa ana kodlara düşer. localStorage'da ts_temp_codes
+// altında saklanır. Yapı: TEMP_OV_CODES['2172']['MONDAY_OV'] = { arr, dep, ... }
+let TEMP_OV_CODES = {};
+let TEMP_MHI_CODES = {};
+try {
+  const _raw = localStorage.getItem('ts_temp_codes');
+  if (_raw) {
+    const _t = JSON.parse(_raw);
+    if (_t.OV)  TEMP_OV_CODES  = _t.OV;
+    if (_t.MHI) TEMP_MHI_CODES = _t.MHI;
+  }
+} catch(e) {}
+
+function saveTempCodes() {
+  try {
+    localStorage.setItem('ts_temp_codes', JSON.stringify({ OV: TEMP_OV_CODES, MHI: TEMP_MHI_CODES, savedAt: new Date().toISOString() }));
+  } catch(e) {}
+}
+
 // Bir plant'in OV/MHI kayıtlarında verilen status için ilk uygun day-specific kaydı bul.
 // (Hafta içi fallback olarak kullanılır — örn 4138'in MONDAY_OV Only kaydı yok ama
 // TUESDAY_OV Only var → bu fonksiyon o kaydı döndürür.)
@@ -1088,38 +1148,36 @@ function _firstDaySpecificForStatus(p, status) {
   return null;
 }
 
-function lookupOV(day, plant, status) {
-  const p = OV_CODES[String(plant)];
+// Tek bir kod tablosunda lookup yap.
+// strict=false (ana CODES için): 3 katmanlı — day-specific → generic → weekday fallback
+// strict=true  (TEMP için): sadece day-specific veya generic (hafta içi). Weekday
+//   fallback YOK — sadece bir gün için temp girdiysen, diğer günler bundan
+//   etkilenmesin, ana koda düşsün.
+function _lookupInTable(table, day, plant, status, strict) {
+  const p = table[String(plant)];
   if (!p) return null;
-  // 1) Bu günün day-specific kodu varsa onu kullan (örn TUESDAY_OV Only)
   const daySpecific = p[day + '_' + status];
   if (daySpecific) return daySpecific;
-  // 2) Generic kod (gün belirtilmemiş) — sadece Pzt-Cuma için geçerli
   if (p[status] && WEEKDAYS.includes(day)) return p[status];
-  // 3) Hafta içi fallback — bu günün ne day-specific'i ne generic'i var, ama
-  //    plantte bu statusun başka bir gün-spesifik kaydı varsa onu kullan.
-  //    (örn 4138 MONDAY 'OV Only' → TUESDAY_OV Only kaydı kullanılır)
-  if (WEEKDAYS.includes(day)) {
+  if (!strict && WEEKDAYS.includes(day)) {
     const fallback = _firstDaySpecificForStatus(p, status);
     if (fallback) return fallback;
   }
   return null;
 }
 
+function lookupOV(day, plant, status) {
+  // 1) Önce TEMP_OV_CODES'a bak (strict — sadece tam eşleşme veya generic)
+  const temp = _lookupInTable(TEMP_OV_CODES, day, plant, status, true);
+  if (temp) return temp;
+  // 2) Ana OV_CODES'a düş (normal 3 katmanlı algoritma)
+  return _lookupInTable(OV_CODES, day, plant, status, false);
+}
+
 function lookupMHI(day, plant, status) {
-  const p = MHI_CODES[String(plant)];
-  if (!p) return null;
-  // 1) Bu günün day-specific kodu varsa onu kullan
-  const daySpecific = p[day + '_' + status];
-  if (daySpecific) return daySpecific;
-  // 2) Generic kod — sadece Pzt-Cuma için geçerli
-  if (p[status] && WEEKDAYS.includes(day)) return p[status];
-  // 3) Hafta içi fallback — başka bir günün day-specific kaydı
-  if (WEEKDAYS.includes(day)) {
-    const fallback = _firstDaySpecificForStatus(p, status);
-    if (fallback) return fallback;
-  }
-  return null;
+  const temp = _lookupInTable(TEMP_MHI_CODES, day, plant, status, true);
+  if (temp) return temp;
+  return _lookupInTable(MHI_CODES, day, plant, status, false);
 }
 
 const SOR_CODES = {
@@ -2513,6 +2571,268 @@ function saveCodesEdit() {
   alert(msg);
 }
 
+// ═══════════════ TEMPORARY CHANGES EDITOR ═══════════════════════
+// Mevcut Codes editor mantığının paralel kopyası — ama TEMP_OV_CODES /
+// TEMP_MHI_CODES üzerinde çalışır ve mutate ederken ana OV_CODES'a dokunmaz.
+// Lookup'ta önce buraya bakılır, bulamazsa ana koda düşer.
+
+let _tempOVRows  = null;
+let _tempMHIRows = null;
+
+function _getTempOVRows() {
+  const rows = [];
+  for (const [plant, statuses] of Object.entries(TEMP_OV_CODES)) {
+    for (const [key, c] of Object.entries(statuses)) {
+      const parts = key.split('_');
+      const day    = parts.length > 1 ? parts[0] : '';
+      const status = parts.length > 1 ? parts.slice(1).join(' ') : key;
+      rows.push({ day, region: PLANT_REGIONS[plant] || '', plant, status, key, ...c });
+    }
+  }
+  return rows;
+}
+
+function _getTempMHIRows() {
+  const rows = [];
+  for (const [plant, statuses] of Object.entries(TEMP_MHI_CODES)) {
+    for (const [key, c] of Object.entries(statuses)) {
+      const parts = key.split('_');
+      const day    = parts.length > 1 ? parts[0] : '';
+      const status = parts.length > 1 ? parts.slice(1).join(' ') : key;
+      rows.push({ day, region: PLANT_REGIONS[plant] || '', plant, status, key, ...c });
+    }
+  }
+  return rows;
+}
+
+function getTempOVRowsMutable()  { if (!_tempOVRows)  _tempOVRows  = _getTempOVRows();  return _tempOVRows; }
+function getTempMHIRowsMutable() { if (!_tempMHIRows) _tempMHIRows = _getTempMHIRows(); return _tempMHIRows; }
+
+function updateTempOVCode(i, field, val) {
+  const rows = getTempOVRowsMutable();
+  if (field === 'ALWAYS_ACTIVE') { rows[i][field] = val; return; }
+  rows[i][field] = (val === '' || val === null || val === undefined) ? null : (isNaN(Number(val)) ? val : Number(val));
+  if (['day','region','plant','status','MAIN_ABSORB'].includes(field)) rows[i][field] = val;
+}
+function updateTempMHICode(i, field, val) {
+  const rows = getTempMHIRowsMutable();
+  if (field === 'ALWAYS_ACTIVE') { rows[i][field] = val; return; }
+  rows[i][field] = (val === '' || val === null || val === undefined) ? null : (isNaN(Number(val)) ? val : Number(val));
+  if (['day','region','plant','status','MAIN_ABSORB'].includes(field)) rows[i][field] = val;
+}
+function updateTempOVCodeTime(i, field, part, value) {
+  const rows = getTempOVRowsMutable();
+  const cur = (rows[i][field] || '').split(':');
+  if (part === 'h') cur[0] = value; else cur[1] = value;
+  rows[i][field] = (cur[0] || cur[1]) ? (cur[0] || '00') + ':' + (cur[1] || '00') : '';
+}
+function updateTempMHICodeTime(i, field, part, value) {
+  const rows = getTempMHIRowsMutable();
+  const cur = (rows[i][field] || '').split(':');
+  if (part === 'h') cur[0] = value; else cur[1] = value;
+  rows[i][field] = (cur[0] || cur[1]) ? (cur[0] || '00') + ':' + (cur[1] || '00') : '';
+}
+function deleteTempOVRow(i)  { getTempOVRowsMutable().splice(i,1);  renderTempOVCodesTable(); }
+function deleteTempMHIRow(i) { getTempMHIRowsMutable().splice(i,1); renderTempMHICodesTable(); }
+function addTempOVRow() {
+  const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null,RCP:null};
+  EXTRA_CODES.forEach(c => { newRow[c] = null; });
+  getTempOVRowsMutable().push(newRow);
+  renderTempOVCodesTable();
+}
+function addTempMHIRow() {
+  const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null};
+  EXTRA_CODES.forEach(c => { newRow[c] = null; });
+  getTempMHIRowsMutable().push(newRow);
+  renderTempMHICodesTable();
+}
+
+function _syncExtraHeadColsGeneric(headRowId, anchorClass, extraColClass) {
+  const headRow = document.getElementById(headRowId);
+  if (!headRow) return;
+  headRow.querySelectorAll('.' + extraColClass).forEach(el => el.remove());
+  const anchor = headRow.querySelector('.' + anchorClass);
+  EXTRA_CODES.forEach(code => {
+    const th = document.createElement('th');
+    th.className = extraColClass;
+    th.style.color = 'var(--accent2)';
+    th.textContent = code;
+    if (anchor) headRow.insertBefore(th, anchor);
+    else headRow.appendChild(th);
+  });
+}
+
+function renderTempOVCodesTable() {
+  const tbody = document.getElementById('tempOVCodesBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  _syncExtraHeadColsGeneric('tempOVCodesHeadRow', 'temp-ov-extra-col-anchor', 'temp-ov-extra-col');
+  getTempOVRowsMutable().forEach((row, i) => {
+    const f = (field) => `updateTempOVCode(${i},'${field}',this.value)`;
+    const tr = document.createElement('tr');
+    let extraTds = '';
+    EXTRA_CODES.forEach(code => {
+      extraTds += `<td>${numInput(row[code], `updateTempOVCode(${i},'${code}',this.value)`)}</td>`;
+    });
+    tr.innerHTML = `
+      <td>${daySelect(row.day, f('day'))}</td>
+      <td>${regionSelect(row.region, f('region'))}</td>
+      <td>${tempPlantSelect(row.plant, `updateTempOVPlant(${i},this.value)`)}</td>
+      <td>${tempStatusSelect(row.status, row.plant, 'OV', f('status'))}</td>
+      <td>${codeTimeSelectGeneric(row.arr, 'updateTempOVCodeTime', i, 'arr')}</td>
+      <td>${codeTimeSelectGeneric(row.dep, 'updateTempOVCodeTime', i, 'dep')}</td>
+      <td>${mainAbsorbSelect(row.MAIN_ABSORB || '', [...OV_ABSORB_FIELDS, ...EXTRA_CODES], f('MAIN_ABSORB'))}</td>
+      <td>${numInput(row.BREAK, f('BREAK'))}</td><td>${numInput(row.GBPS, f('GBPS'))}</td>
+      <td>${numInput(row.GSRM, f('GSRM'))}</td><td>${numInput(row.GPAS, f('GPAS'))}</td>
+      <td>${numInput(row.GWAG, f('GWAG'))}</td><td>${numInput(row.GAVI, f('GAVI'))}</td>
+      <td>${numInput(row.INSP, f('INSP'))}</td><td>${numInput(row.HLVI, f('HLVI'))}</td>
+      <td>${numInput(row.GNTB, f('GNTB'))}</td><td>${numInput(row.GFSA, f('GFSA'))}</td>
+      <td>${numInput(row.RCP, f('RCP'))}</td>
+      ${extraTds}
+      <td><button onclick="deleteTempOVRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  const addTr = document.createElement('tr');
+  const ovColspan = 19 + EXTRA_CODES.length;
+  addTr.innerHTML = `<td colspan="${ovColspan}" style="padding:8px"><button onclick="addTempOVRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
+  tbody.appendChild(addTr);
+}
+
+function renderTempMHICodesTable() {
+  const tbody = document.getElementById('tempMHICodesBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  _syncExtraHeadColsGeneric('tempMHICodesHeadRow', 'temp-mhi-extra-col-anchor', 'temp-mhi-extra-col');
+  getTempMHIRowsMutable().forEach((row, i) => {
+    const f = (field) => `updateTempMHICode(${i},'${field}',this.value)`;
+    const tr = document.createElement('tr');
+    let extraTds = '';
+    EXTRA_CODES.forEach(code => {
+      extraTds += `<td>${numInput(row[code], `updateTempMHICode(${i},'${code}',this.value)`)}</td>`;
+    });
+    tr.innerHTML = `
+      <td>${daySelect(row.day, f('day'))}</td>
+      <td>${regionSelect(row.region, f('region'))}</td>
+      <td>${tempPlantSelect(row.plant, `updateTempMHIPlant(${i},this.value)`)}</td>
+      <td>${tempStatusSelect(row.status, row.plant, 'MHI', f('status'))}</td>
+      <td>${codeTimeSelectGeneric(row.arr, 'updateTempMHICodeTime', i, 'arr')}</td>
+      <td>${codeTimeSelectGeneric(row.dep, 'updateTempMHICodeTime', i, 'dep')}</td>
+      <td>${mainAbsorbSelect(row.MAIN_ABSORB || '', [...MHI_ABSORB_FIELDS, ...EXTRA_CODES], f('MAIN_ABSORB'))}</td>
+      <td>${numInput(row.BREAK, f('BREAK'))}</td><td>${numInput(row.GBPS, f('GBPS'))}</td>
+      <td>${numInput(row.GSRM, f('GSRM'))}</td><td>${numInput(row.GPAS, f('GPAS'))}</td>
+      <td>${numInput(row.INSP, f('INSP'))}</td>
+      <td>${numInput(row.GNTB, f('GNTB'))}</td><td>${numInput(row.GFSA, f('GFSA'))}</td>
+      ${extraTds}
+      <td><button onclick="deleteTempMHIRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  const addTr = document.createElement('tr');
+  const mhiColspan = 15 + EXTRA_CODES.length;
+  addTr.innerHTML = `<td colspan="${mhiColspan}" style="padding:8px"><button onclick="addTempMHIRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
+  tbody.appendChild(addTr);
+}
+
+// Generic time-select helper for temp tables — temp tabloları codeTimeSelect'in
+// hard-coded 'updateOVCodeTime'/'updateMHICodeTime' fonksiyon adlarına bağlı kalmasın.
+function codeTimeSelectGeneric(currentVal, fnName, idx, field) {
+  const parts = (currentVal || '').split(':');
+  const curH = parts[0] || '', curM = parts[1] || '';
+  const hours = Array.from({length:24},(_,i)=>String(i).padStart(2,'0'));
+  const mins = ['00','15','30','45'];
+  const hOpts = ['', ...hours].map(h=>`<option value="${h}" ${h===curH?'selected':''}>${h||'—'}</option>`).join('');
+  const mOpts = ['', ...mins].map(m=>`<option value="${m}" ${m===curM?'selected':''}>${m||'—'}</option>`).join('');
+  return `<span style="display:inline-flex;gap:2px;align-items:center;white-space:nowrap">
+    <select style="width:46px;font-size:11px;padding:3px 1px" onchange="${fnName}(${idx},'${field}','h',this.value)">${hOpts}</select>
+    <span style="color:#6b7280;font-size:11px">:</span>
+    <select style="width:46px;font-size:11px;padding:3px 1px" onchange="${fnName}(${idx},'${field}','m',this.value)">${mOpts}</select>
+  </span>`;
+}
+
+// Plant dropdown — PLANTS listesinden seç. value'da kalan değer plant string.
+function tempPlantSelect(currentVal, onChange) {
+  const opts = ['', ...PLANTS.filter(p => p)].map(p => `<option value="${p}" ${String(p)===String(currentVal)?'selected':''}>${p||'—'}</option>`).join('');
+  return `<select style="width:75px;font-size:11px;padding:4px" onchange="${onChange}">${opts}</select>`;
+}
+
+// Plant'a göre status seçenekleri — _baseStatusesFor zaten ana CODES'tan
+// statusleri çıkartıyor (day prefix'leri kırparak). Burada onu kullanıp dropdown
+// üretelim. tableType: 'OV' veya 'MHI'.
+function tempStatusSelect(currentVal, plant, tableType, onChange) {
+  const codeTable = tableType === 'OV' ? OV_CODES : MHI_CODES;
+  let opts;
+  if (!plant) {
+    // Plant seçilmemişse status'leri filtreleyemeyiz — boş dropdown göster
+    opts = `<option value="">— pick plant first —</option>`;
+  } else {
+    const statuses = _baseStatusesFor(plant, codeTable);
+    // Mevcut değer listede yoksa onu da ekle (kullanıcı eski bir kaydı düzenleyebilir)
+    if (currentVal && !statuses.includes(currentVal)) statuses.push(currentVal);
+    statuses.sort();
+    opts = ['', ...statuses].map(s => `<option value="${s}" ${s===currentVal?'selected':''}>${s||'—'}</option>`).join('');
+  }
+  return `<select style="width:110px;font-size:11px;padding:4px" onchange="${onChange}">${opts}</select>`;
+}
+
+// Plant değişince row'un status'ünü sıfırla ve tabloyu tekrar render et ki
+// status dropdown'u yeni plant'a göre yenilensin.
+function updateTempOVPlant(i, val) {
+  const rows = getTempOVRowsMutable();
+  rows[i].plant = val;
+  rows[i].status = ''; // status invalid olabilir, sıfırla
+  renderTempOVCodesTable();
+}
+function updateTempMHIPlant(i, val) {
+  const rows = getTempMHIRowsMutable();
+  rows[i].plant = val;
+  rows[i].status = '';
+  renderTempMHICodesTable();
+}
+
+function renderTempCodesEditor() {
+  _tempOVRows  = null;
+  _tempMHIRows = null;
+  renderTempOVCodesTable();
+  renderTempMHICodesTable();
+}
+
+function saveTempCodesEdit() {
+  // Rows -> TEMP_OV_CODES / TEMP_MHI_CODES (yapı ana ile aynı)
+  if (_tempOVRows) {
+    const newOV = rowsToCodeObj(_tempOVRows);
+    Object.keys(TEMP_OV_CODES).forEach(k => delete TEMP_OV_CODES[k]);
+    Object.assign(TEMP_OV_CODES, newOV);
+    _tempOVRows = null;
+  }
+  if (_tempMHIRows) {
+    const newMHI = rowsToMHIObj(_tempMHIRows);
+    Object.keys(TEMP_MHI_CODES).forEach(k => delete TEMP_MHI_CODES[k]);
+    Object.assign(TEMP_MHI_CODES, newMHI);
+    _tempMHIRows = null;
+  }
+  saveTempCodes();
+  renderOutcome();
+  renderTimesheet();
+  renderTempCodesEditor();
+  // SOR Display tablosunu da tazele — temp girdiler orada da görünsün
+  try { renderSORTable(); } catch(e) {}
+  alert('Temporary changes saved!\n\nThese override the main Codes for matching Day + Plant + Status combinations. Click "Clear All" or delete individual rows to fall back to the main Codes.');
+}
+
+function clearAllTempCodes() {
+  if (!confirm('Clear ALL temporary changes?\n\nThis will fall back to the main Codes for everything.')) return;
+  Object.keys(TEMP_OV_CODES).forEach(k => delete TEMP_OV_CODES[k]);
+  Object.keys(TEMP_MHI_CODES).forEach(k => delete TEMP_MHI_CODES[k]);
+  _tempOVRows  = null;
+  _tempMHIRows = null;
+  saveTempCodes();
+  renderTempCodesEditor();
+  renderOutcome();
+  renderTimesheet();
+  try { renderSORTable(); } catch(e) {}
+}
+
 // ─── SOR TABLE ──────────────────────────────────────────────────
 function populateSORRegions() {
   const sel = document.getElementById('sorRegionSelect');
@@ -2565,6 +2885,17 @@ function renderSORTableForPlant(plant, region) {
   const FIELDS_OV  = ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA', ...EXTRA_CODES];
   const FIELDS_MHI = ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA', ...EXTRA_CODES];
 
+  // SOR Display Temporary Changes'i de hesaba katmalı. Aşağıdaki yardımcı:
+  // verilen plant için TEMP ve MAIN tablolarının birleşimini döndürür — TEMP
+  // anahtarları MAIN'i ezer. Plant bazlı olduğu için maliyet düşük.
+  const _mergedForPlant = (mainTable, tempTable, plant) => {
+    const main = mainTable[String(plant)] || {};
+    const temp = tempTable[String(plant)] || {};
+    return { ...main, ...temp }; // TEMP, MAIN'i geçersiz kılar
+  };
+  const MERGED_OV  = { [String(plant)]: _mergedForPlant(OV_CODES,  TEMP_OV_CODES,  plant) };
+  const MERGED_MHI = { [String(plant)]: _mergedForPlant(MHI_CODES, TEMP_MHI_CODES, plant) };
+
   // Build rows: for each day, find OV and MHI codes
   const rows = [];
   // SOR_DISPLAY_DAYS yardımcısı: plant+type+status için hangi günlerde gösterileceği.
@@ -2601,6 +2932,17 @@ function renderSORTableForPlant(plant, region) {
         if (parts.length === 2) candidateStatuses.add(parts[1]);
       });
     }
+    // TEMP'te bulunan statusları da aday listesine ekle — kullanıcı SOR_DISPLAY
+    // ayarını dokunmamış bile olsa, geçici değişiklikleri SOR'da görsün.
+    [TEMP_OV_CODES, TEMP_MHI_CODES].forEach(t => {
+      const p = t[String(plant)];
+      if (!p) return;
+      Object.keys(p).forEach(k => {
+        const parts = k.split('_');
+        const status = parts.length > 1 ? parts.slice(1).join(' ') : k;
+        if (status) candidateStatuses.add(status);
+      });
+    });
     candidateStatuses.forEach(status => {
       // Bu status için OV ve MHI ayrı ayrı: kullanıcı tikleri ne diyor?
       const ovAllow  = _allowedDays('OV',  status);
@@ -2621,10 +2963,12 @@ function renderSORTableForPlant(plant, region) {
         return null;
       };
 
-      let ovCodes = strictLookup(OV_CODES, day, plant, status);
-      if (!ovCodes && wantOV) ovCodes = fallbackLookup(OV_CODES);
-      let mhiCodes = strictLookup(MHI_CODES, day, plant, status);
-      if (!mhiCodes && wantMHI) mhiCodes = fallbackLookup(MHI_CODES);
+      // MERGED tablolardan strict + fallback ile çek — bu sayede TEMP entry'leri
+      // ana entry'leri ezer ve SOR Display tablosunda görünür.
+      let ovCodes = strictLookup(MERGED_OV, day, plant, status);
+      if (!ovCodes && wantOV) ovCodes = fallbackLookup(MERGED_OV);
+      let mhiCodes = strictLookup(MERGED_MHI, day, plant, status);
+      if (!mhiCodes && wantMHI) mhiCodes = fallbackLookup(MERGED_MHI);
 
       const showOV  = ovCodes  && (wantOV  === null ? true : wantOV);
       const showMHI = mhiCodes && (wantMHI === null ? true : wantMHI);
@@ -2922,7 +3266,7 @@ async function loadCodesFromFile() {
 
 // ─── ADMIN SUB-TABS ─────────────────────────────────────────────
 function switchAdminTab(tab) {
-  ['codes','dropdown','sor-display'].forEach(t => {
+  ['codes','temporary','dropdown','sor-display'].forEach(t => {
     const sec = document.getElementById('adminSection-'+t);
     if (sec) sec.style.display = t===tab ? 'block' : 'none';
     const btn = document.getElementById('adminTab-'+t);
@@ -2932,6 +3276,7 @@ function switchAdminTab(tab) {
     }
   });
   if (tab === 'sor-display') renderSORDisplaySettings();
+  if (tab === 'temporary')  renderTempCodesEditor();
 }
 
 // ─── SOR DISPLAY SETTINGS ──────────────────────────────────────

@@ -1406,21 +1406,31 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     effectiveDep = rcpStart; // Time sütununda gösterilecek "RCP düşülmüş" departure
   }
 
-  let IUWT = null;
+  // IUWT iki kaynaktan gelir:
+  //  - earlyFinish: SOR departure'dan erken çıkış (sorDep > actualDep)
+  //  - lateStart:   SOR arrival'dan geç başlangıç (actualArr > sorArr)
+  // Bunları ayrı saklayıp tek IUWT toplamı olarak rapor ediyoruz. Render
+  // katmanı (renderOutcome) etiket için (if late start) / (if early finish)
+  // notlarını _iuwtLate ve _iuwtEarly'ye bakarak ekler.
+  let iuwtEarly = 0;
   let extraDep = 0;
   if (sorDep && actualDep) {
     const diff = round25(timeToH(sorDep) - timeToH(actualDep));
-    if (diff > 0) IUWT = diff;
+    if (diff > 0) iuwtEarly = diff;
     else if (diff < 0) extraDep = round25(-diff);
   }
 
   const sorArr = sorArrTime(sorStr);
   const actualArr = (actArrOverride && timeToH(actArrOverride) > timeToH(sorArr)) ? actArrOverride : sorArr;
-  let lateArrival = 0;
+  let iuwtLate = 0;
   if (sorArr && actualArr) {
     const late = round25(timeToH(actualArr) - timeToH(sorArr));
-    if (late > 0) lateArrival = late;
+    if (late > 0) iuwtLate = late;
   }
+
+  // Toplam IUWT — fixedSum'a dahil edilir, böylece absorber'dan otomatik düşer
+  const IUWT_total = round25(iuwtEarly + iuwtLate);
+  const IUWT = IUWT_total > 0 ? IUWT_total : null;
 
   const sorTotal = (sorArr && sorDep) ? round25(timeToH(sorDep) - timeToH(sorArr)) : null;
   // RCP saati ayrı bir satırda gösterileceği için sorTotal'den düşülür
@@ -1429,6 +1439,7 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
 
   // Sabit (absorber dışındaki) kodların toplamı — bunlar sabit kalır, absorber dengeyi alır
   // NOT: RCP artık sorTotal'den çıkarıldığı için fixedSum'a eklenmez
+  // NOT: IUWT_total (early+late) burada zaten dahil — absorber otomatik düşer
   const fixedSum = round25(
     (absorber==='BREAK' ? 0 : (BREAK||0)) +
     (absorber==='GBPS'  ? 0 : (GBPS ||0)) +
@@ -1440,7 +1451,7 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     (absorber==='HLVI'  ? 0 : (HLVI ||0)) +
     (absorber==='GNTB'  ? 0 : (GNTB ||0)) +
     (absorber==='INSP'  ? 0 : 0) + // INSP başlangıçta 0
-    (IUWT||0)
+    (IUWT_total||0)
   );
 
   // Final değerler — absorber hariç hepsi yukarıdaki değerleriyle kalır
@@ -1456,10 +1467,12 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   let GFSA_final  = GFSA;
   let RCP_extra   = rcpExtraHours; // ayrı satırda gösterilen RCP/GSRM ekstrası
 
-  // Absorber'ın hesaplanması: totalToFill - fixedSum - lateArrival + extraDep
+  // Absorber'ın hesaplanması: totalToFill - fixedSum + extraDep
+  // NOT: lateArrival artık IUWT_total içinde fixedSum'a dahil edildi — burada
+  // ayrıca çıkarmıyoruz (yoksa iki kez düşmüş olur).
   let absorberValue = null;
   if (totalToFill !== null) {
-    absorberValue = round25(totalToFill - fixedSum - lateArrival + extraDep);
+    absorberValue = round25(totalToFill - fixedSum + extraDep);
     if (absorberValue < 0) absorberValue = 0;
   }
 
@@ -1524,6 +1537,10 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     GFSA:  GFSA_final,
     INSP:  INSP,
     IUWT, IENF, NENF,
+    // IUWT'nin iki bileşeni — render katmanı bunları kullanarak '(if late start)'
+    // ve '(if early finish)' notlarını ekler.
+    _iuwtLate:  iuwtLate  > 0 ? iuwtLate  : 0,
+    _iuwtEarly: iuwtEarly > 0 ? iuwtEarly : 0,
     // RCP ayrı section için: saat aralığı (örn "16:00-17:00") ve değer (1 GSRM)
     rcpRange: rcpRange,
     rcpHours: (rcpVal > 0 ? rcpVal : null),
@@ -1904,8 +1921,13 @@ function formatCodes(entry) {
   if (mainAbsorb && entry[mainAbsorb] != null && entry[mainAbsorb] !== '') {
     parts.push(`${entry[mainAbsorb]} ${mainAbsorb}`);
   }
-  // IUWT en altta
-  if (entry.IUWT != null && entry.IUWT !== '') {
+  // IUWT en altta — _iuwtLate ve _iuwtEarly varsa ayrı satırlarda etiketle.
+  // Yoksa (örn computeOutcome'un "tümü IUWT" fallback'i) tek satır yaz.
+  const hasSplit = (entry._iuwtLate || 0) > 0 || (entry._iuwtEarly || 0) > 0;
+  if (hasSplit) {
+    if (entry._iuwtLate  > 0) parts.push(`${entry._iuwtLate} IUWT (if late start)`);
+    if (entry._iuwtEarly > 0) parts.push(`${entry._iuwtEarly} IUWT (if early finish)`);
+  } else if (entry.IUWT != null && entry.IUWT !== '') {
     parts.push(`${entry.IUWT} IUWT`);
   }
   return parts.join('\n');
@@ -1942,15 +1964,16 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
       const v1 = e1 ? (fn(e1) || '') : '';
       const v2 = e2 ? (fn(e2) || '') : '';
 
-      // Codes satırında 1. slot IUWT girilmişse '(if early finish)' notu ekle
-      // (sadece 2. slot da doluysa anlamlı, ama kullanıcı tek slotta da
-      //  IUWT girip 'erken bitince' notunu görmek isteyebilir; bu yüzden
-      //  IUWT'nin yanına her durumda not eklemeyiz — sadece e2 doluysa).
+      // Codes satırında IUWT'nin "(if late start)" / "(if early finish)" etiketlerini
+      // küçük, italik, kırmızı yap. formatCodes bu etiketleri eklemiş olur.
       const renderSlotBlock = (text, isSlot1) => {
         if (!text) return '';
+        const stylize = (match) => `<span style="font-size:10px;font-style:italic;color:#dc2626">${match}</span>`;
         let html = text.split('\n').map(line => {
-          if (isCodesRow && isSlot1 && e2 && /\bIUWT$/.test(line)) {
-            return line + ' <span style="font-size:10px;font-style:italic;color:#dc2626">(if early finish)</span>';
+          if (isCodesRow) {
+            return line
+              .replace(/\(if late start\)/g,   stylize('(if late start)'))
+              .replace(/\(if early finish\)/g, stylize('(if early finish)'));
           }
           return line;
         }).join('<br>');
@@ -1989,12 +2012,13 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
   // İstek: RCP'yi ayrı bir section yerine OV grid'in içinde göster, çizgiler
   // kesintisiz uzansın. Sıralama: RCP label → SOR (aralık) → Time (aralık) → 1 GSRM
   if (containerId === 'ovGrid') {
-    // Hangi günlerde RCP var?
+    // Hangi günlerde RCP var? RCP_CODE varsa onu kullan, yoksa default 'GSRM'.
     const rcpData = {};
     let hasAnyRCP = false;
     Object.entries(sectionData || {}).forEach(([day, e]) => {
       if (e && e.rcpRange && e.rcpHours != null && e.rcpHours > 0) {
-        rcpData[day] = { plant: e.plant, status: e.status, sorStr: e.rcpRange, hours: e.rcpHours };
+        const rcpCode = (e.codes && e.codes.RCP_CODE) ? e.codes.RCP_CODE : 'GSRM';
+        rcpData[day] = { plant: e.plant, status: e.status, sorStr: e.rcpRange, hours: e.rcpHours, code: rcpCode };
         hasAnyRCP = true;
       }
     });
@@ -2002,7 +2026,7 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
       [
         ['RCP',  (d) => rcpData[d] ? `${rcpData[d].plant} ${rcpData[d].status}` : '', '#dc2626', '600'],
         ['Time', (d) => rcpData[d] ? rcpData[d].sorStr : '',                          '#dc2626', '400'],
-        ['',     (d) => rcpData[d] ? `${rcpData[d].hours} GSRM` : '',                 '#dc2626', '600'],
+        ['',     (d) => rcpData[d] ? `${rcpData[d].hours} ${rcpData[d].code}` : '',   '#dc2626', '600'],
       ].forEach(([label, fn, color, weight]) => {
         const lc = document.createElement('div');
         lc.className='og-cell og-row-label';
@@ -2060,6 +2084,16 @@ function renderOutcome() {
   // Her iki slotun outcome'unu hesapla; render fonksiyonlarına ayrı geçir.
   const out1 = computeOutcome(state.days);
   const out2 = computeOutcome(state.days2);
+
+  // ── Tek-BREAK kuralı ──
+  // Aynı gün için 1st ve 2nd page'de farklı plantlar girilmişse (yani aynı
+  // günde iki ziyaret), BREAK kodu sadece bir kez claim edilmeli. OV ve MHI
+  // ayrı ayrı değerlendirilir. "Daha uzun çalışılan" = Departure - Arrival
+  // farkı büyük olan. Diğer slotun BREAK'i sıfırlanır ve farkı absorber'a
+  // eklenir (toplam saat korunsun).
+  dedupBreakAcrossSlots(out1.ov,  out2.ov);
+  dedupBreakAcrossSlots(out1.mhi, out2.mhi);
+
   document.getElementById('totalsStrip').innerHTML = '';
   // OV ve MHI grid: 1. ve 2. slot aynı hücrede '+' ile birleşik render edilir
   renderOutcomeSection('ovGrid',  out1.ov,  out2.ov);
@@ -2074,6 +2108,46 @@ function renderOutcome() {
     });
   });
   renderEnfSection('enfGrid', outEnf);
+}
+
+// Aynı gün için iki slot da BREAK claim ediyorsa, sadece daha uzun çalışılan
+// (dep-arr farkı büyük) tarafta BREAK kalsın. Diğer slotun BREAK'i sıfırlanır
+// ve düşürdüğü saat absorber kodu'na eklenir (toplam saat dengesi korunur).
+function dedupBreakAcrossSlots(sec1, sec2) {
+  if (!sec1 || !sec2) return;
+  DAYS.forEach(day => {
+    const e1 = sec1[day];
+    const e2 = sec2[day];
+    if (!e1 || !e2) return;
+    // İki slot da var: BREAK'leri var mı?
+    const b1 = (e1.BREAK != null && e1.BREAK !== '' && e1.BREAK > 0) ? e1.BREAK : 0;
+    const b2 = (e2.BREAK != null && e2.BREAK !== '' && e2.BREAK > 0) ? e2.BREAK : 0;
+    if (b1 <= 0 || b2 <= 0) return; // Sadece bir tarafta varsa yapacak iş yok
+
+    // Hangi slot uzun çalışmış? Dep - Arr (RCP düşülmüş effectiveDep değil,
+    // gerçek dep'i baz alıyoruz, çünkü "uzun çalışma" gerçek saatlerle ölçülür)
+    const span = (e) => {
+      const a = timeToH(e.arr);
+      const d = timeToH(e.dep);
+      if (a == null || d == null) return 0;
+      return Math.max(0, d - a);
+    };
+    const s1 = span(e1);
+    const s2 = span(e2);
+    // Uzun olan BREAK'i tutar; diğeri sıfırlanır
+    const loser = (s1 >= s2) ? e2 : e1;
+    const removed = loser.BREAK;
+    loser.BREAK = null;
+
+    // Çıkarılan BREAK saati absorber koduna eklensin ki toplam dengesi bozulmasın.
+    // MAIN_ABSORB öncelikli; yoksa eski INSP fallback'ini kullan.
+    const codes = loser.codes || {};
+    let absorber = (codes.MAIN_ABSORB || '').trim();
+    if (!absorber) absorber = 'INSP'; // basit fallback
+    if (absorber === 'BREAK') return; // absorber zaten BREAK'se anlamsız (çakışma)
+    const cur = (loser[absorber] != null && loser[absorber] !== '') ? loser[absorber] : 0;
+    loser[absorber] = round25(cur + removed);
+  });
 }
 
 function switchTab(tab) {
@@ -2169,6 +2243,42 @@ async function updateSyncStatusBanner() {
 
 function numInput(val, onChange) {
   return `<input type="number" step="0.25" min="0" value="${val??''}" placeholder="—" style="width:58px;padding:4px 5px;font-size:11px" onchange="${onChange}">`;
+}
+
+// RCP input: sayı + kod dropdown. RCP saati hangi koda gidecek?
+// Default 'GSRM' (geriye dönük uyumluluk için). table: 'OV' | 'MHI', i: row index.
+const RCP_TARGET_CODES = ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA'];
+function rcpInput(val, codeVal, table, i) {
+  const onChangeNum = table === 'OV'
+    ? `updateOVCode(${i},'RCP',this.value)`
+    : `updateMHICode(${i},'RCP',this.value)`;
+  const onChangeCode = table === 'OV'
+    ? `updateOVCode(${i},'RCP_CODE',this.value)`
+    : `updateMHICode(${i},'RCP_CODE',this.value)`;
+  const targets = [...RCP_TARGET_CODES, ...EXTRA_CODES];
+  const cur = codeVal || 'GSRM';
+  const opts = targets.map(c => `<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
+  return `<div style="display:flex;align-items:center;gap:3px">
+    <input type="number" step="0.25" min="0" value="${val??''}" placeholder="—" style="width:48px;padding:4px 5px;font-size:11px" onchange="${onChangeNum}">
+    <select style="width:62px;font-size:10px;padding:3px 2px" onchange="${onChangeCode}" title="Code to apply RCP hours to">${opts}</select>
+  </div>`;
+}
+
+// Temporary tablolar için aynı rcpInput, ama updateTempOVCode/updateTempMHICode çağırır.
+function rcpInputTemp(val, codeVal, table, i) {
+  const onChangeNum = table === 'OV'
+    ? `updateTempOVCode(${i},'RCP',this.value)`
+    : `updateTempMHICode(${i},'RCP',this.value)`;
+  const onChangeCode = table === 'OV'
+    ? `updateTempOVCode(${i},'RCP_CODE',this.value)`
+    : `updateTempMHICode(${i},'RCP_CODE',this.value)`;
+  const targets = [...RCP_TARGET_CODES, ...EXTRA_CODES];
+  const cur = codeVal || 'GSRM';
+  const opts = targets.map(c => `<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
+  return `<div style="display:flex;align-items:center;gap:3px">
+    <input type="number" step="0.25" min="0" value="${val??''}" placeholder="—" style="width:48px;padding:4px 5px;font-size:11px" onchange="${onChangeNum}">
+    <select style="width:62px;font-size:10px;padding:3px 2px" onchange="${onChangeCode}" title="Code to apply RCP hours to">${opts}</select>
+  </div>`;
 }
 
 // Pinli sayı input — sayı kutusunun yanında küçük 📌 toggle
@@ -2308,7 +2418,7 @@ function renderOVCodesTable() {
       <td>${pin('GWAG')}</td><td>${pin('GAVI')}</td>
       <td>${numInput(row.INSP, f('INSP'))}</td><td>${pin('HLVI')}</td>
       <td>${pin('GNTB')}</td><td>${pin('GFSA')}</td>
-      <td>${numInput(row.RCP, f('RCP'))}</td>
+      <td>${rcpInput(row.RCP, row.RCP_CODE, 'OV', i)}</td>
       ${extraTds}
       <td><button onclick="deleteOVRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
     `;
@@ -2383,11 +2493,11 @@ function getMHIRowsMutable() { if (!_mhiRows) _mhiRows = getMHIRows(); return _m
 
 function updateOVCode(i, field, val) {
   const rows = getOVRowsMutable();
-  rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep','MAIN_ABSORB'].includes(field) ? val : parseFloat(val));
+  rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep','MAIN_ABSORB','RCP_CODE'].includes(field) ? val : parseFloat(val));
 }
 function updateMHICode(i, field, val) {
   const rows = getMHIRowsMutable();
-  rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep','MAIN_ABSORB'].includes(field) ? val : parseFloat(val));
+  rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep','MAIN_ABSORB','RCP_CODE'].includes(field) ? val : parseFloat(val));
 }
 // Time dropdown updates: merge h/m parts. field = 'arr' or 'dep', part = 'h' or 'm'
 function _mergeTimePart(current, part, value) {
@@ -2429,6 +2539,8 @@ function rowsToCodeObj(rows) {
     if (r.MAIN_ABSORB) entry.MAIN_ABSORB = r.MAIN_ABSORB;
     if (r.ALWAYS_ACTIVE && r.ALWAYS_ACTIVE.length) entry.ALWAYS_ACTIVE = [...r.ALWAYS_ACTIVE];
     ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','RCP'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
+    // RCP_CODE: hangi koda RCP saati yazılacak (default 'GSRM' geriye dönük uyumluluk)
+    if (r.RCP_CODE) entry.RCP_CODE = r.RCP_CODE;
     // Drop-Down'dan eklenen ekstra kodları da kopyala (örn 'GNED')
     EXTRA_CODES.forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     obj[plant][key] = entry;
@@ -2446,6 +2558,7 @@ function rowsToMHIObj(rows) {
     if (r.MAIN_ABSORB) entry.MAIN_ABSORB = r.MAIN_ABSORB;
     if (r.ALWAYS_ACTIVE && r.ALWAYS_ACTIVE.length) entry.ALWAYS_ACTIVE = [...r.ALWAYS_ACTIVE];
     ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
+    if (r.RCP_CODE) entry.RCP_CODE = r.RCP_CODE;
     // Drop-Down'dan eklenen ekstra kodları da kopyala (örn 'GNED')
     EXTRA_CODES.forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     obj[plant][key] = entry;
@@ -2612,13 +2725,13 @@ function updateTempOVCode(i, field, val) {
   const rows = getTempOVRowsMutable();
   if (field === 'ALWAYS_ACTIVE') { rows[i][field] = val; return; }
   rows[i][field] = (val === '' || val === null || val === undefined) ? null : (isNaN(Number(val)) ? val : Number(val));
-  if (['day','region','plant','status','MAIN_ABSORB'].includes(field)) rows[i][field] = val;
+  if (['day','region','plant','status','MAIN_ABSORB','RCP_CODE'].includes(field)) rows[i][field] = val;
 }
 function updateTempMHICode(i, field, val) {
   const rows = getTempMHIRowsMutable();
   if (field === 'ALWAYS_ACTIVE') { rows[i][field] = val; return; }
   rows[i][field] = (val === '' || val === null || val === undefined) ? null : (isNaN(Number(val)) ? val : Number(val));
-  if (['day','region','plant','status','MAIN_ABSORB'].includes(field)) rows[i][field] = val;
+  if (['day','region','plant','status','MAIN_ABSORB','RCP_CODE'].includes(field)) rows[i][field] = val;
 }
 function updateTempOVCodeTime(i, field, part, value) {
   const rows = getTempOVRowsMutable();
@@ -2687,7 +2800,7 @@ function renderTempOVCodesTable() {
       <td>${numInput(row.GWAG, f('GWAG'))}</td><td>${numInput(row.GAVI, f('GAVI'))}</td>
       <td>${numInput(row.INSP, f('INSP'))}</td><td>${numInput(row.HLVI, f('HLVI'))}</td>
       <td>${numInput(row.GNTB, f('GNTB'))}</td><td>${numInput(row.GFSA, f('GFSA'))}</td>
-      <td>${numInput(row.RCP, f('RCP'))}</td>
+      <td>${rcpInputTemp(row.RCP, row.RCP_CODE, 'OV', i)}</td>
       ${extraTds}
       <td><button onclick="deleteTempOVRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
     `;

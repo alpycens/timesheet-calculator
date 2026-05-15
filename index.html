@@ -779,7 +779,7 @@
               <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
               <th style="color:var(--accent)">Main Absorb</th>
               <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th>
-              <th>INSP</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th class="temp-mhi-extra-col-anchor"></th>
+              <th>INSP</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th title="Only RCP: arrival-departure süresi GSRM olarak yazılır">RCP-Only</th><th class="temp-mhi-extra-col-anchor"></th>
             </tr></thead>
             <tbody id="tempMHICodesBody"></tbody>
           </table>
@@ -1004,8 +1004,11 @@ function getValidStatuses(day, plant) {
       // o aşağıdaki blokta yakalanacak.
       const isOtherDaySpecific = ALL_DAY_PREFIXES.some(p => key.startsWith(p));
       if (isOtherDaySpecific) continue;
-      // 3) Generic kayıt — sadece hafta içi günlerde geçerli
-      if (!isWeekend) {
+      // 3) Generic kayıt — normalde sadece hafta içi geçerli.
+      //    AMA RCP_ONLY işaretli kayıtlar her gün geçerlidir (kullanıcı her gün kullanabilir).
+      const entry = src[key];
+      const isRcpOnly = entry && entry.RCP_ONLY === true;
+      if (!isWeekend || isRcpOnly) {
         result.add(key);
       }
     }
@@ -1856,11 +1859,12 @@ function computeOutcome(daysMap) {
       const ovCodes = lookupOV(day, d.plant, statusType);
       if (ovCodes) {
         // ─── ÖZEL DURUM: SALT-RCP PLANT ──────────────────────────────
-        // Plant'ın SOR sabit saati yok (arr ve dep boş) + RCP > 0 ise:
-        // Bu plant sadece "1 saat RCP" anlamına gelir. Kullanıcının girdiği
-        // Arrival-Departure aralığını RCP olarak göster, normal OV satırı
-        // olarak basma. RCP section ana OV/MHI'nin altında ayrı çıkacak.
-        const isRcpOnly = (!ovCodes.arr && !ovCodes.dep && ovCodes.RCP != null && ovCodes.RCP > 0);
+        // Plant explicit olarak "RCP Only" işaretliyse VEYA arr ve dep ikisi de
+        // boşsa + RCP > 0: bu plant sadece "X saat RCP" anlamına gelir.
+        // Kullanıcının girdiği Arrival-Departure aralığı RCP olarak gösterilir.
+        // Normal OV satırı oluşturulmaz, sadece RCP section'a düşer.
+        const isRcpOnly = (ovCodes.RCP_ONLY === true) ||
+                          (!ovCodes.arr && !ovCodes.dep && ovCodes.RCP != null && ovCodes.RCP > 0);
         if (isRcpOnly) {
           if (hasUserTimes && d.arrival && d.departure) {
             const rcpHrs = round25(timeToH(d.departure) - timeToH(d.arrival));
@@ -1920,8 +1924,9 @@ function computeOutcome(daysMap) {
     const mhiCodes = lookupMHI(day, d.plant, statusType);
     if (mhiCodes) {
       // ─── ÖZEL DURUM: SALT-RCP PLANT (MHI tarafı) ─────────────────
-      // arr ve dep boş + RCP>0 ise sadece RCP göster
-      const isRcpOnlyMHI = (!mhiCodes.arr && !mhiCodes.dep && mhiCodes.RCP != null && mhiCodes.RCP > 0);
+      // RCP_ONLY işaretli veya (arr ve dep boş + RCP>0) ise sadece RCP göster
+      const isRcpOnlyMHI = (mhiCodes.RCP_ONLY === true) ||
+                           (!mhiCodes.arr && !mhiCodes.dep && mhiCodes.RCP != null && mhiCodes.RCP > 0);
       if (isRcpOnlyMHI) {
         if (hasUserTimes && d.arrival && d.departure) {
           const rcpHrs = round25(timeToH(d.departure) - timeToH(d.arrival));
@@ -2400,9 +2405,9 @@ function rcpInput(val, codeVal, table, i) {
   const targets = [...RCP_TARGET_CODES, ...EXTRA_CODES];
   const cur = codeVal || 'GSRM';
   const opts = targets.map(c => `<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
-  return `<div style="display:flex;align-items:center;gap:3px">
-    <input type="number" step="0.25" min="0" value="${val??''}" placeholder="—" style="width:48px;padding:4px 5px;font-size:11px" onchange="${onChangeNum}">
-    <select style="width:62px;font-size:10px;padding:3px 2px" onchange="${onChangeCode}" title="Code to apply RCP hours to">${opts}</select>
+  return `<div style="display:flex;align-items:center;gap:4px;min-width:130px">
+    <input type="number" step="0.25" min="0" value="${val??''}" placeholder="—" style="width:50px;padding:4px 5px;font-size:11px" onchange="${onChangeNum}">
+    <select style="width:78px;font-size:11px;padding:4px 4px;border:1px solid var(--accent);background:var(--surface);color:var(--text);font-weight:600" onchange="${onChangeCode}" title="Code to apply RCP hours to">${opts}</select>
   </div>`;
 }
 
@@ -2417,9 +2422,9 @@ function rcpInputTemp(val, codeVal, table, i) {
   const targets = [...RCP_TARGET_CODES, ...EXTRA_CODES];
   const cur = codeVal || 'GSRM';
   const opts = targets.map(c => `<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
-  return `<div style="display:flex;align-items:center;gap:3px">
-    <input type="number" step="0.25" min="0" value="${val??''}" placeholder="—" style="width:48px;padding:4px 5px;font-size:11px" onchange="${onChangeNum}">
-    <select style="width:62px;font-size:10px;padding:3px 2px" onchange="${onChangeCode}" title="Code to apply RCP hours to">${opts}</select>
+  return `<div style="display:flex;align-items:center;gap:4px;min-width:130px">
+    <input type="number" step="0.25" min="0" value="${val??''}" placeholder="—" style="width:50px;padding:4px 5px;font-size:11px" onchange="${onChangeNum}">
+    <select style="width:78px;font-size:11px;padding:4px 4px;border:1px solid var(--accent);background:var(--surface);color:var(--text);font-weight:600" onchange="${onChangeCode}" title="Code to apply RCP hours to">${opts}</select>
   </div>`;
 }
 
@@ -2561,13 +2566,14 @@ function renderOVCodesTable() {
       <td>${numInput(row.INSP, f('INSP'))}</td><td>${pin('HLVI')}</td>
       <td>${pin('GNTB')}</td><td>${pin('GFSA')}</td>
       <td>${rcpInput(row.RCP, row.RCP_CODE, 'OV', i)}</td>
+      <td style="text-align:center"><input type="checkbox" ${row.RCP_ONLY ? 'checked' : ''} onchange="updateOVCode(${i},'RCP_ONLY',this.checked)" title="Bu plant için SOR saati yok; RCP saati kullanıcının girdiği aralıktan alınır" style="cursor:pointer;width:18px;height:18px;accent-color:var(--accent)"></td>
       ${extraTds}
       <td><button onclick="deleteOVRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
   const addTr = document.createElement('tr');
-  const ovColspan = 19 + EXTRA_CODES.length;
+  const ovColspan = 20 + EXTRA_CODES.length;
   addTr.innerHTML = `<td colspan="${ovColspan}" style="padding:8px"><button onclick="addOVRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
   tbody.appendChild(addTr);
 }
@@ -2619,13 +2625,14 @@ function renderMHICodesTable() {
       <td>${numInput(row.INSP, f('INSP'))}</td><td>${pin('GNTB')}</td>
       <td>${pin('GFSA')}</td>
       <td>${rcpInput(row.RCP, row.RCP_CODE, 'MHI', i)}</td>
+      <td style="text-align:center"><input type="checkbox" ${row.RCP_ONLY ? 'checked' : ''} onchange="updateMHICode(${i},'RCP_ONLY',this.checked)" title="Bu plant için SOR saati yok; RCP saati kullanıcının girdiği aralıktan alınır" style="cursor:pointer;width:18px;height:18px;accent-color:var(--accent)"></td>
       ${extraTds}
       <td><button onclick="deleteMHIRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
   const addTr = document.createElement('tr');
-  const mhiColspan = 16 + EXTRA_CODES.length;
+  const mhiColspan = 17 + EXTRA_CODES.length;
   addTr.innerHTML = `<td colspan="${mhiColspan}" style="padding:8px"><button onclick="addMHIRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
   tbody.appendChild(addTr);
 }
@@ -2976,13 +2983,14 @@ function renderTempOVCodesTable() {
       <td>${numInput(row.INSP, f('INSP'))}</td><td>${numInput(row.HLVI, f('HLVI'))}</td>
       <td>${numInput(row.GNTB, f('GNTB'))}</td><td>${numInput(row.GFSA, f('GFSA'))}</td>
       <td>${rcpInputTemp(row.RCP, row.RCP_CODE, 'OV', i)}</td>
+      <td style="text-align:center"><input type="checkbox" ${row.RCP_ONLY ? 'checked' : ''} onchange="updateTempOVCode(${i},'RCP_ONLY',this.checked)" title="Bu plant için SOR saati yok; RCP saati kullanıcının girdiği aralıktan alınır" style="cursor:pointer;width:18px;height:18px;accent-color:var(--accent)"></td>
       ${extraTds}
       <td><button onclick="deleteTempOVRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
   const addTr = document.createElement('tr');
-  const ovColspan = 19 + EXTRA_CODES.length;
+  const ovColspan = 20 + EXTRA_CODES.length;
   addTr.innerHTML = `<td colspan="${ovColspan}" style="padding:8px"><button onclick="addTempOVRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
   tbody.appendChild(addTr);
 }
@@ -3012,13 +3020,14 @@ function renderTempMHICodesTable() {
       <td>${numInput(row.INSP, f('INSP'))}</td>
       <td>${numInput(row.GNTB, f('GNTB'))}</td><td>${numInput(row.GFSA, f('GFSA'))}</td>
       <td>${rcpInputTemp(row.RCP, row.RCP_CODE, 'MHI', i)}</td>
+      <td style="text-align:center"><input type="checkbox" ${row.RCP_ONLY ? 'checked' : ''} onchange="updateTempMHICode(${i},'RCP_ONLY',this.checked)" title="Bu plant için SOR saati yok; RCP saati kullanıcının girdiği aralıktan alınır" style="cursor:pointer;width:18px;height:18px;accent-color:var(--accent)"></td>
       ${extraTds}
       <td><button onclick="deleteTempMHIRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
   const addTr = document.createElement('tr');
-  const mhiColspan = 16 + EXTRA_CODES.length;
+  const mhiColspan = 17 + EXTRA_CODES.length;
   addTr.innerHTML = `<td colspan="${mhiColspan}" style="padding:8px"><button onclick="addTempMHIRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
   tbody.appendChild(addTr);
 }

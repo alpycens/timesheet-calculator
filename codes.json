@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-14T18:37:58.282Z",
+  "exportedAt": "2026-05-15T07:23:28.850Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -68,6 +68,22 @@
       ]
     },
     "4015": {
+      "OV|OV": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "MHI|MHI": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ]
+    },
+    "4067": {
       "OV|OV": [
         "MONDAY",
         "TUESDAY",
@@ -393,8 +409,8 @@
     },
     "4067": {
       "OV": {
-        "arr": "15:00",
-        "dep": "16:00",
+        "arr": "00:00",
+        "dep": "00:00",
         "MAIN_ABSORB": "GSRM",
         "BREAK": null,
         "GBPS": null,
@@ -407,6 +423,7 @@
         "GNTB": null,
         "GFSA": null,
         "RCP": 1,
+        "RCP_ONLY": true,
         "GNED": null
       }
     },
@@ -1185,6 +1202,24 @@
         "GFSA": null,
         "RCP": 1,
         "RCP_CODE": "GSRM",
+        "GNED": null
+      }
+    },
+    "4067": {
+      "MHI": {
+        "arr": "00:00",
+        "dep": "00:00",
+        "MAIN_ABSORB": "GSRM",
+        "BREAK": null,
+        "GBPS": null,
+        "GSRM": null,
+        "GPAS": null,
+        "INSP": null,
+        "GNTB": null,
+        "GFSA": null,
+        "RCP": 1,
+        "RCP_CODE": "GSRM",
+        "RCP_ONLY": true,
         "GNED": null
       }
     },

@@ -729,7 +729,7 @@
             <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
             <th style="color:var(--accent)">Main Absorb</th>
             <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th><th>GWAG</th>
-            <th>GAVI</th><th>INSP</th><th>HLVI</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th class="ov-extra-col-anchor"></th>
+            <th>GAVI</th><th>INSP</th><th>HLVI</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th title="Only RCP: arrival-departure süresi GSRM olarak yazılır">RCP-Only</th><th class="ov-extra-col-anchor"></th>
           </tr></thead>
           <tbody id="ovCodesBody"></tbody>
         </table>
@@ -741,7 +741,7 @@
             <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
             <th style="color:var(--accent)">Main Absorb</th>
             <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th>
-            <th>INSP</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th class="mhi-extra-col-anchor"></th>
+            <th>INSP</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th title="Only RCP: arrival-departure süresi GSRM olarak yazılır">RCP-Only</th><th class="mhi-extra-col-anchor"></th>
           </tr></thead>
           <tbody id="mhiCodesBody"></tbody>
         </table>
@@ -767,7 +767,7 @@
               <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
               <th style="color:var(--accent)">Main Absorb</th>
               <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th><th>GWAG</th>
-              <th>GAVI</th><th>INSP</th><th>HLVI</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th class="temp-ov-extra-col-anchor"></th>
+              <th>GAVI</th><th>INSP</th><th>HLVI</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th title="Only RCP: arrival-departure süresi GSRM olarak yazılır">RCP-Only</th><th class="temp-ov-extra-col-anchor"></th>
             </tr></thead>
             <tbody id="tempOVCodesBody"></tbody>
           </table>
@@ -1855,47 +1855,91 @@ function computeOutcome(daysMap) {
     if (isOV) {
       const ovCodes = lookupOV(day, d.plant, statusType);
       if (ovCodes) {
-        const ovSorStr = `${ovCodes.arr}-${ovCodes.dep}`;
-
-        if (cancelled) {
-          // İptal edilmiş: mevcut davranış
-          const computed = calcCancelledCodes(ovSorStr, ovCodes);
-          result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:'00:00', dep:'00:00', sorStr:ovSorStr, _rcp:(ovCodes.RCP||null), ...computed };
-        } else if (!hasUserTimes) {
-          // Saat girilmedi: sadece SOR satırı görünsün, kodlar/Time boş
-          result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, sorStr:ovSorStr, _empty:true, _rcp:(ovCodes.RCP||null) };
-        } else if (isOVOnly) {
-          // OV Only: kullanıcının saatlerini OV penceresine clip et
-          const sorArrH = timeToH(ovCodes.arr), sorDepH = timeToH(ovCodes.dep);
-          const userArrH = timeToH(d.arrival) ?? sorArrH;
-          const userDepH = timeToH(d.departure) ?? sorDepH;
-          // OV bölümü için clip: max(userArr, sorArr) → min(userDep, sorDep)
-          const clipArrH = Math.max(userArrH, sorArrH);
-          const clipDepH = Math.min(userDepH, sorDepH);
-          if (clipArrH < clipDepH) {
-            // OV penceresine giren süre var
-            const clipArr = (d.arrival && userArrH > sorArrH) ? d.arrival : ovCodes.arr;
-            const clipDep = (d.departure && userDepH < sorDepH) ? d.departure : ovCodes.dep;
-            const computed = calcCodes(ovCodes, d, ovSorStr, clipDep, false, clipArr);
-            result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:clipArr, dep:clipDep, sorStr:ovSorStr, _rcp:(ovCodes.RCP||null), ...computed };
-          } else {
-            // OV penceresine hiç girmedi → tümü IUWT
-            const sorTotal = round25(sorDepH - sorArrH);
-            result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:ovCodes.arr, dep:ovCodes.dep, sorStr:ovSorStr, _rcp:false, BREAK:null, GBPS:null, GSRM:null, GPAS:null, GWAG:null, GAVI:null, HLVI:null, GNTB:null, GFSA:null, INSP:null, IUWT:sorTotal };
+        // ─── ÖZEL DURUM: SALT-RCP PLANT ──────────────────────────────
+        // Plant'ın SOR sabit saati yok (arr ve dep boş) + RCP > 0 ise:
+        // Bu plant sadece "1 saat RCP" anlamına gelir. Kullanıcının girdiği
+        // Arrival-Departure aralığını RCP olarak göster, normal OV satırı
+        // olarak basma. RCP section ana OV/MHI'nin altında ayrı çıkacak.
+        const isRcpOnly = (!ovCodes.arr && !ovCodes.dep && ovCodes.RCP != null && ovCodes.RCP > 0);
+        if (isRcpOnly) {
+          if (hasUserTimes && d.arrival && d.departure) {
+            const rcpHrs = round25(timeToH(d.departure) - timeToH(d.arrival));
+            if (rcpHrs > 0) {
+              const rcpCode = ovCodes.RCP_CODE || 'GSRM';
+              result.ov[day] = {
+                plant: d.plant, status: statusType, codes: ovCodes,
+                _rcpOnly: true,
+                rcpRange: `${d.arrival}-${d.departure}`,
+                rcpHours: rcpHrs,
+                _rcpCode: rcpCode,
+                arr: d.arrival, dep: d.departure, sorStr: ''
+              };
+            }
           }
+          // Salt-RCP plant için ana OV satırı OLUŞTURULMAZ — sadece RCP section'a düşer
         } else {
-          // Normal OV: mevcut davranış
-          const ovActArr = (d.arrival && timeToH(d.arrival) > timeToH(ovCodes.arr)) ? d.arrival : ovCodes.arr;
-          const ovActDep = d.departure || ovCodes.dep;
-          const computed = calcCodes(ovCodes, d, ovSorStr, ovActDep, false, ovActArr);
-          result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:ovActArr, dep:ovActDep, sorStr:ovSorStr, _rcp:(ovCodes.RCP||null), ...computed };
+          const ovSorStr = `${ovCodes.arr}-${ovCodes.dep}`;
+
+          if (cancelled) {
+            // İptal edilmiş: mevcut davranış
+            const computed = calcCancelledCodes(ovSorStr, ovCodes);
+            result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:'00:00', dep:'00:00', sorStr:ovSorStr, _rcp:(ovCodes.RCP||null), ...computed };
+          } else if (!hasUserTimes) {
+            // Saat girilmedi: sadece SOR satırı görünsün, kodlar/Time boş
+            result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, sorStr:ovSorStr, _empty:true, _rcp:(ovCodes.RCP||null) };
+          } else if (isOVOnly) {
+            // OV Only: kullanıcının saatlerini OV penceresine clip et
+            const sorArrH = timeToH(ovCodes.arr), sorDepH = timeToH(ovCodes.dep);
+            const userArrH = timeToH(d.arrival) ?? sorArrH;
+            const userDepH = timeToH(d.departure) ?? sorDepH;
+            // OV bölümü için clip: max(userArr, sorArr) → min(userDep, sorDep)
+            const clipArrH = Math.max(userArrH, sorArrH);
+            const clipDepH = Math.min(userDepH, sorDepH);
+            if (clipArrH < clipDepH) {
+              // OV penceresine giren süre var
+              const clipArr = (d.arrival && userArrH > sorArrH) ? d.arrival : ovCodes.arr;
+              const clipDep = (d.departure && userDepH < sorDepH) ? d.departure : ovCodes.dep;
+              const computed = calcCodes(ovCodes, d, ovSorStr, clipDep, false, clipArr);
+              result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:clipArr, dep:clipDep, sorStr:ovSorStr, _rcp:(ovCodes.RCP||null), ...computed };
+            } else {
+              // OV penceresine hiç girmedi → tümü IUWT
+              const sorTotal = round25(sorDepH - sorArrH);
+              result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:ovCodes.arr, dep:ovCodes.dep, sorStr:ovSorStr, _rcp:false, BREAK:null, GBPS:null, GSRM:null, GPAS:null, GWAG:null, GAVI:null, HLVI:null, GNTB:null, GFSA:null, INSP:null, IUWT:sorTotal };
+            }
+          } else {
+            // Normal OV: mevcut davranış
+            const ovActArr = (d.arrival && timeToH(d.arrival) > timeToH(ovCodes.arr)) ? d.arrival : ovCodes.arr;
+            const ovActDep = d.departure || ovCodes.dep;
+            const computed = calcCodes(ovCodes, d, ovSorStr, ovActDep, false, ovActArr);
+            result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:ovActArr, dep:ovActDep, sorStr:ovSorStr, _rcp:(ovCodes.RCP||null), ...computed };
+          }
         }
       }
     }
 
     const mhiCodes = lookupMHI(day, d.plant, statusType);
     if (mhiCodes) {
-      const mhiSorStr = `${mhiCodes.arr}-${mhiCodes.dep}`;
+      // ─── ÖZEL DURUM: SALT-RCP PLANT (MHI tarafı) ─────────────────
+      // arr ve dep boş + RCP>0 ise sadece RCP göster
+      const isRcpOnlyMHI = (!mhiCodes.arr && !mhiCodes.dep && mhiCodes.RCP != null && mhiCodes.RCP > 0);
+      if (isRcpOnlyMHI) {
+        if (hasUserTimes && d.arrival && d.departure) {
+          const rcpHrs = round25(timeToH(d.departure) - timeToH(d.arrival));
+          if (rcpHrs > 0) {
+            const rcpCode = mhiCodes.RCP_CODE || 'GSRM';
+            result.mhi[day] = {
+              plant: d.plant, status: statusType, codes: mhiCodes,
+              _rcpOnly: true,
+              rcpRange: `${d.arrival}-${d.departure}`,
+              rcpHours: rcpHrs,
+              _rcpCode: rcpCode,
+              arr: d.arrival, dep: d.departure, sorStr: ''
+            };
+          }
+        }
+        // Salt-RCP MHI plant için ana MHI satırı OLUŞTURULMAZ
+      } else {
+        const mhiSorStr = `${mhiCodes.arr}-${mhiCodes.dep}`;
 
       if (cancelled) {
         const computed = calcCancelledCodes(mhiSorStr, mhiCodes);
@@ -1926,6 +1970,7 @@ function computeOutcome(daysMap) {
         const computed = calcCodes(mhiCodes, d, mhiSorStr, mhiActDep, true, mhiActArr);
         result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, arr:mhiActArr, dep:mhiActDep, sorStr:mhiSorStr, ...computed };
       }
+      } // end of !isRcpOnlyMHI
     }
 
     if (d.enforcement) {
@@ -1992,8 +2037,11 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
       const cell = document.createElement('div'); cell.className='og-cell og-value';
       cell.style.color=color; cell.style.fontWeight=weight; cell.style.fontSize='15px'; cell.style.whiteSpace='normal'; cell.style.lineHeight='1.6';
 
-      const e1 = sectionData[day];
-      const e2 = data2[day];
+      const e1raw = sectionData[day];
+      const e2raw = data2[day];
+      // Salt-RCP entry'ler ana OV/MHI grid'inde görünmez (sadece RCP section)
+      const e1 = (e1raw && e1raw._rcpOnly) ? null : e1raw;
+      const e2 = (e2raw && e2raw._rcpOnly) ? null : e2raw;
       const v1 = e1 ? (fn(e1) || '') : '';
       const v2 = e2 ? (fn(e2) || '') : '';
 
@@ -2588,10 +2636,12 @@ function getMHIRowsMutable() { if (!_mhiRows) _mhiRows = getMHIRows(); return _m
 
 function updateOVCode(i, field, val) {
   const rows = getOVRowsMutable();
+  if (field === 'RCP_ONLY') { rows[i][field] = !!val; return; }
   rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep','MAIN_ABSORB','RCP_CODE'].includes(field) ? val : parseFloat(val));
 }
 function updateMHICode(i, field, val) {
   const rows = getMHIRowsMutable();
+  if (field === 'RCP_ONLY') { rows[i][field] = !!val; return; }
   rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep','MAIN_ABSORB','RCP_CODE'].includes(field) ? val : parseFloat(val));
 }
 // Time dropdown updates: merge h/m parts. field = 'arr' or 'dep', part = 'h' or 'm'
@@ -2612,13 +2662,13 @@ function updateMHICodeTime(i, field, part, value) {
 function deleteOVRow(i) { getOVRowsMutable().splice(i,1); renderOVCodesTable(); }
 function deleteMHIRow(i) { getMHIRowsMutable().splice(i,1); renderMHICodesTable(); }
 function addOVRow() {
-  const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null,RCP:null};
+  const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null,RCP:null,RCP_ONLY:false};
   EXTRA_CODES.forEach(c => { newRow[c] = null; });
   getOVRowsMutable().push(newRow);
   renderOVCodesTable();
 }
 function addMHIRow() {
-  const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null,RCP:null,RCP_CODE:'GSRM'};
+  const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null,RCP:null,RCP_CODE:'GSRM',RCP_ONLY:false};
   EXTRA_CODES.forEach(c => { newRow[c] = null; });
   getMHIRowsMutable().push(newRow);
   renderMHICodesTable();
@@ -2636,6 +2686,9 @@ function rowsToCodeObj(rows) {
     ['BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','RCP'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     // RCP_CODE: hangi koda RCP saati yazılacak (default 'GSRM' geriye dönük uyumluluk)
     if (r.RCP_CODE) entry.RCP_CODE = r.RCP_CODE;
+    // RCP_ONLY: bu plant sadece RCP olarak görev görür; arrival-departure aralığı
+    // RCP-GSRM olarak hesaplanır, başka kod hesaplanmaz.
+    if (r.RCP_ONLY) entry.RCP_ONLY = true;
     // Drop-Down'dan eklenen ekstra kodları da kopyala (örn 'GNED')
     EXTRA_CODES.forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     obj[plant][key] = entry;
@@ -2654,6 +2707,7 @@ function rowsToMHIObj(rows) {
     if (r.ALWAYS_ACTIVE && r.ALWAYS_ACTIVE.length) entry.ALWAYS_ACTIVE = [...r.ALWAYS_ACTIVE];
     ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA','RCP'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     if (r.RCP_CODE) entry.RCP_CODE = r.RCP_CODE;
+    if (r.RCP_ONLY) entry.RCP_ONLY = true;
     // Drop-Down'dan eklenen ekstra kodları da kopyala (örn 'GNED')
     EXTRA_CODES.forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     obj[plant][key] = entry;
@@ -2839,6 +2893,7 @@ function _autoSaveTempCodes() {
 function updateTempOVCode(i, field, val) {
   const rows = getTempOVRowsMutable();
   if (field === 'ALWAYS_ACTIVE') { rows[i][field] = val; _autoSaveTempCodes(); return; }
+  if (field === 'RCP_ONLY') { rows[i][field] = !!val; _autoSaveTempCodes(); return; }
   rows[i][field] = (val === '' || val === null || val === undefined) ? null : (isNaN(Number(val)) ? val : Number(val));
   if (['day','region','plant','status','MAIN_ABSORB','RCP_CODE'].includes(field)) rows[i][field] = val;
   _autoSaveTempCodes();
@@ -2846,6 +2901,7 @@ function updateTempOVCode(i, field, val) {
 function updateTempMHICode(i, field, val) {
   const rows = getTempMHIRowsMutable();
   if (field === 'ALWAYS_ACTIVE') { rows[i][field] = val; _autoSaveTempCodes(); return; }
+  if (field === 'RCP_ONLY') { rows[i][field] = !!val; _autoSaveTempCodes(); return; }
   rows[i][field] = (val === '' || val === null || val === undefined) ? null : (isNaN(Number(val)) ? val : Number(val));
   if (['day','region','plant','status','MAIN_ABSORB','RCP_CODE'].includes(field)) rows[i][field] = val;
   _autoSaveTempCodes();
@@ -2867,13 +2923,13 @@ function updateTempMHICodeTime(i, field, part, value) {
 function deleteTempOVRow(i)  { getTempOVRowsMutable().splice(i,1);  _autoSaveTempCodes(); renderTempOVCodesTable(); }
 function deleteTempMHIRow(i) { getTempMHIRowsMutable().splice(i,1); _autoSaveTempCodes(); renderTempMHICodesTable(); }
 function addTempOVRow() {
-  const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null,RCP:null};
+  const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,GWAG:null,GAVI:null,INSP:null,HLVI:null,GNTB:null,GFSA:null,RCP:null,RCP_ONLY:false};
   EXTRA_CODES.forEach(c => { newRow[c] = null; });
   getTempOVRowsMutable().push(newRow);
   renderTempOVCodesTable();
 }
 function addTempMHIRow() {
-  const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null,RCP:null,RCP_CODE:'GSRM'};
+  const newRow = {day:'',region:(REGIONS[0]||''),plant:'',status:'',arr:'',dep:'',MAIN_ABSORB:'',ALWAYS_ACTIVE:[],BREAK:null,GBPS:null,GSRM:null,GPAS:null,INSP:null,GNTB:null,GFSA:null,RCP:null,RCP_CODE:'GSRM',RCP_ONLY:false};
   EXTRA_CODES.forEach(c => { newRow[c] = null; });
   getTempMHIRowsMutable().push(newRow);
   renderTempMHICodesTable();

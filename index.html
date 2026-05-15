@@ -2095,25 +2095,37 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
   });
 
   // ─── RCP satırlarını OV grid'in içine ekle (sadece ovGrid için) ───
-  // İstek: RCP'yi ayrı bir section yerine OV grid'in içinde göster, çizgiler
-  // kesintisiz uzansın. Sıralama: RCP label → SOR (aralık) → Time (aralık) → 1 GSRM
+  // 1st ve 2nd slot RCP'leri birleştirir: aynı gün her ikisinde de RCP varsa
+  // "+" ile birleşik gösterilir. Sıralama: RCP label → Time → değer.
   if (containerId === 'ovGrid') {
-    // Hangi günlerde RCP var? RCP_CODE varsa onu kullan, yoksa default 'GSRM'.
-    const rcpData = {};
+    const rcpData1 = {}; // 1st slot
+    const rcpData2 = {}; // 2nd slot
     let hasAnyRCP = false;
-    Object.entries(sectionData || {}).forEach(([day, e]) => {
-      if (e && e.rcpRange && e.rcpHours != null && e.rcpHours > 0) {
-        const rcpCode = (e.codes && e.codes.RCP_CODE) ? e.codes.RCP_CODE : 'GSRM';
-        rcpData[day] = { plant: e.plant, status: e.status, sorStr: e.rcpRange, hours: e.rcpHours, code: rcpCode };
-        hasAnyRCP = true;
-      }
-    });
+    const collect = (target, src) => {
+      Object.entries(src || {}).forEach(([day, e]) => {
+        if (e && e.rcpRange && e.rcpHours != null && e.rcpHours > 0) {
+          const rcpCode = (e.codes && e.codes.RCP_CODE) ? e.codes.RCP_CODE : 'GSRM';
+          target[day] = { plant: e.plant, status: e.status, sorStr: e.rcpRange, hours: e.rcpHours, code: rcpCode };
+          hasAnyRCP = true;
+        }
+      });
+    };
+    collect(rcpData1, sectionData);
+    collect(rcpData2, data2);
     if (hasAnyRCP) {
+      // Aynı hücrede "1st + 2nd" stili göstermek için: değer ya tek slot ya da
+      // her ikisini "<br>+ <br>" şeklinde
+      const joinSlots = (fn, day, joiner) => {
+        const a = rcpData1[day] ? fn(rcpData1[day]) : '';
+        const b = rcpData2[day] ? fn(rcpData2[day]) : '';
+        if (a && b) return `${a}${joiner}${b}`;
+        return a || b;
+      };
       [
-        ['RCP',  (d) => rcpData[d] ? `${rcpData[d].plant} ${rcpData[d].status}` : '', '#dc2626', '600'],
-        ['Time', (d) => rcpData[d] ? rcpData[d].sorStr : '',                          '#dc2626', '400'],
-        ['',     (d) => rcpData[d] ? `${rcpData[d].hours} ${rcpData[d].code}` : '',   '#dc2626', '600'],
-      ].forEach(([label, fn, color, weight]) => {
+        ['RCP',  (s) => s ? `${s.plant} ${s.status}` : '', '#dc2626', '600', '<br>+ '],
+        ['Time', (s) => s ? s.sorStr : '',                  '#dc2626', '400', '<br>+ '],
+        ['',     (s) => s ? `${s.hours} ${s.code}` : '',    '#dc2626', '600', '<br>+ '],
+      ].forEach(([label, fn, color, weight, joiner]) => {
         const lc = document.createElement('div');
         lc.className='og-cell og-row-label';
         lc.textContent=label;
@@ -2123,7 +2135,9 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
           const cell = document.createElement('div');
           cell.className='og-cell og-value';
           cell.style.color=color; cell.style.fontWeight=weight; cell.style.fontSize='15px';
-          cell.textContent = fn(day);
+          cell.style.whiteSpace='normal'; cell.style.lineHeight='1.6';
+          const html = joinSlots(fn, day, joiner);
+          if (html.includes('<br>')) cell.innerHTML = html; else cell.textContent = html;
           container.appendChild(cell);
         });
       });
@@ -2169,24 +2183,25 @@ function renderRCPSection(out) {
 // MHI RCP ayrı section — kullanıcı isteği üzerine OV gibi içeride değil,
 // MHI bölümünün altında ayrı bir grid olarak göster. mhiGrid'in içine
 // eklenmiyor; bu fonksiyon mhiRcpSection/mhiRcpGrid'i populate eder.
+// 1st ve 2nd slot RCP'leri "+" ile birleşik gösterilir.
 function renderMHIRcpSection(out) {
   const section = document.getElementById('mhiRcpSection');
   const container = document.getElementById('mhiRcpGrid');
   if (!section || !container) return;
-  // 1. ve 2. slot MHI sectionlarından RCP'si olan günleri topla
-  const rcpData = {};
+  const rcpData1 = {}; // 1st slot
+  const rcpData2 = {}; // 2nd slot
   let hasAnyRCP = false;
-  [out.mhi, out.mhi2 || {}].forEach(src => {
+  const collect = (target, src) => {
     Object.entries(src || {}).forEach(([day, e]) => {
       if (e && e.rcpRange && e.rcpHours != null && e.rcpHours > 0) {
-        // Aynı günde 1. slot zaten dolduysa 2. slot üzerine yazmasın
-        if (rcpData[day]) return;
         const rcpCode = (e.codes && e.codes.RCP_CODE) ? e.codes.RCP_CODE : 'GSRM';
-        rcpData[day] = { plant: e.plant, status: e.status, sorStr: e.rcpRange, hours: e.rcpHours, code: rcpCode };
+        target[day] = { plant: e.plant, status: e.status, sorStr: e.rcpRange, hours: e.rcpHours, code: rcpCode };
         hasAnyRCP = true;
       }
     });
-  });
+  };
+  collect(rcpData1, out.mhi);
+  collect(rcpData2, out.mhi2);
   if (!hasAnyRCP) {
     section.style.display = 'none';
     container.innerHTML = '';
@@ -2196,7 +2211,6 @@ function renderMHIRcpSection(out) {
   container.innerHTML = '';
   container.style.gridTemplateColumns = `70px repeat(${DAYS.length}, minmax(120px, 1fr))`;
 
-  // Header: '' + her gün
   ['', ...DAYS].forEach((d, i) => {
     const cell = document.createElement('div');
     cell.className = 'og-cell og-header' + (i > 0 ? ' day-col' : '');
@@ -2204,12 +2218,17 @@ function renderMHIRcpSection(out) {
     container.appendChild(cell);
   });
 
-  // Üç satır: RCP (plant+status) → Time (aralık) → değer (hours + code) — OV'deki gibi
+  const joinSlots = (fn, day, joiner) => {
+    const a = rcpData1[day] ? fn(rcpData1[day]) : '';
+    const b = rcpData2[day] ? fn(rcpData2[day]) : '';
+    if (a && b) return `${a}${joiner}${b}`;
+    return a || b;
+  };
   [
-    ['RCP',  (d) => rcpData[d] ? `${rcpData[d].plant} ${rcpData[d].status}` : '', '#dc2626', '600'],
-    ['Time', (d) => rcpData[d] ? rcpData[d].sorStr : '',                          '#dc2626', '400'],
-    ['',     (d) => rcpData[d] ? `${rcpData[d].hours} ${rcpData[d].code}` : '',   '#dc2626', '600'],
-  ].forEach(([label, fn, color, weight]) => {
+    ['RCP',  (s) => `${s.plant} ${s.status}`, '#dc2626', '600', '<br>+ '],
+    ['Time', (s) => s.sorStr,                  '#dc2626', '400', '<br>+ '],
+    ['',     (s) => `${s.hours} ${s.code}`,    '#dc2626', '600', '<br>+ '],
+  ].forEach(([label, fn, color, weight, joiner]) => {
     const lc = document.createElement('div');
     lc.className = 'og-cell og-row-label';
     lc.textContent = label;
@@ -2219,7 +2238,9 @@ function renderMHIRcpSection(out) {
       const cell = document.createElement('div');
       cell.className = 'og-cell og-value';
       cell.style.color = color; cell.style.fontWeight = weight; cell.style.fontSize = '15px';
-      cell.textContent = fn(day);
+      cell.style.whiteSpace = 'normal'; cell.style.lineHeight = '1.6';
+      const html = joinSlots(fn, day, joiner);
+      if (html.includes('<br>')) cell.innerHTML = html; else cell.textContent = html;
       container.appendChild(cell);
     });
   });
@@ -3340,7 +3361,10 @@ function renderSORTableForPlant(plant, region) {
         const MHI_CONDITIONAL = baseConditional.filter(k => k !== mainAbsorb && !alwaysActive.has(k));
         const visibleKeys = FIELDS_MHI.filter(k => mhiCodes[k] != null && !MHI_CONDITIONAL.includes(k));
         const codeItems = visibleKeys.map(k => ({ k, v: mhiCodes[k], isMain: k === mainAbsorb }));
-        if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', sor: sorStr, codeItems, mainAbsorb, rcpNote: null, rcpCode: null, trichNote: false }); }
+        // RCP veri-odaklı: MHI kodunda RCP > 0 varsa not göster. RCP_CODE varsa onu kullan.
+        const rcpVal = (mhiCodes.RCP != null && mhiCodes.RCP > 0) ? mhiCodes.RCP : null;
+        const rcpCodeKey = (mhiCodes.RCP_CODE && rcpVal != null) ? mhiCodes.RCP_CODE : 'GSRM';
+        if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', sor: sorStr, codeItems, mainAbsorb, rcpNote: rcpVal, rcpCode: rcpCodeKey, trichNote: false }); }
       }
     });
   });

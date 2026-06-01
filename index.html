@@ -234,6 +234,44 @@
     .sor-filter-group select { font-size: 12px; }
   }
 
+  /* ─── LEGISLATION PANEL ─── */
+  .leg-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .leg-section-title {
+    padding: 10px 16px;
+    background: var(--surface2);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent2);
+    border-bottom: 1px solid var(--border);
+  }
+  .leg-items { padding: 4px 0; }
+  .leg-item {
+    display: flex;
+    gap: 12px;
+    padding: 7px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .leg-item:last-child { border-bottom: none; }
+  .leg-item:hover { background: var(--surface2); }
+  .leg-ref {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent3);
+    min-width: 48px;
+    padding-top: 1px;
+    flex-shrink: 0;
+  }
+  .leg-desc { color: var(--text); }
+
   /* ─── TIMESHEET TABLE ─── */
   .ts-table-wrap {
     overflow-x: auto;
@@ -552,6 +590,7 @@
     <button class="tab-btn active" onclick="switchTab('timesheet')">SCHEDULE</button>
     <button class="tab-btn" onclick="switchTab('outcome')">TIMESHEET</button>
     <button class="tab-btn" onclick="switchTab('sor')">SOR</button>
+    <button class="tab-btn" onclick="switchTab('legislation')">LEGISLATION</button>
   </div>
 
   <button class="settings-gear" id="settingsGear" onclick="switchTab('codes')" title="Settings" aria-label="Settings">
@@ -664,6 +703,205 @@
       </div>
       <div id="sorTableContainer"></div>
     </div>
+  </div>
+
+  <!-- ═══════════════ LEGISLATION PANEL ═══════════════ -->
+  <div class="panel" id="panel-legislation">
+    <div style="max-width:900px;margin:0 auto;padding:20px 16px">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:var(--accent)">LEGISLATION</div>
+        <div style="font-size:12px;color:var(--text-muted)">Manual for Official Controls · England & Wales</div>
+      </div>
+
+      <!-- AI Search Box -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:24px">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-family:'IBM Plex Mono',monospace">AI SEARCH — Ask about any regulation</div>
+        <div style="display:flex;gap:8px">
+          <input id="legSearchInput" type="text" placeholder="e.g. BSE testing requirements, slaughterhouse CCTV, foot-and-mouth marking..."
+            style="flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:14px;outline:none"
+            onkeydown="if(event.key==='Enter')searchLegislation()"
+          />
+          <button onclick="searchLegislation()"
+            style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">
+            SEARCH
+          </button>
+        </div>
+        <!-- Answer area -->
+        <div id="legAnswerBox" style="display:none;margin-top:16px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:14px;line-height:1.7;white-space:pre-wrap"></div>
+        <div id="legLoadingBox" style="display:none;margin-top:12px;font-size:13px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">⏳ Searching legislation...</div>
+      </div>
+
+      <!-- Legislation Index -->
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-muted);margin-bottom:12px">REGULATION INDEX · Amendment 110</div>
+
+      <!-- Section 1 -->
+      <div class="leg-section">
+        <div class="leg-section-title">Section 1 — Diseases</div>
+        <div class="leg-items">
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2001/1512/contents')" style="cursor:pointer"><span class="leg-ref">1.1</span><span class="leg-desc">The Foot-and-Mouth Disease (Marking of Meat and Meat Products) (England) Regulations 2001 (SI No. 1512)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2001/1508/contents')" style="cursor:pointer"><span class="leg-ref">1.2</span><span class="leg-desc">The Foot-and-Mouth Disease (Marking of Meat and Meat Products) (Wales) Regulations 2001 (SI No. 1508 (W. 105))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2001/1739/contents')" style="cursor:pointer"><span class="leg-ref">1.3</span><span class="leg-desc">The Foot-and-Mouth Disease (Marking of Meat, Minced Meat and Meat Preparations) (England) Regulations 2001 (SI No. 1739)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2001/1740/contents')" style="cursor:pointer"><span class="leg-ref">1.4</span><span class="leg-desc">The Foot-and-Mouth Disease (Marking of Meat, Minced Meat and Meat Preparations) (Wales) Regulations 2001 (SI No. 1740 (W. 123))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2001/1771/contents')" style="cursor:pointer"><span class="leg-ref">1.5</span><span class="leg-desc">The Foot-and-Mouth Disease (Marking of Meat, Meat Products, Minced Meat and Meat Preparations) (England) Regulations 2001 (SI No. 1771)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2001/1802/contents')" style="cursor:pointer"><span class="leg-ref">1.5.1</span><span class="leg-desc">The Foot-and-Mouth Disease (Marking of Meat, Meat Products, Minced Meat and Meat Preparations) (Wales) Regulations 2001 (SI No. 1802 (W131))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2001/2601/contents')" style="cursor:pointer"><span class="leg-ref">1.6</span><span class="leg-desc">The Foot-and-Mouth Disease (Marking of Meat, Meat Products, Minced Meat and Meat Preparations) (No. 2) (England) Regulations 2001 (SI No. 2601)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2001/2627/contents')" style="cursor:pointer"><span class="leg-ref">1.6.1</span><span class="leg-desc">The Foot-and-Mouth Disease (Marking of Meat, Meat Products, Minced Meat and Meat Preparations) (Wales) (No. 2) Regulations 2001 (SI No. 2627 (W216))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2006/2702/contents')" style="cursor:pointer"><span class="leg-ref">1.7</span><span class="leg-desc">The Avian Influenza and Influenza of Avian Origin in Mammals (England) (No. 2) Order 2006 (SI No. 2702)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2006/1762/contents')" style="cursor:pointer"><span class="leg-ref">1.7.1</span><span class="leg-desc">The Avian Influenza and Influenza of Avian Origin in Mammals (Wales) Order 2006 (SI No. 1762 (W184))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2006/182/contents')" style="cursor:pointer"><span class="leg-ref">1.8</span><span class="leg-desc">The Foot-and-Mouth Disease (England) Order 2006 (SI No. 182)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2006/179/contents')" style="cursor:pointer"><span class="leg-ref">1.9</span><span class="leg-desc">The Foot-and-Mouth Disease (Wales) Order 2006 (SI No. 179 (W.30))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2002/99/contents')" style="cursor:pointer"><span class="leg-ref">1.10</span><span class="leg-desc">Council Directive 2002/99/EC — animal health rules governing production, processing, distribution and introduction of products of animal origin for human consumption</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eudn/2001/304')" style="cursor:pointer"><span class="leg-ref">1.11</span><span class="leg-desc">Commission Decision 2001/304/EC — marking and use of certain animal products in relation to foot-and-mouth disease in the United Kingdom</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2014/1894/contents')" style="cursor:pointer"><span class="leg-ref">1.15</span><span class="leg-desc">The Diseases of Swine Regulations 2014 (SI No. 1894)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2014/2383/contents')" style="cursor:pointer"><span class="leg-ref">1.16</span><span class="leg-desc">The Tuberculosis (England) Order 2014 (SI No. 2383)</span></div>
+        </div>
+      </div>
+
+      <!-- Section 2 -->
+      <div class="leg-section">
+        <div class="leg-section-title">Section 2 — TSE / BSE</div>
+        <div class="leg-items">
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2001/999/contents')" style="cursor:pointer"><span class="leg-ref">2.1</span><span class="leg-desc">Regulation (EC) 999/2001 — prevention, control and eradication of certain transmissible spongiform encephalopathies</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2018/969')" style="cursor:pointer"><span class="leg-ref">2.1.1</span><span class="leg-desc">Commission Regulation (EU) No 969/2018 — amending Annex V to Regulation EC No 999/2001 regarding removal of specified risk materials from small ruminants</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2018/731/contents')" style="cursor:pointer"><span class="leg-ref">2.2</span><span class="leg-desc">The Transmissible Spongiform Encephalopathies (England) Regulations 2018 (SI No. 731)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2019/526/contents')" style="cursor:pointer"><span class="leg-ref">2.2.1</span><span class="leg-desc">The Environment, Food and Rural Affairs (Miscellaneous Amendments etc.) Regulations 2019 (526)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2018/968/contents')" style="cursor:pointer"><span class="leg-ref">2.3</span><span class="leg-desc">The Transmissible Spongiform Encephalopathies (Wales) Regulations 2018 (SI No. 968 (W.195))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2019/366/contents')" style="cursor:pointer"><span class="leg-ref">2.3.1</span><span class="leg-desc">The Transmissible Spongiform Encephalopathies (Wales) (Amendment) Regulations 2019 (SI No. 366 (W.88))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eudn/2007/453')" style="cursor:pointer"><span class="leg-ref">2.4</span><span class="leg-desc">Commission Decision 2007/453/EC — establishing BSE status of Member States or third countries/regions</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eudn/2009/719')" style="cursor:pointer"><span class="leg-ref">2.5</span><span class="leg-desc">Commission Decision 2009/719/EC — authorising certain Member States to revise their annual BSE monitoring programmes</span></div>
+        </div>
+      </div>
+
+      <!-- Section 3 -->
+      <div class="leg-section">
+        <div class="leg-section-title">Section 3 — Food Safety</div>
+        <div class="leg-items">
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/ukpga/1990/16/contents')" style="cursor:pointer"><span class="leg-ref">3.1</span><span class="leg-desc">Food Safety Act 1990</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2004/3279/contents')" style="cursor:pointer"><span class="leg-ref">3.2</span><span class="leg-desc">The General Food Regulations 2004 (SI No. 3279)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2004/2990/contents')" style="cursor:pointer"><span class="leg-ref">3.3</span><span class="leg-desc">The Food Safety Act 1990 (Amendment) Regulations 2004 (SI No. 2990)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.food.gov.uk/business-guidance/food-law-code-of-practice-england')" style="cursor:pointer"><span class="leg-ref">3.4</span><span class="leg-desc">Food Law – Code of Practice (England)</span></div>
+        </div>
+      </div>
+
+      <!-- Section 4 -->
+      <div class="leg-section">
+        <div class="leg-section-title">Section 4 — Welfare</div>
+        <div class="leg-items">
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2009/1099/contents')" style="cursor:pointer"><span class="leg-ref">4.1</span><span class="leg-desc">Council Regulation (EC) No 1099/2009 — protection of animals at the time of killing</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2015/1782/contents')" style="cursor:pointer"><span class="leg-ref">4.2</span><span class="leg-desc">The Welfare of Animals at the Time of Killing (England) Regulations 2015 (SI No. 1782)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2014/951/contents')" style="cursor:pointer"><span class="leg-ref">4.3</span><span class="leg-desc">The Welfare of Animals at the Time of Killing (Wales) Regulations 2014 (SI No. 951 (W. 92))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2005/1/contents')" style="cursor:pointer"><span class="leg-ref">4.4</span><span class="leg-desc">Council Regulation (EC) 1/2005 — protection of animals during transport and related operations</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2006/3260/contents')" style="cursor:pointer"><span class="leg-ref">4.5</span><span class="leg-desc">The Welfare of Animals (Transport) (England) Order 2006 (SI No. 3260)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2007/1047/contents')" style="cursor:pointer"><span class="leg-ref">4.5.1</span><span class="leg-desc">The Welfare of Animals (Transport) (Wales) Order 2007 (SI No. 1047 (W. 105))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eudr/2007/43/contents')" style="cursor:pointer"><span class="leg-ref">4.6</span><span class="leg-desc">Council Directive 2007/43/EC — minimum rules for protection of chickens kept for meat production</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2007/2078/contents')" style="cursor:pointer"><span class="leg-ref">4.7</span><span class="leg-desc">The Welfare of Farmed Animals (England) Regulations 2007 (SI No. 2078)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2010/3033/contents')" style="cursor:pointer"><span class="leg-ref">4.7.1</span><span class="leg-desc">The Welfare of Farmed Animals (England) (Amendment) Regulations 2010 (SI No. 3033)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2007/3070/contents')" style="cursor:pointer"><span class="leg-ref">4.8</span><span class="leg-desc">The Welfare of Farmed Animals (Wales) Regulations 2007 (SI No. 3070 (W264))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2010/2713/contents')" style="cursor:pointer"><span class="leg-ref">4.8.1</span><span class="leg-desc">The Welfare of Farmed Animals (Wales) (Amendment) Regulations 2010 (SI No. 2713 (W229))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2018/556/contents')" style="cursor:pointer"><span class="leg-ref">4.9</span><span class="leg-desc">The Mandatory Use of Closed Circuit Television in Slaughterhouses (England) Regulations 2018 (SI No. 556)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2024/682/contents')" style="cursor:pointer"><span class="leg-ref">4.9.1</span><span class="leg-desc">The Mandatory Use of Closed Circuit Television in Slaughterhouses (Wales) Regulations 2024 (SI No. 682 (W. 94))</span></div>
+        </div>
+      </div>
+
+      <!-- Section 5 -->
+      <div class="leg-section">
+        <div class="leg-section-title">Section 5 — ABP (Animal By-Products)</div>
+        <div class="leg-items">
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2009/1069/contents')" style="cursor:pointer"><span class="leg-ref">5.1</span><span class="leg-desc">Regulation (EC) No 1069/2009 — health rules as regards animal by-products and derived products not intended for human consumption</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2011/142/contents')" style="cursor:pointer"><span class="leg-ref">5.2</span><span class="leg-desc">Commission Regulation (EU) No 142/2011 — implementing Regulation (EC) No 1069/2009</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2013/2952/contents')" style="cursor:pointer"><span class="leg-ref">5.3</span><span class="leg-desc">The Animal By-Products (Enforcement) (England) Regulations 2013 (SI No. 2952)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2015/1980/contents')" style="cursor:pointer"><span class="leg-ref">5.3.1</span><span class="leg-desc">The Animal By-Products (Enforcement) (England) (Amendment) Regulations 2015 (SI No. 1980)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2014/517/contents')" style="cursor:pointer"><span class="leg-ref">5.4</span><span class="leg-desc">The Animal By-Products (Enforcement) (Wales) Regulations 2014 (SI No. 2014/517 (W. 60))</span></div>
+        </div>
+      </div>
+
+      <!-- Section 6 -->
+      <div class="leg-section">
+        <div class="leg-section-title">Section 6 — Identification</div>
+        <div class="leg-items">
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2000/1760/contents')" style="cursor:pointer"><span class="leg-ref">6.1</span><span class="leg-desc">Regulation (EC) No 1760/2000 — system for identification and registration of bovine animals</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2007/529/contents')" style="cursor:pointer"><span class="leg-ref">6.2</span><span class="leg-desc">The Cattle Identification Regulations 2007 (SI No. 529) + Amendments 2007, 2013, 2015</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2007/842/contents')" style="cursor:pointer"><span class="leg-ref">6.3</span><span class="leg-desc">The Cattle Identification (Wales) Regulations 2007 (SI No. 842 (W. 74)) + Amendments</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2005/644')" style="cursor:pointer"><span class="leg-ref">6.4</span><span class="leg-desc">Commission Regulation (EC) No 644/2005 — special identification system for bovine animals kept for cultural and historical purposes</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2004/911/contents')" style="cursor:pointer"><span class="leg-ref">6.5</span><span class="leg-desc">Commission Regulation (EC) No 911/2004 — eartags, passports and holding registers</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2009/3219/contents')" style="cursor:pointer"><span class="leg-ref">6.6</span><span class="leg-desc">The Sheep and Goats (Record, Identification and Movement) (England) Order 2009 (SI No. 3219)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2009/3364/contents')" style="cursor:pointer"><span class="leg-ref">6.7</span><span class="leg-desc">The Sheep and Goats (Records, Identification and Movement) (Wales) Order 2009 (SI No. 3364 (W. 296))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2018/761/contents')" style="cursor:pointer"><span class="leg-ref">6.8</span><span class="leg-desc">The Equine Identification (England) Regulations 2018 (SI No. 761) + Wales 2019</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2011/2154/contents')" style="cursor:pointer"><span class="leg-ref">6.9</span><span class="leg-desc">The Pigs (Records, Identification and Movement) Order 2011 (SI No. 2154)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2011/2830/contents')" style="cursor:pointer"><span class="leg-ref">6.10</span><span class="leg-desc">The Pigs (Records, Identification and Movement) (Wales) Order 2011 (SI No. 2830 (W.303))</span></div>
+        </div>
+      </div>
+
+      <!-- Section 7 -->
+      <div class="leg-section">
+        <div class="leg-section-title">Section 7 — Animals and Related Products</div>
+        <div class="leg-items">
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2011/1197/contents')" style="cursor:pointer"><span class="leg-ref">7.1</span><span class="leg-desc">The Trade in Animals and Related Products Regulations 2011 (SI No. 1197/2011)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2011/2379/contents')" style="cursor:pointer"><span class="leg-ref">7.2</span><span class="leg-desc">The Trade in Animals and Related Products (Wales) Regulations 2011 (SI No. 2379 (W. 252))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2010/37/contents')" style="cursor:pointer"><span class="leg-ref">7.3</span><span class="leg-desc">Commission Regulation EU No 37/2010 — pharmacologically active substances and maximum residue limits in foodstuffs of animal origin</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2009/470/contents')" style="cursor:pointer"><span class="leg-ref">7.4</span><span class="leg-desc">Regulation (EC) No 470/2009 — procedures for establishment of residue limits of pharmacologically active substances</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2015/787/contents')" style="cursor:pointer"><span class="leg-ref">7.5</span><span class="leg-desc">The Animals and Animal Products (Examination for Residues and Maximum Residue Limits) Regulations 2015 (SI No. 787)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2014/3001/contents')" style="cursor:pointer"><span class="leg-ref">7.6</span><span class="leg-desc">The Products containing Meat etc. (England) Regulations 2014 (SI No. 3001)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2006/1950/contents')" style="cursor:pointer"><span class="leg-ref">7.7</span><span class="leg-desc">Commission Regulation (EC) No 1950/2006 — list of substances essential for treatment of equidae</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2004/726/contents')" style="cursor:pointer"><span class="leg-ref">7.8</span><span class="leg-desc">Regulation (EC) No 726/2004 — authorisation and supervision of medicinal products; establishing European Medicines Agency</span></div>
+        </div>
+      </div>
+
+      <!-- Section 8 -->
+      <div class="leg-section">
+        <div class="leg-section-title">Section 8 — Disease Control</div>
+        <div class="leg-items">
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2000/2215/contents')" style="cursor:pointer"><span class="leg-ref">8.1</span><span class="leg-desc">The Meat (Disease Control) (England) Regulations 2000 (SI No. 2215)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2000/2257/contents')" style="cursor:pointer"><span class="leg-ref">8.2</span><span class="leg-desc">The Meat (Disease Control) (Wales) Regulations 2000 (SI No. 2257 (W. 150))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2003/1729/contents')" style="cursor:pointer"><span class="leg-ref">8.3</span><span class="leg-desc">The Disease Control (England) Order 2003 (SI No. 1729)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/wsi/2003/1966/contents')" style="cursor:pointer"><span class="leg-ref">8.4</span><span class="leg-desc">The Disease Control (Wales) Order 2003 (SI No. 1966 (W. 211))</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2003/1724/contents')" style="cursor:pointer"><span class="leg-ref">8.5–8.7</span><span class="leg-desc">Transport of Animals (Cleansing and Disinfection) Orders — England &amp; Wales (2003, 2007, 2008)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2007/448/contents')" style="cursor:pointer"><span class="leg-ref">8.8–8.9</span><span class="leg-desc">Diseases of Animals (Approved Disinfectants) Orders — England 2007 (SI No. 448) and Wales 2006/2007</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2008/465/contents')" style="cursor:pointer"><span class="leg-ref">8.10–8.13</span><span class="leg-desc">Products of Animal Origin (Disease Control) Regulations — England 2008/2009 and Wales 2008/2009</span></div>
+        </div>
+      </div>
+
+      <!-- Section 10 -->
+      <div class="leg-section">
+        <div class="leg-section-title">Section 10 — Feed, Food and Hygiene</div>
+        <div class="leg-items">
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2002/178/contents')" style="cursor:pointer"><span class="leg-ref">10.1</span><span class="leg-desc">Regulation (EC) No 178/2002 — general principles and requirements of food law</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2009/3255/contents')" style="cursor:pointer"><span class="leg-ref">10.3–10.4</span><span class="leg-desc">The Official Feed and Food Controls (England/Wales) Regulations 2009 + amendments</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2004/852/contents')" style="cursor:pointer"><span class="leg-ref">10.5</span><span class="leg-desc">Regulation (EC) No 852/2004 — hygiene of foodstuffs (H1)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2004/853/contents')" style="cursor:pointer"><span class="leg-ref">10.7</span><span class="leg-desc">Regulation (EC) No 853/2004 — specific hygiene rules for food of animal origin (H2)</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2005/2073/contents')" style="cursor:pointer"><span class="leg-ref">10.9</span><span class="leg-desc">Commission Regulation (EC) No 2073/2005 — microbiological criteria for foodstuffs</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2015/1375/contents')" style="cursor:pointer"><span class="leg-ref">10.11</span><span class="leg-desc">Commission Implementing Regulation (EU) No 2015/1375 — official controls for Trichinella in meat</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/uksi/2013/2996/contents')" style="cursor:pointer"><span class="leg-ref">10.13–10.14</span><span class="leg-desc">Food Safety and Hygiene (England) Regulations 2013 + Food Hygiene (Wales) Regulations 2006 + amendments</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2003/2160/contents')" style="cursor:pointer"><span class="leg-ref">10.15</span><span class="leg-desc">Regulation (EC) No 2160/2003 — control of salmonella and other specified food-borne zoonotic agents</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2008/1333/contents')" style="cursor:pointer"><span class="leg-ref">10.17</span><span class="leg-desc">Regulation (EC) No 1333/2008 — food additives</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2013/101')" style="cursor:pointer"><span class="leg-ref">10.20</span><span class="leg-desc">Commission Regulation (EU) No 101/2013 — use of lactic acid to reduce microbiological surface contamination on bovine carcases</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2011/1169/contents')" style="cursor:pointer"><span class="leg-ref">10.21</span><span class="leg-desc">Regulation (EU) No 1169/2011 — provision of food information to consumers</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2017/625/contents')" style="cursor:pointer"><span class="leg-ref">10.22</span><span class="leg-desc">Commission Regulation (EU) No 2017/625 — official controls to ensure application of food and feed law, animal health and welfare</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2019/624/contents')" style="cursor:pointer"><span class="leg-ref">10.22.1</span><span class="leg-desc">Commission Delegated Regulation (EU) No 2019/624 — official controls on production of meat and live bivalve molluscs</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2019/625/contents')" style="cursor:pointer"><span class="leg-ref">10.22.2</span><span class="leg-desc">Commission Delegated Regulation (EU) No 2019/625 — entry into the Union of consignments of certain animals and goods for human consumption</span></div>
+          <div class="leg-item" onclick="openLegislation('https://www.legislation.gov.uk/eur/2019/627/contents')" style="cursor:pointer"><span class="leg-ref">10.22.3</span><span class="leg-desc">Commission Implementing Regulation (EU) No 2019/627 — official controls on products of animal origin intended for human consumption</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════ LEGISLATION IFRAME MODAL ═══════════════ -->
+  <div id="legModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);flex-direction:column">
+    <div style="display:flex;align-items:center;background:var(--surface);border-bottom:1px solid var(--border);padding:8px 16px;gap:10px;flex-shrink:0">
+      <span id="legModalTitle" style="flex:1;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <a id="legModalExtLink" href="#" target="_blank" rel="noopener"
+        style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent2);text-decoration:none;white-space:nowrap;border:1px solid var(--accent2);padding:3px 8px;border-radius:4px">
+        ↗ legislation.gov.uk
+      </a>
+      <button onclick="closeLegislation()"
+        style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:4px 12px;font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;font-weight:600">
+        ✕ CLOSE
+      </button>
+    </div>
+    <iframe id="legIframe" src="" style="flex:1;border:none;width:100%;background:#fff"></iframe>
   </div>
 
   <!-- ═══════════════ CODES PANEL ═══════════════ -->
@@ -2333,6 +2571,66 @@ function switchTab(tab) {
   if (tab === 'outcome') { commitPendingCodeRows(); renderOutcome(); }
   if (tab === 'sor') { commitPendingCodeRows(); populateSORRegions(); populateSORPlants(); renderSORTable(); }
   if (tab === 'codes') lockCodes();
+}
+
+// ─── LEGISLATION OPEN IN NEW TAB ─────────────────────────────────────────────
+function openLegislation(url) {
+  window.open(url, '_blank', 'noopener');
+}
+
+// ─── LEGISLATION AI SEARCH ───────────────────────────────────────────────────
+const LEGISLATION_CONTEXT = `Manual for Official Controls (Amendment 110) — England and Wales
+This document contains the following regulatory sections:
+
+Section 1 - Diseases: Foot-and-Mouth Disease marking regulations (England & Wales, 2001), Avian Influenza Orders 2006, Council Directive 2002/99/EC (animal health rules for products of animal origin), Diseases of Swine Regulations 2014, Tuberculosis (England) Order 2014.
+
+Section 2 - TSE/BSE: Regulation (EC) 999/2001 (prevention/control/eradication of transmissible spongiform encephalopathies), Commission Regulation (EU) 969/2018 (SRM removal from small ruminants), TSE Regulations England 2018 and Wales 2018 + amendments, BSE status decisions 2007/453/EC and 2009/719/EC.
+
+Section 3 - Food Safety: Food Safety Act 1990, General Food Regulations 2004, Food Law Code of Practice (England).
+
+Section 4 - Welfare: Council Regulation (EC) 1099/2009 (animal protection at killing), Welfare of Animals at Time of Killing England 2015 and Wales 2014, Council Regulation (EC) 1/2005 (transport), Welfare of Animals (Transport) England 2006 and Wales 2007, Council Directive 2007/43/EC (broiler chickens), Welfare of Farmed Animals England 2007 and Wales 2007 + amendments, Mandatory CCTV in Slaughterhouses England 2018 (SI 556) and Wales 2024 (SI 682 W.94).
+
+Section 5 - ABP (Animal By-Products): Regulation (EC) 1069/2009 (health rules for ABPs not for human consumption), Commission Regulation (EU) 142/2011 (implementing 1069/2009), Animal By-Products (Enforcement) England 2013 and Wales 2014.
+
+Section 6 - Identification: Regulation (EC) 1760/2000 (bovine identification and registration), Cattle Identification Regulations England 2007 and Wales 2007 + amendments, Sheep and Goats (Record, ID and Movement) England 2009 and Wales 2009, Equine Identification England 2018 and Wales 2019, Pigs (Records, ID and Movement) England 2011 and Wales 2011.
+
+Section 7 - Animals and Related Products: Trade in Animals and Related Products England 2011 and Wales 2011, Commission Regulation EU 37/2010 (pharmacologically active substances/MRLs), Regulation (EC) 470/2009 (residue limits), Animals and Animal Products (Residues and MRL) Regulations 2015, Products containing Meat etc. (England) Regulations 2014, Commission Regulation (EC) 1950/2006 (substances for equidae treatment), Regulation (EC) 726/2004 (European Medicines Agency).
+
+Section 8 - Disease Control: Meat (Disease Control) England 2000 and Wales 2000, Disease Control Orders England 2003 and Wales 2003, Transport of Animals (Cleansing and Disinfection) Orders, Diseases of Animals (Approved Disinfectants) Orders, Products of Animal Origin (Disease Control) Regulations England 2008/2009 and Wales 2008/2009.
+
+Section 10 - Feed, Food and Hygiene: Regulation (EC) 178/2002 (general food law principles), Official Feed and Food Controls England 2009 and Wales 2009 + amendments, Regulation (EC) 852/2004 (food hygiene H1), Regulation (EC) 853/2004 (hygiene rules for food of animal origin H2), Commission Regulation (EC) 2073/2005 (microbiological criteria), Commission Implementing Regulation (EU) 2015/1375 (Trichinella controls in meat), Food Safety and Hygiene (England) Regulations 2013 and Food Hygiene (Wales) Regulations 2006 + amendments, Regulation (EC) 2160/2003 (salmonella control), Regulation (EC) 1333/2008 (food additives), Commission Regulation (EU) 101/2013 (lactic acid decontamination of bovine carcases), Regulation (EU) 1169/2011 (food information to consumers), Commission Regulation (EU) 2017/625 (official controls), Delegated Regulations (EU) 2019/624 and 2019/625, Implementing Regulation (EU) 2019/627 (official controls on products of animal origin).`;
+
+async function searchLegislation() {
+  const input = document.getElementById('legSearchInput');
+  const answerBox = document.getElementById('legAnswerBox');
+  const loadingBox = document.getElementById('legLoadingBox');
+  const query = input.value.trim();
+  if (!query) return;
+
+  answerBox.style.display = 'none';
+  loadingBox.style.display = 'block';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are a regulatory assistant specialised in UK/EU meat hygiene and veterinary inspection legislation. Answer questions using only the legislation listed in the Manual for Official Controls (Amendment 110) for England and Wales. Be concise, practical, and reference specific regulation numbers where relevant. If the question is not covered by this manual, say so briefly.\n\nLEGISLATION REFERENCE:\n${LEGISLATION_CONTEXT}`,
+        messages: [{ role: 'user', content: query }]
+      })
+    });
+    const data = await response.json();
+    const text = (data.content || []).map(c => c.text || '').join('');
+    answerBox.textContent = text || 'No answer returned.';
+    answerBox.style.display = 'block';
+  } catch (err) {
+    answerBox.textContent = 'Error: ' + err.message;
+    answerBox.style.display = 'block';
+  } finally {
+    loadingBox.style.display = 'none';
+  }
 }
 
 // ─── CODES EDITOR ───────────────────────────────────────────────

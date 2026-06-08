@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-05-15T07:23:28.850Z",
+  "exportedAt": "2026-06-08T11:06:45.601Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -1185,23 +1185,6 @@
         "GNTB": null,
         "GFSA": null,
         "RCP": null,
-        "GNED": null
-      }
-    },
-    "4057": {
-      "MHI": {
-        "arr": "15:00",
-        "dep": "16:00",
-        "MAIN_ABSORB": "GSRM",
-        "BREAK": null,
-        "GBPS": null,
-        "GSRM": null,
-        "GPAS": null,
-        "INSP": null,
-        "GNTB": null,
-        "GFSA": null,
-        "RCP": 1,
-        "RCP_CODE": "GSRM",
         "GNED": null
       }
     },

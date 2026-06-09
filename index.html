@@ -3925,7 +3925,7 @@ function renderCDTable() {
   const active = getCurrentCDWeek();
   let html = '<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:560px;font-size:13px">';
   html += '<thead><tr>' +
-    ['Month','Period','Week','Start (Monday)','End (Sunday)']
+    ['Month','Period','Week','Start','End']
       .map(h => `<th style="text-align:left;padding:8px 12px;background:var(--surface2);color:var(--accent2);font-family:'IBM Plex Mono',monospace;font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap">${h}</th>`)
       .join('') + '</tr></thead><tbody>';
   CD_WEEKS.forEach(w => {

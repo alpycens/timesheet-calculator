@@ -605,7 +605,7 @@
             <th class="group-time">Departure <button onclick="resetColumn('departure')" title="Reset" style="font-size:13px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
             <th class="group-time">SOR</th>
             <th class="group-checks">Sampling</th>
-            <th class="group-checks">C&amp;D</th>
+            <th class="group-checks" id="cdColHeader">C&amp;D</th>
             <th class="group-checks">SHA</th>
             <th class="group-checks">TB</th>
             <th class="group-checks">AI Zone</th>
@@ -3948,8 +3948,14 @@ function renderCDTable() {
 // içindeyse göster, değilse gizle.
 function updateCDScheduleBanner() {
   const el = document.getElementById('cdScheduleWarning');
-  if (!el) return;
   const w = getCurrentCDWeek();
+  // Schedule tablosundaki "C&D" sütun başlığını C&D haftasında kırmızı yap.
+  const colHdr = document.getElementById('cdColHeader');
+  if (colHdr) {
+    colHdr.style.color = w ? '#dc2626' : '';
+    colHdr.style.fontWeight = w ? '700' : '';
+  }
+  if (!el) return;
   if (w) {
     el.style.display = 'block';
     el.innerHTML = `⚠ <b>You're in a C&amp;D week</b> (Week ${w.week}: ${_cdFmt(w.start)} – ${_cdFmt(w.end)}). ` +

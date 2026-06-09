@@ -2079,10 +2079,17 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
         cell.textContent = '';
       }
 
-      // Codes hücresinde, sadece ovGrid'de, herhangi bir slotun statusu === 'OV Only' ise
-      // kodların altına küçük kırmızı uyarı ekle.
+      // Codes hücresinde, sadece ovGrid'de, statusu 'OV Only' OLAN ve o gün için
+      // gerçekten bir MHI timesheet kodu BULUNAN slotlar için kodların altına küçük
+      // kırmızı uyarı ekle.
+      // Genel kural: OV Only plantte MHI kodu yoksa uyarı GÖSTERME (örn 2900 — MHI
+      // timesheet kodu yok, dolayısıyla "don't forget MHI timesheet" gereksiz).
+      // lookupMHI() day-specific → generic → weekday fallback ve TEMP_MHI_CODES'u da
+      // kapsar; 4138/4392 için kayıt döner, 2900 için null döner.
       if (isCodesRow && containerId === 'ovGrid') {
-        const isOVOnly = (e1 && e1.status === 'OV Only') || (e2 && e2.status === 'OV Only');
+        const slotNeedsMHI = (e) =>
+          !!(e && e.status === 'OV Only' && lookupMHI(day, e.plant, e.status));
+        const isOVOnly = slotNeedsMHI(e1) || slotNeedsMHI(e2);
         if (isOVOnly) {
           const warn = document.createElement('div');
           warn.style.cssText = 'color:#dc2626;font-size:10px;font-weight:600;font-style:italic;margin-top:6px;line-height:1.3';

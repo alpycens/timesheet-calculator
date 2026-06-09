@@ -552,6 +552,7 @@
     <button class="tab-btn active" onclick="switchTab('timesheet')">SCHEDULE</button>
     <button class="tab-btn" onclick="switchTab('outcome')">TIMESHEET</button>
     <button class="tab-btn" onclick="switchTab('sor')">SOR</button>
+    <button class="tab-btn" onclick="switchTab('cd')">C&amp;D</button>
   </div>
 
   <button class="settings-gear" id="settingsGear" onclick="switchTab('codes')" title="Settings" aria-label="Settings">
@@ -571,6 +572,9 @@
     <div class="ts-header">
       <div class="ts-title">Weekly Schedule</div>
     </div>
+
+    <!-- C&D week reminder — only shown when today's date falls inside a C&D week -->
+    <div id="cdScheduleWarning" style="display:none;background:#fefce8;border:1px solid #f5d97a;color:#92580a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;line-height:1.45"></div>
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:10px">
@@ -663,6 +667,18 @@
         </div>
       </div>
       <div id="sorTableContainer"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ C&D PANEL ═══════════════ -->
+  <div class="panel" id="panel-cd">
+    <div style="margin-bottom:20px">
+      <div class="section-label">C&amp;D Weeks — 2026/27</div>
+      <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:14px;line-height:1.45">
+        Cleaning &amp; Disinfection weeks for the 2026/27 accounting year (one per accounting period).
+        When the current week falls inside one of these, a reminder appears on the Schedule tab.
+      </div>
+      <div id="cdTableContainer"></div>
     </div>
   </div>
 
@@ -2339,6 +2355,8 @@ function switchTab(tab) {
   }
   if (tab === 'outcome') { commitPendingCodeRows(); renderOutcome(); }
   if (tab === 'sor') { commitPendingCodeRows(); populateSORRegions(); populateSORPlants(); renderSORTable(); }
+  if (tab === 'cd') renderCDTable();
+  if (tab === 'timesheet') updateCDScheduleBanner();
   if (tab === 'codes') lockCodes();
 }
 
@@ -3860,6 +3878,87 @@ function saveDropDown() {
   alert('Drop-down lists saved!');
 }
 
+// ─── C&D (CLEANING & DISINFECTION) WEEKS ────────────────────────
+// 2026/27 muhasebe yılı C&D haftaları (Accounting_Period_2026-27.xlsx'te sarı
+// işaretli haftalar). Her muhasebe döneminde (period) bir C&D haftası var.
+// Tarihler Pzt (start) – Paz (end) dahil aralık.
+const CD_WEEKS = [
+  { month:'April',     period:'202601', week:4,  start:'2026-04-20', end:'2026-04-26' },
+  { month:'May',       period:'202602', week:8,  start:'2026-05-18', end:'2026-05-24' },
+  { month:'June',      period:'202603', week:11, start:'2026-06-08', end:'2026-06-14' },
+  { month:'July',      period:'202604', week:14, start:'2026-06-29', end:'2026-07-05' },
+  { month:'August',    period:'202605', week:19, start:'2026-08-03', end:'2026-08-09' },
+  { month:'September', period:'202606', week:25, start:'2026-09-14', end:'2026-09-20' },
+  { month:'October',   period:'202607', week:30, start:'2026-10-19', end:'2026-10-25' },
+  { month:'November',  period:'202608', week:33, start:'2026-11-09', end:'2026-11-15' },
+  { month:'December',  period:'202609', week:37, start:'2026-12-07', end:'2026-12-13' },
+  { month:'January',   period:'202610', week:43, start:'2027-01-18', end:'2027-01-24' },
+  { month:'February',  period:'202611', week:45, start:'2027-02-01', end:'2027-02-07' },
+  { month:'March',     period:'202612', week:50, start:'2027-03-08', end:'2027-03-14' },
+];
+
+// 'YYYY-MM-DD' → yerel tarih (gün başı). Saat dilimi kaymasını önlemek için
+// parçalayarak kurarız (new Date('YYYY-MM-DD') UTC kabul eder).
+function _cdParse(s) { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+function _cdFmt(s) {
+  const dt = _cdParse(s);
+  return dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); // 20 Apr 2026
+}
+
+// Verilen tarih (default: bugün) bir C&D haftasının içindeyse o haftayı döndür,
+// değilse null. Aralık Pzt 00:00 – Paz 23:59:59 (end günü dahil).
+function getCurrentCDWeek(date) {
+  const now = date || new Date();
+  const t = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  for (const w of CD_WEEKS) {
+    const s = _cdParse(w.start).getTime();
+    const e = _cdParse(w.end).getTime();
+    if (t >= s && t <= e) return w;
+  }
+  return null;
+}
+
+// C&D sekmesindeki tabloyu render et (Excel ile aynı sütunlar).
+function renderCDTable() {
+  const container = document.getElementById('cdTableContainer');
+  if (!container) return;
+  const active = getCurrentCDWeek();
+  let html = '<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:560px;font-size:13px">';
+  html += '<thead><tr>' +
+    ['Month','Period','Week','Start (Monday)','End (Sunday)']
+      .map(h => `<th style="text-align:left;padding:8px 12px;background:var(--surface2);color:var(--accent2);font-family:'IBM Plex Mono',monospace;font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap">${h}</th>`)
+      .join('') + '</tr></thead><tbody>';
+  CD_WEEKS.forEach(w => {
+    const isNow = active && active.week === w.week;
+    const rowBg = isNow ? '#fefce8' : 'transparent';
+    const nowTag = isNow ? ' <span style="color:#dc2626;font-weight:700;font-size:11px">● NOW</span>' : '';
+    html += `<tr style="background:${rowBg}">` +
+      `<td style="padding:8px 12px;border-bottom:1px solid var(--border)">${w.month}${nowTag}</td>` +
+      `<td style="padding:8px 12px;border-bottom:1px solid var(--border);font-family:monospace;color:var(--text-muted)">${w.period}</td>` +
+      `<td style="padding:8px 12px;border-bottom:1px solid var(--border);font-family:monospace">${w.week}</td>` +
+      `<td style="padding:8px 12px;border-bottom:1px solid var(--border);font-family:monospace">${_cdFmt(w.start)}</td>` +
+      `<td style="padding:8px 12px;border-bottom:1px solid var(--border);font-family:monospace">${_cdFmt(w.end)}</td>` +
+      '</tr>';
+  });
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+}
+
+// Schedule sekmesindeki C&D uyarı banner'ını güncelle. Bugün bir C&D haftası
+// içindeyse göster, değilse gizle.
+function updateCDScheduleBanner() {
+  const el = document.getElementById('cdScheduleWarning');
+  if (!el) return;
+  const w = getCurrentCDWeek();
+  if (w) {
+    el.style.display = 'block';
+    el.innerHTML = `⚠ <b>You're in a C&amp;D week</b> (Week ${w.week}: ${_cdFmt(w.start)} – ${_cdFmt(w.end)}). ` +
+      `Don't forget to carry out your C&amp;D checks.`;
+  } else {
+    el.style.display = 'none';
+  }
+}
+
 // ─── INIT ───────────────────────────────────────────────────────
 // Aktif slot butonunu state'e göre senkronize et
 (function _initSlotButtons() {
@@ -3874,6 +3973,7 @@ function saveDropDown() {
 })();
 renderTimesheet();
 renderOutcome();
+updateCDScheduleBanner();
 loadCodesFromFile(); // codes.json varsa otomatik yükle (yoksa default'a fallback)
 </script>
 </body>

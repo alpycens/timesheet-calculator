@@ -1922,9 +1922,10 @@ function computeOutcome(daysMap) {
               const computed = calcCodes(ovCodes, d, ovSorStr, clipDep, false, clipArr);
               result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:clipArr, dep:clipDep, sorStr:ovSorStr, _rcp:(ovCodes.RCP||null), ...computed };
             } else {
-              // OV penceresine hiç girmedi → tümü IUWT
-              const sorTotal = round25(sorDepH - sorArrH);
-              result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:ovCodes.arr, dep:ovCodes.dep, sorStr:ovSorStr, _rcp:false, BREAK:null, GBPS:null, GSRM:null, GPAS:null, GWAG:null, GAVI:null, HLVI:null, GNTB:null, GFSA:null, INSP:null, IUWT:sorTotal };
+              // OV penceresine hiç girilmedi → çalışılmadı sayılır (cancel mantığı):
+              // BREAK yazılmaz, IUWT net (gross − sabit kodlar) ve absorber yerine geçer.
+              const computed = calcCancelledCodes(ovSorStr, ovCodes);
+              result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:ovCodes.arr, dep:ovCodes.dep, sorStr:ovSorStr, _rcp:false, ...computed };
             }
           } else {
             // Normal OV: mevcut davranış
@@ -1980,9 +1981,12 @@ function computeOutcome(daysMap) {
           const computed = calcCodes(mhiCodes, d, mhiSorStr, clipDep, true, clipArr);
           result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, arr:clipArr, dep:clipDep, sorStr:mhiSorStr, ...computed };
         } else {
-          // MHI penceresine hiç girmedi → tümü IUWT
-          const sorTotal = round25(sorDepH - sorArrH);
-          result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, arr:mhiCodes.arr, dep:mhiCodes.dep, sorStr:mhiSorStr, BREAK:null, GBPS:null, GSRM:null, GPAS:null, GWAG:null, GAVI:null, HLVI:null, GNTB:null, GFSA:null, INSP:null, IUWT:sorTotal };
+          // MHI penceresine hiç girilmedi → çalışılmadı sayılır.
+          // Cancel mantığıyla birebir aynı: BREAK yazılmaz, IUWT = sorTotal - sabit
+          // kodlar (örn 7h gross − 0.5 break = 6.5 IUWT) ve IUWT main absorber'ın
+          // (INSP) yerine geçer. Eskiden gross sorTotal (7) yazıyordu — yanlıştı.
+          const computed = calcCancelledCodes(mhiSorStr, mhiCodes);
+          result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, arr:mhiCodes.arr, dep:mhiCodes.dep, sorStr:mhiSorStr, ...computed };
         }
       } else {
         // Normal MHI

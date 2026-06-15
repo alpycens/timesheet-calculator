@@ -1465,13 +1465,7 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   const isAlways = (key) => alwaysSet.has(key);
 
   // Conditional kodlar: checkbox/sampling'e bağlı VEYA absorber VEYA pin'liyse koşulsuz aktif
-  let   GWAG  = (absorber === 'GWAG' || isAlways('GWAG') || d.cd)               ? (codes.GWAG ?? null) : null;
-  // C&D ticklenmişse, kullanıcının yanındaki dropdown'dan seçtiği değer
-  // (0.25 / 0.50 / 0.75) GWAG saatini belirler. Seçim yoksa plant'in codes.GWAG'ı kullanılır.
-  if (d.cd && d.cdVal != null && d.cdVal !== '') {
-    const _cv = parseFloat(d.cdVal);
-    if (!isNaN(_cv) && _cv > 0) GWAG = _cv;
-  }
+  const GWAG  = (absorber === 'GWAG' || isAlways('GWAG') || d.cd)               ? (codes.GWAG ?? null) : null;
   const GFSA  = (absorber === 'GFSA' || isAlways('GFSA') || (d.sampling && d.sampling !== '')) ? (codes.GFSA ?? null) : null;
   // HLVI: Inside OV her zaman, diğer durumlarda SHA checkbox'a bağlı — absorber HLVI ise veya pin'liyse koşulsuz aktif
   const HLVI  = (absorber === 'HLVI' || isAlways('HLVI') || isInsideOV || d.sha) ? (codes.HLVI ?? null) : null;
@@ -1747,17 +1741,6 @@ function renderTimesheet() {
     };
     const sampDisableAttr = lockSamp ? 'disabled style="opacity:0.55;cursor:not-allowed" title="GFSA is always active (set in Settings) — sampling selection not required"' : '';
 
-    // ─── C&D değer seçimi ────────────────────────────────────────
-    // C&D ticklenince checkbox'ın altında küçük bir dropdown (0.25/0.50/0.75)
-    // çıkar; seçilen değer GWAG saatini belirler. Default = plant'in codes.GWAG'ı.
-    const _cdGwagCodes = [lookupOV(day, d.plant, d.status), lookupMHI(day, d.plant, d.status)].find(c => c && c.GWAG != null);
-    const cdGwagDefault = (_cdGwagCodes && _cdGwagCodes.GWAG != null) ? Number(_cdGwagCodes.GWAG).toFixed(2) : '0.75';
-    const cdv = (d.cdVal != null && d.cdVal !== '') ? Number(d.cdVal).toFixed(2) : cdGwagDefault;
-    const cdValSelect = d.cd
-      ? `<select onchange="updateField('${day}','cdVal',this.value)" title="C&amp;D value → GWAG hours" style="margin-top:3px;width:auto;min-width:56px;padding:2px 4px;font-size:11px;font-family:'IBM Plex Mono',monospace">` +
-        ['0.25','0.50','0.75'].map(o => `<option value="${o}" ${o===cdv?'selected':''}>${o}</option>`).join('') +
-        `</select>`
-      : '';
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -1770,7 +1753,7 @@ function renderTimesheet() {
       <td style="width:120px">${depHtml}</td>
       <td class="sor-time" style="width:120px;font-family:monospace;font-size:12px;white-space:nowrap;text-align:center">${sorHtml}</td>
       <td style="min-width:80px"><select onchange="updateField('${day}','sampling',this.value)" ${sampDisableAttr}>${samplingOpts}</select></td>
-      <td style="text-align:center;white-space:nowrap"><div style="display:flex;flex-direction:column;align-items:center;gap:0"><input type="checkbox" ${cbAttr(lockCD,  d.cd)}  onchange="updateField('${day}','cd',this.checked)">${cdValSelect}</div></td>
+      <td style="text-align:center"><input type="checkbox" ${cbAttr(lockCD,  d.cd)}  onchange="updateField('${day}','cd',this.checked)"></td>
       <td style="text-align:center"><input type="checkbox" ${cbAttr(lockSHA, d.sha)} onchange="updateField('${day}','sha',this.checked)"></td>
       <td style="text-align:center"><input type="checkbox" ${cbAttr(lockTB,  d.tb)}  onchange="updateField('${day}','tb',this.checked)"></td>
       <td style="text-align:center"><input type="checkbox" ${cbAttr(lockAI,  d.ai)}  onchange="updateField('${day}','ai',this.checked)"></td>

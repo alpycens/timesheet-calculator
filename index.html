@@ -1574,9 +1574,31 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   // Absorber'ın hesaplanması: totalToFill - fixedSum + extraDep
   // NOT: lateArrival artık IUWT_total içinde fixedSum'a dahil edildi — burada
   // ayrıca çıkarmıyoruz (yoksa iki kez düşmüş olur).
+  // ── Yazılan absorber değerini koru ("uplift") ───────────────────
+  // Normalde absorber SOR penceresine göre dengelenir (totalToFill - fixedSum).
+  // Ancak bazı kodlarda kullanıcı absorber'a, pencerenin ima ettiğinden bilerek
+  // FARKLI bir değer yazmış olabilir (örn 8072 TB OV: pencere 09:00-16:00 = 7s
+  // ama GNTB bilerek 7.5 yazılmış). Bu farkı koruyoruz:
+  //   balancedBaseline = tam katılımda, aktivite-dışı (baseline) kodlar düşülünce
+  //                      absorber'ın alacağı değer
+  //   uplift = yazılan absorber - balancedBaseline
+  // uplift her senaryoda absorber'a eklenir; erken çıkış / aktivite kodları yine
+  // normal şekilde düşmeye devam eder. Tutarlı kodlarda uplift=0 → davranış aynı.
+  let absorberUplift = 0;
+  const writtenAbsorber = codes[absorber];
+  if (writtenAbsorber != null && totalToFill !== null) {
+    const baselineFixed =
+      (absorber==='BREAK' ? 0 : (BREAK||0)) +
+      (absorber==='GBPS'  ? 0 : (GBPS ||0)) +
+      (absorber==='GSRM'  ? 0 : (GSRM ||0)) +
+      (absorber==='GPAS'  ? 0 : (GPAS ||0));
+    const balancedBaseline = round25(totalToFill - baselineFixed);
+    absorberUplift = round25(writtenAbsorber - balancedBaseline);
+  }
+
   let absorberValue = null;
   if (totalToFill !== null) {
-    absorberValue = round25(totalToFill - fixedSum + extraDep);
+    absorberValue = round25(totalToFill - fixedSum + extraDep + absorberUplift);
     if (absorberValue < 0) absorberValue = 0;
   }
 

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-06-19T09:29:15.579Z",
+  "exportedAt": "2026-06-19T11:52:49.685Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -371,7 +371,7 @@
     },
     "2900": {
       "OV Only": {
-        "arr": "06:45",
+        "arr": "07:00",
         "dep": "15:00",
         "MAIN_ABSORB": "INSP",
         "BREAK": 0.5,
@@ -380,7 +380,7 @@
         "GPAS": null,
         "GWAG": 0.75,
         "GAVI": null,
-        "INSP": 7.75,
+        "INSP": 7.5,
         "HLVI": null,
         "GNTB": 0.25,
         "GFSA": 0.25,

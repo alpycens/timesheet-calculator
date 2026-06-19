@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-06-19T09:20:40.644Z",
+  "exportedAt": "2026-06-19T09:29:15.579Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -877,7 +877,7 @@
         "INSP": 9,
         "HLVI": 0.5,
         "GNTB": 0.25,
-        "GFSA": 0.5,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -894,7 +894,7 @@
         "INSP": 8,
         "HLVI": 0.5,
         "GNTB": 0.25,
-        "GFSA": 0.5,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -911,7 +911,7 @@
         "INSP": 8,
         "HLVI": 0.5,
         "GNTB": 0.25,
-        "GFSA": 0.5,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -928,7 +928,7 @@
         "INSP": 7,
         "HLVI": 0.5,
         "GNTB": 0.25,
-        "GFSA": 0.5,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },

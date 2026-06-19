@@ -1472,11 +1472,22 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     const _cv = parseFloat(d.cdVal);
     if (!isNaN(_cv) && _cv > 0) GWAG = _cv;
   }
-  const GFSA  = (absorber === 'GFSA' || isAlways('GFSA') || (d.sampling && d.sampling !== '')) ? (codes.GFSA ?? null) : null;
+  let   GFSA  = (absorber === 'GFSA' || isAlways('GFSA') || (d.sampling && d.sampling !== '')) ? (codes.GFSA ?? null) : null;
+  // Sampling "per sample" adedi GFSA değerini çarpar (max 1). Absorber GFSA ise dokunmaz.
+  if (GFSA != null && absorber !== 'GFSA' && d.sampling && d.sampling !== '') {
+    const _q = parseInt(d.samplingQty) || 1;
+    GFSA = Math.min(round25((codes.GFSA || 0) * _q), 1);
+  }
   // HLVI: Inside OV her zaman, diğer durumlarda SHA checkbox'a bağlı — absorber HLVI ise veya pin'liyse koşulsuz aktif
   const HLVI  = (absorber === 'HLVI' || isAlways('HLVI') || isInsideOV || d.sha) ? (codes.HLVI ?? null) : null;
   // GNTB: absorber GNTB veya TB OV veya pin'liyse koşulsuz aktif, yoksa TB checkbox'a bağlı
-  const GNTB  = (absorber === 'GNTB' || isAlways('GNTB') || isTBOV || d.tb)      ? (codes.GNTB ?? null) : null;
+  let   GNTB  = (absorber === 'GNTB' || isAlways('GNTB') || isTBOV || d.tb)      ? (codes.GNTB ?? null) : null;
+  // TB "per sample" adedi GNTB değerini çarpar (max 1). Absorber GNTB veya TB OV
+  // (GNTB ana absorber, örn 7.5) ise dokunmaz — yalnızca aktivite olarak ticklenince.
+  if (GNTB != null && absorber !== 'GNTB' && !isTBOV && d.tb) {
+    const _q = parseInt(d.tbQty) || 1;
+    GNTB = Math.min(round25((codes.GNTB || 0) * _q), 1);
+  }
   const GAVI  = (absorber === 'GAVI' || isAlways('GAVI') || d.ai)                ? (codes.GAVI ?? null) : null;
 
   const sorDep = sorDepTime(sorStr);
@@ -1793,6 +1804,16 @@ function renderTimesheet() {
         `</select>`
       : '';
 
+    // ─── "per sample" adet seçicileri (1–10) ─────────────────────
+    // Sampling seçilince GFSA, TB ticklenince GNTB bu adetle çarpılır (max 1).
+    const _qtyOpts = (sel) => Array.from({length:10},(_,i)=>i+1)
+      .map(n => `<option value="${n}" ${String(n)===String(sel||1)?'selected':''}>${n}</option>`).join('');
+    const _qtyBox = (field, val) =>
+      `<div style="margin-top:3px;display:flex;flex-direction:column;align-items:center;gap:1px">` +
+      `<span style="font-size:9px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;line-height:1">per sample</span>` +
+      `<select onchange="updateField('${day}','${field}',this.value)" style="width:auto;min-width:46px;padding:2px 4px;font-size:11px;font-family:'IBM Plex Mono',monospace">${_qtyOpts(val)}</select></div>`;
+    const samplingQtySelect = (d.sampling && d.sampling !== '') ? _qtyBox('samplingQty', d.samplingQty) : '';
+    const tbQtySelect = d.tb ? _qtyBox('tbQty', d.tbQty) : '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="td-day">${day}</td>
@@ -1803,10 +1824,10 @@ function renderTimesheet() {
       <td style="width:120px">${arrHtml}</td>
       <td style="width:120px">${depHtml}</td>
       <td class="sor-time" style="width:120px;font-family:monospace;font-size:12px;white-space:nowrap;text-align:center">${sorHtml}</td>
-      <td style="min-width:80px"><select onchange="updateField('${day}','sampling',this.value)" ${sampDisableAttr}>${samplingOpts}</select></td>
+      <td style="min-width:80px"><div style="display:flex;flex-direction:column;gap:0"><select onchange="updateField('${day}','sampling',this.value)" ${sampDisableAttr}>${samplingOpts}</select>${samplingQtySelect}</div></td>
       <td style="text-align:center;white-space:nowrap"><div style="display:flex;flex-direction:column;align-items:center;gap:0"><input type="checkbox" ${cbAttr(lockCD,  d.cd)}  onchange="updateField('${day}','cd',this.checked)">${cdValSelect}</div></td>
       <td style="text-align:center"><input type="checkbox" ${cbAttr(lockSHA, d.sha)} onchange="updateField('${day}','sha',this.checked)"></td>
-      <td style="text-align:center"><input type="checkbox" ${cbAttr(lockTB,  d.tb)}  onchange="updateField('${day}','tb',this.checked)"></td>
+      <td style="text-align:center;white-space:nowrap"><div style="display:flex;flex-direction:column;align-items:center;gap:0"><input type="checkbox" ${cbAttr(lockTB,  d.tb)}  onchange="updateField('${day}','tb',this.checked)">${tbQtySelect}</div></td>
       <td style="text-align:center"><input type="checkbox" ${cbAttr(lockAI,  d.ai)}  onchange="updateField('${day}','ai',this.checked)"></td>
       <td style="min-width:180px"><select onchange="updateField('${day}','enforcement',this.value)">${enfOpts}</select></td>
       <td style="width:72px"><input type="number" step="0.25" min="0" value="${d.enfInHours}" placeholder="0" onchange="updateField('${day}','enfInHours',this.value)"></td>

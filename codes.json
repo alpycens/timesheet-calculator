@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-06-19T09:09:13.305Z",
+  "exportedAt": "2026-06-19T09:20:40.644Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -294,7 +294,7 @@
         "INSP": null,
         "HLVI": 9,
         "GNTB": 0.25,
-        "GFSA": 0.5,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -311,7 +311,7 @@
         "INSP": 9.5,
         "HLVI": 0.5,
         "GNTB": 0.25,
-        "GFSA": 0.5,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       }
@@ -329,8 +329,8 @@
         "GAVI": null,
         "INSP": 7.25,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -346,8 +346,8 @@
         "GAVI": null,
         "INSP": 7.25,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -363,8 +363,8 @@
         "GAVI": null,
         "INSP": 7.25,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       }
@@ -382,8 +382,8 @@
         "GAVI": null,
         "INSP": 7.75,
         "HLVI": null,
-        "GNTB": 0.5,
-        "GFSA": null,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       }
@@ -401,8 +401,8 @@
         "GAVI": 0.5,
         "INSP": 10,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       }
@@ -421,7 +421,7 @@
         "INSP": null,
         "HLVI": null,
         "GNTB": null,
-        "GFSA": null,
+        "GFSA": 0.25,
         "RCP": 1,
         "RCP_ONLY": true,
         "GNED": null
@@ -440,8 +440,8 @@
         "GAVI": null,
         "INSP": 9,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -457,8 +457,8 @@
         "GAVI": null,
         "INSP": 10,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -474,8 +474,8 @@
         "GAVI": null,
         "INSP": 10,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       }
@@ -493,8 +493,8 @@
         "GAVI": null,
         "INSP": 1.75,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -511,7 +511,7 @@
         "INSP": 1.75,
         "HLVI": 0.5,
         "GNTB": 0.25,
-        "GFSA": 0.5,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       }
@@ -529,8 +529,8 @@
         "GAVI": null,
         "INSP": 2.5,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -547,7 +547,7 @@
         "INSP": 2.5,
         "HLVI": null,
         "GNTB": null,
-        "GFSA": null,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       }
@@ -565,8 +565,8 @@
         "GAVI": null,
         "INSP": null,
         "HLVI": 7.25,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": 1,
         "RCP_CODE": "INSP",
         "GNED": null
@@ -583,8 +583,8 @@
         "GAVI": null,
         "INSP": null,
         "HLVI": 7,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -600,8 +600,8 @@
         "GAVI": null,
         "INSP": null,
         "HLVI": 7.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": 1,
         "RCP_CODE": "INSP",
         "GNED": null
@@ -618,8 +618,8 @@
         "GAVI": null,
         "INSP": null,
         "HLVI": 7,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": 1,
         "GNED": null
       },
@@ -635,8 +635,8 @@
         "GAVI": null,
         "INSP": 11.25,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       }
@@ -654,8 +654,8 @@
         "GAVI": null,
         "INSP": 6.75,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -671,8 +671,8 @@
         "GAVI": null,
         "INSP": 6.75,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -689,7 +689,7 @@
         "INSP": null,
         "HLVI": 0.5,
         "GNTB": 7.5,
-        "GFSA": 0.5,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -706,7 +706,7 @@
         "INSP": null,
         "HLVI": 0.5,
         "GNTB": 7.5,
-        "GFSA": 0.5,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -723,7 +723,7 @@
         "INSP": null,
         "HLVI": 0.5,
         "GNTB": 7.5,
-        "GFSA": 0.5,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       }
@@ -744,8 +744,8 @@
         "GAVI": null,
         "INSP": 9.25,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": 1,
         "GNED": null
       },
@@ -764,8 +764,8 @@
         "GAVI": null,
         "INSP": 7.75,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": 1,
         "GNED": null
       },
@@ -784,8 +784,8 @@
         "GAVI": null,
         "INSP": 7.25,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": 1,
         "GNED": null
       },
@@ -804,8 +804,8 @@
         "GAVI": null,
         "INSP": 9.25,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": 1,
         "GNED": null
       }
@@ -823,8 +823,8 @@
         "GAVI": null,
         "INSP": 7.5,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": 1,
         "GNED": null
       },
@@ -840,7 +840,7 @@
         "GAVI": null,
         "INSP": 4,
         "HLVI": 0.5,
-        "GNTB": 0.5,
+        "GNTB": 0.25,
         "GFSA": 0.75,
         "RCP": null,
         "GNED": null
@@ -857,7 +857,7 @@
         "GAVI": null,
         "INSP": 6.5,
         "HLVI": 0.5,
-        "GNTB": 0.5,
+        "GNTB": 0.25,
         "GFSA": 0.75,
         "RCP": null,
         "GNED": null
@@ -876,7 +876,7 @@
         "GAVI": null,
         "INSP": 9,
         "HLVI": 0.5,
-        "GNTB": 0.5,
+        "GNTB": 0.25,
         "GFSA": 0.5,
         "RCP": null,
         "GNED": null
@@ -893,7 +893,7 @@
         "GAVI": null,
         "INSP": 8,
         "HLVI": 0.5,
-        "GNTB": 0.5,
+        "GNTB": 0.25,
         "GFSA": 0.5,
         "RCP": null,
         "GNED": null
@@ -910,7 +910,7 @@
         "GAVI": null,
         "INSP": 8,
         "HLVI": 0.5,
-        "GNTB": 0.5,
+        "GNTB": 0.25,
         "GFSA": 0.5,
         "RCP": null,
         "GNED": null
@@ -927,7 +927,7 @@
         "GAVI": null,
         "INSP": 7,
         "HLVI": 0.5,
-        "GNTB": 0.5,
+        "GNTB": 0.25,
         "GFSA": 0.5,
         "RCP": null,
         "GNED": null
@@ -944,8 +944,8 @@
         "GAVI": null,
         "INSP": 4,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       }
@@ -963,8 +963,8 @@
         "GAVI": null,
         "INSP": 9,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -980,8 +980,8 @@
         "GAVI": null,
         "INSP": 8.5,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -997,8 +997,8 @@
         "GAVI": null,
         "INSP": 6.5,
         "HLVI": 0.5,
-        "GNTB": 0.5,
-        "GFSA": 0.5,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -1014,8 +1014,8 @@
         "GAVI": null,
         "INSP": null,
         "HLVI": null,
-        "GNTB": null,
-        "GFSA": null,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": 6
       },
@@ -1031,8 +1031,8 @@
         "GAVI": null,
         "INSP": null,
         "HLVI": null,
-        "GNTB": null,
-        "GFSA": null,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": 5
       }
@@ -1050,8 +1050,8 @@
         "GAVI": null,
         "INSP": 8.75,
         "HLVI": null,
-        "GNTB": null,
-        "GFSA": null,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -1067,8 +1067,8 @@
         "GAVI": null,
         "INSP": 9,
         "HLVI": null,
-        "GNTB": null,
-        "GFSA": null,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -1084,8 +1084,8 @@
         "GAVI": null,
         "INSP": 8,
         "HLVI": null,
-        "GNTB": null,
-        "GFSA": null,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -1101,8 +1101,8 @@
         "GAVI": null,
         "INSP": 8.25,
         "HLVI": null,
-        "GNTB": null,
-        "GFSA": null,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       },
@@ -1118,8 +1118,8 @@
         "GAVI": null,
         "INSP": 6.5,
         "HLVI": null,
-        "GNTB": null,
-        "GFSA": null,
+        "GNTB": 0.25,
+        "GFSA": 0.25,
         "RCP": null,
         "GNED": null
       }

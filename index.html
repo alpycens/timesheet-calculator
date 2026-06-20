@@ -110,6 +110,32 @@
     .dark-toggle svg { width: 16px; height: 16px; }
   }
 
+  /* Total hours badge — top-right, left of the settings gear */
+  .total-hours {
+    position: absolute;
+    top: 10px;
+    right: 58px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 13px;
+    border: 1px solid var(--border-soft);
+    border-radius: 18px;
+    background: var(--accent-soft);
+    font-family: 'IBM Plex Mono', monospace;
+    white-space: nowrap;
+    z-index: 101;
+  }
+  .th-label { font-size: 9.5px; letter-spacing: 0.12em; color: var(--text-muted); font-weight: 600; }
+  .th-value { font-size: 16px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .th-unit  { font-size: 11px; color: var(--text-muted); margin-left: -2px; }
+  @media (max-width: 600px) {
+    .total-hours { right: 46px; height: 30px; padding: 0 9px; gap: 4px; }
+    .th-label { font-size: 8.5px; }
+    .th-value { font-size: 14px; }
+  }
+
   /* Settings gear (admin access) — top-right, discreet */
   .settings-gear {
     position: absolute;
@@ -571,6 +597,7 @@
     gap: 12px;
     margin-bottom: 24px;
   }
+  .totals-strip:empty { display: none; margin: 0; }
   .total-card {
     background: var(--surface);
     border: 1px solid var(--border-soft);
@@ -624,6 +651,11 @@
     <button class="tab-btn" onclick="switchTab('outcome')">TAPP</button>
     <button class="tab-btn" onclick="switchTab('sor')">SOR</button>
     <button class="tab-btn" onclick="switchTab('cd')">C&amp;D</button>
+  </div>
+
+  <div class="total-hours" id="totalHours" title="Total hours for the week (excluding break)">
+    <span class="th-label">TOTAL</span>
+    <span class="th-value" id="totalHoursValue">0</span><span class="th-unit">h</span>
   </div>
 
   <button class="settings-gear" id="settingsGear" onclick="switchTab('codes')" title="Settings" aria-label="Settings">
@@ -692,9 +724,6 @@
 
   <!-- ═══════════════ OUTCOME PANEL ═══════════════ -->
   <div class="panel" id="panel-outcome">
-    <div class="outcome-header">
-      <div class="ts-title">TAPP</div>
-    </div>
 
     <div class="totals-strip" id="totalsStrip"></div>
 
@@ -1846,6 +1875,7 @@ function renderTimesheet() {
     `;
     tbody.appendChild(tr);
   });
+  updateTotalHours();
 }
 
 function updateField(day, field, value) {
@@ -2487,6 +2517,33 @@ function dedupBreakAcrossSlots(sec1, sec2) {
     const cur = (loser[absorber] != null && loser[absorber] !== '') ? loser[absorber] : 0;
     loser[absorber] = round25(cur + removed);
   });
+}
+
+// Haftanın toplam saatini (BREAK hariç) hesapla ve sağ üstteki badge'i güncelle.
+// OV + MHI, her iki slot; absorber/aktivite kodlarının tümü toplanır, BREAK
+// ve koşullu "(if late/early)" GNTB alternatifleri hariç tutulur.
+function updateTotalHours() {
+  const el = document.getElementById('totalHoursValue');
+  if (!el) return;
+  let out1, out2;
+  try {
+    out1 = computeOutcome(state.days);
+    out2 = computeOutcome(state.days2);
+    dedupBreakAcrossSlots(out1.ov,  out2.ov);
+    dedupBreakAcrossSlots(out1.mhi, out2.mhi);
+  } catch (e) { return; }
+  const KEYS = ['GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','IUWT','RCP'];
+  let total = 0;
+  [out1.ov, out2.ov, out1.mhi, out2.mhi].forEach(sec => {
+    if (!sec) return;
+    DAYS.forEach(day => {
+      const e = sec[day];
+      if (!e || e._empty) return;
+      KEYS.forEach(k => { const v = e[k]; if (typeof v === 'number' && !isNaN(v)) total += v; });
+    });
+  });
+  total = round25(total);
+  el.textContent = Number.isInteger(total) ? String(total) : total.toFixed(2).replace(/0$/,'');
 }
 
 function switchTab(tab) {

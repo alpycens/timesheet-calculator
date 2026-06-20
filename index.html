@@ -2524,7 +2524,7 @@ function updateTotalHours() {
     dedupBreakAcrossSlots(out1.ov,  out2.ov);
     dedupBreakAcrossSlots(out1.mhi, out2.mhi);
   } catch (e) { return; }
-  const KEYS = ['GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','IUWT','RCP'];
+  const KEYS = ['GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','IUWT','RCP','IENF','NENF'];
   let total = 0;
   [out1.ov, out2.ov, out1.mhi, out2.mhi].forEach(sec => {
     if (!sec) return;
@@ -2532,6 +2532,16 @@ function updateTotalHours() {
       const e = sec[day];
       if (!e || e._empty) return;
       KEYS.forEach(k => { const v = e[k]; if (typeof v === 'number' && !isNaN(v)) total += v; });
+    });
+  });
+  // Out-of-hours enforcement: çalışma günü DIŞINDA yapılan ekstra saat → toplama eklenir.
+  // (In-hours enforcement zaten IENF/NENF olarak çalışma saatleri içinde sayıldığı için
+  //  KEYS'e IENF/NENF eklendi; absorber düşüşünü dengeler, toplamı değiştirmez.)
+  [out1.enf, out2.enf].forEach(sec => {
+    if (!sec) return;
+    DAYS.forEach(day => {
+      const e = sec[day];
+      if (e && typeof e.outHours === 'number' && !isNaN(e.outHours)) total += e.outHours;
     });
   });
   total = round25(total);

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-06-19T11:52:49.685Z",
+  "exportedAt": "2026-06-21T23:45:12.515Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -1345,12 +1345,12 @@
         "arr": "10:00",
         "dep": "16:00",
         "MAIN_ABSORB": "GNTB",
-        "BREAK": 0.5,
+        "BREAK": null,
         "GBPS": null,
         "GSRM": null,
         "GPAS": null,
         "INSP": null,
-        "GNTB": 5.5,
+        "GNTB": 7.5,
         "GFSA": null,
         "RCP": null,
         "GNED": null

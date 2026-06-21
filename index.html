@@ -555,7 +555,7 @@
   .og-cell {
     padding: 10px 13px;
     font-size: 15px;
-    border-right: 1px solid var(--border-soft);
+    border-right: 1px solid var(--border);
     border-bottom: 1px solid var(--border-soft);
     display: flex;
     align-items: center;
@@ -592,8 +592,8 @@
     background: var(--surface2);
     font-family: 'IBM Plex Mono', monospace;
     font-size: 14px;
-    font-weight: 500;
-    color: var(--text-muted);
+    font-weight: 700;
+    color: var(--text);
     letter-spacing: 0.03em;
   }
 
@@ -2314,8 +2314,8 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
   });
 
   [['Status', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
-   ['SOR', (e) => e?.sorStr || '', 'var(--text-muted)', '400'],
-   ['Time', (e) => (e && !e._empty && e.arr && e.dep) ? `${e.arr}-${e.effectiveDep || e.dep}` : '', 'var(--accent)', '400'],
+   ['SOR', (e) => e?.sorStr || '', 'var(--text-muted)', '700'],
+   ['Time', (e) => (e && !e._empty && e.arr && e.dep) ? `${e.arr}-${e.effectiveDep || e.dep}` : '', 'var(--accent)', '700'],
    ['Codes', (e) => (e && !e._empty) ? formatCodes(e) : '', '#d97706', '400']
   ].forEach(([label, fn, color, weight], rowIdx) => {
     // Satır arka planları (saydam tint → light & dark uyumlu):

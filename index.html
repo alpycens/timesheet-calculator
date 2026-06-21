@@ -370,10 +370,10 @@
   .ts-table thead th.group-time { color: var(--accent2); }
   .ts-table thead th.group-checks { color: var(--accent3); }
   .ts-table thead th.group-enf { color: var(--purple); }
-  .ts-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .ts-table tbody tr { border-bottom: 2px solid var(--border); transition: background 0.1s; }
   .ts-table tbody tr:last-child { border-bottom: none; }
   .ts-table tbody tr:hover { background: #ffffff05; }
-  .ts-table td { padding: 5px 7px; border-right: 1px solid var(--border); vertical-align: middle; }
+  .ts-table td { padding: 5px 7px; border-right: 1px solid var(--border-soft); vertical-align: middle; }
   .ts-table td:last-child { border-right: none; }
   .td-day {
     font-family: 'IBM Plex Mono', monospace;
@@ -1758,6 +1758,10 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     GFSA:  GFSA_final,
     INSP:  INSP,
     IUWT, IENF, NENF,
+    // Çözülmüş ana absorber — formatCodes bunu kullanarak absorber satırını
+    // listenin en altına (IUWT'nin hemen üstüne) koyar. Olmazsa ham alan sırası
+    // kullanılır ve örn GFSA en alta düşerdi.
+    MAIN_ABSORB: absorber,
     // IUWT'nin iki bileşeni — render katmanı bunları kullanarak '(if late start)'
     // ve '(if early finish)' notlarını ekler. GNTB absorber'da gösterilmez.
     _iuwtLate:  absorberIsGNTB ? 0 : (iuwtLate  > 0 ? iuwtLate  : 0),

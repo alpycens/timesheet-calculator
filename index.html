@@ -268,6 +268,26 @@
   }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
+  /* "Daily Entries" — şık, belirgin, blue-grey başlık */
+  .daily-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.015em;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    white-space: nowrap;
+  }
+  .daily-label::before {
+    content: '';
+    width: 4px;
+    height: 19px;
+    border-radius: 3px;
+    background: linear-gradient(180deg, #94a3b8, #64748b);
+  }
+
   /* ─── SOR FILTER ROW (Region + Plant) ─── */
   /* Her grup (label + select) atomik bir blok — wrap yapsa bile birlikte kalır.
      Mobilde de iki grup yan yana sığsın diye küçük genişlikler kullanıyoruz. */
@@ -370,6 +390,13 @@
   .ts-table thead th.group-time { color: var(--accent2); }
   .ts-table thead th.group-checks { color: var(--accent3); }
   .ts-table thead th.group-enf { color: var(--purple); }
+  /* Schedule başlık grup renkleri — tint solid surface2 üzerine katmanlanır
+     (opak; sticky Day sütunu altındaki başlıkları kapatır, dark-mode uyumlu) */
+  .ts-table thead th.hdr-info  { background: linear-gradient(rgba(249,115,22,0.20),rgba(249,115,22,0.20)), var(--surface2); color: var(--accent2); }
+  .ts-table thead th:first-child.hdr-info { background: linear-gradient(rgba(249,115,22,0.20),rgba(249,115,22,0.20)), var(--surface2); }
+  .ts-table thead th.hdr-sor   { background: linear-gradient(rgba(234,179,8,0.24),rgba(234,179,8,0.24)), var(--surface2); color: #92580a; }
+  .ts-table thead th.hdr-check { background: linear-gradient(rgba(74,222,128,0.20),rgba(74,222,128,0.20)), var(--surface2); color: var(--accent); }
+  .ts-table thead th.hdr-enf   { background: linear-gradient(rgba(167,139,250,0.24),rgba(167,139,250,0.24)), var(--surface2); color: var(--purple); }
   .ts-table tbody tr { border-bottom: 2px solid var(--border); transition: background 0.1s; }
   .ts-table tbody tr:last-child { border-bottom: none; }
   .ts-table tbody tr:hover { background: #ffffff05; }
@@ -544,7 +571,7 @@
     color: var(--text-muted);
     justify-content: center;
   }
-  .og-header.day-col { color: var(--accent2); }
+  .og-header.day-col { color: #ea580c; }
 
   .og-section-header {
     background: var(--accent-soft);
@@ -661,7 +688,6 @@
   <!-- ═══════════════ TIMESHEET PANEL ═══════════════ -->
   <div class="panel active" id="panel-timesheet">
     <div class="ts-header">
-      <div class="ts-title">Weekly Schedule</div>
       <div class="total-hours" id="totalHours" title="Total hours for the week (excluding break)">
         <span class="th-label">TOTAL</span>
         <span class="th-value" id="totalHoursValue">0</span><span class="th-unit">h</span>
@@ -673,7 +699,7 @@
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:10px">
-        <div class="section-label" style="margin:0">Daily Entries</div>
+        <div class="daily-label">Daily Entries</div>
         <button onclick="clearAllDailyEntries()" title="Clear ALL data on both 1st and 2nd pages"
           style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:4px 10px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:5px;cursor:pointer;letter-spacing:0.5px">Clear</button>
       </div>
@@ -691,22 +717,22 @@
       <table class="ts-table">
         <thead>
           <tr>
-            <th>Day</th>
-            <th>Region <button onclick="resetColumn('region')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
-            <th>Plant <button onclick="resetColumn('plant')" title="Reset Plant and clear dependent fields (Status, Arrival, Departure, Sampling, C&amp;D, SHA, TB, AI Zone, Enforcement, In/Out Hours) on this page" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
-            <th>Plant Status <button onclick="resetColumn('plantStatus')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
-            <th>Status <button onclick="resetColumn('status')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
-            <th class="group-time">Arrival <button onclick="resetColumn('arrival')" title="Reset" style="font-size:13px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
-            <th class="group-time">Departure <button onclick="resetColumn('departure')" title="Reset" style="font-size:13px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
-            <th class="group-time">SOR</th>
-            <th class="group-checks">Sampling</th>
-            <th class="group-checks" id="cdColHeader">C&amp;D</th>
-            <th class="group-checks">SHA</th>
-            <th class="group-checks">TB</th>
-            <th class="group-checks">AI Zone</th>
-            <th class="group-enf">Enforcement</th>
-            <th class="group-enf">In Hours</th>
-            <th class="group-enf">Out Hours</th>
+            <th class="hdr-info">Day</th>
+            <th class="hdr-info">Region <button onclick="resetColumn('region')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
+            <th class="hdr-info">Plant <button onclick="resetColumn('plant')" title="Reset Plant and clear dependent fields (Status, Arrival, Departure, Sampling, C&amp;D, SHA, TB, AI Zone, Enforcement, In/Out Hours) on this page" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
+            <th class="hdr-info">Plant Status <button onclick="resetColumn('plantStatus')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
+            <th class="hdr-info">Status <button onclick="resetColumn('status')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
+            <th class="group-time hdr-info">Arrival <button onclick="resetColumn('arrival')" title="Reset" style="font-size:13px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
+            <th class="group-time hdr-info">Departure <button onclick="resetColumn('departure')" title="Reset" style="font-size:13px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
+            <th class="group-time hdr-sor">SOR</th>
+            <th class="group-checks hdr-check">Sampling</th>
+            <th class="group-checks hdr-check" id="cdColHeader">C&amp;D</th>
+            <th class="group-checks hdr-check">SHA</th>
+            <th class="group-checks hdr-check">TB</th>
+            <th class="group-checks hdr-check">AI Zone</th>
+            <th class="group-enf hdr-enf">Enforcement</th>
+            <th class="group-enf hdr-enf">In Hours</th>
+            <th class="group-enf hdr-enf">Out Hours</th>
           </tr>
         </thead>
         <tbody id="tsTableBody"></tbody>
@@ -834,7 +860,7 @@
       <div class="ts-table-wrap scroll-y" style="margin-bottom:24px">
         <table class="ts-table sticky-head" id="ovCodesTable">
           <thead><tr id="ovCodesHeadRow">
-            <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
+            <th class="hdr-info">Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
             <th style="color:var(--accent)">Main Absorb</th>
             <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th><th>GWAG</th>
             <th>GAVI</th><th>INSP</th><th>HLVI</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th title="Only RCP: arrival-departure süresi GSRM olarak yazılır">RCP-Only</th><th class="ov-extra-col-anchor"></th>
@@ -846,7 +872,7 @@
       <div class="ts-table-wrap scroll-y">
         <table class="ts-table sticky-head" id="mhiCodesTable">
           <thead><tr id="mhiCodesHeadRow">
-            <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
+            <th class="hdr-info">Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
             <th style="color:var(--accent)">Main Absorb</th>
             <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th>
             <th>INSP</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th title="Only RCP: arrival-departure süresi GSRM olarak yazılır">RCP-Only</th><th class="mhi-extra-col-anchor"></th>
@@ -872,7 +898,7 @@
         <div class="ts-table-wrap scroll-y" style="margin-bottom:24px">
           <table class="ts-table sticky-head" id="tempOVCodesTable">
             <thead><tr id="tempOVCodesHeadRow">
-              <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
+              <th class="hdr-info">Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
               <th style="color:var(--accent)">Main Absorb</th>
               <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th><th>GWAG</th>
               <th>GAVI</th><th>INSP</th><th>HLVI</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th title="Only RCP: arrival-departure süresi GSRM olarak yazılır">RCP-Only</th><th class="temp-ov-extra-col-anchor"></th>
@@ -884,7 +910,7 @@
         <div class="ts-table-wrap scroll-y">
           <table class="ts-table sticky-head" id="tempMHICodesTable">
             <thead><tr id="tempMHICodesHeadRow">
-              <th>Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
+              <th class="hdr-info">Day</th><th>Region</th><th>Plant</th><th>Status</th><th class="group-time">Arrival</th><th class="group-time">Departure</th>
               <th style="color:var(--accent)">Main Absorb</th>
               <th>BREAK</th><th>GBPS</th><th>GSRM</th><th>GPAS</th>
               <th>INSP</th><th>GNTB</th><th>GFSA</th><th>RCP</th><th title="Only RCP: arrival-departure süresi GSRM olarak yazılır">RCP-Only</th><th class="temp-mhi-extra-col-anchor"></th>
@@ -2286,16 +2312,22 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
     container.appendChild(cell);
   });
 
-  [['', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
+  [['Status', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
    ['SOR', (e) => e?.sorStr || '', 'var(--text-muted)', '400'],
    ['Time', (e) => (e && !e._empty && e.arr && e.dep) ? `${e.arr}-${e.effectiveDep || e.dep}` : '', 'var(--accent)', '400'],
-   ['', (e) => (e && !e._empty) ? formatCodes(e) : '', '#d97706', '400']
+   ['Codes', (e) => (e && !e._empty) ? formatCodes(e) : '', '#d97706', '400']
   ].forEach(([label, fn, color, weight], rowIdx) => {
-    const lc = document.createElement('div'); lc.className='og-cell og-row-label'; lc.textContent=label; container.appendChild(lc);
+    // Satır arka planları (saydam tint → light & dark uyumlu):
+    // Status=turuncu, SOR=sarı, Time=turkuaz, Codes=gri
+    const rowBg = { 0:'rgba(74,222,128,0.16)', 1:'rgba(234,179,8,0.13)', 2:'rgba(20,184,166,0.12)', 3:'rgba(120,130,145,0.12)' }[rowIdx] || '';
+    const lc = document.createElement('div'); lc.className='og-cell og-row-label'; lc.textContent=label;
+    if (rowBg) lc.style.background = rowBg;
+    container.appendChild(lc);
     const isCodesRow = (rowIdx === 3); // 4. satır = kodlar satırı
     DAYS.forEach(day => {
       const cell = document.createElement('div'); cell.className='og-cell og-value';
       cell.style.color=color; cell.style.fontWeight=weight; cell.style.fontSize='15px'; cell.style.whiteSpace='normal'; cell.style.lineHeight='1.6';
+      if (rowBg) cell.style.background = rowBg;
 
       const e1raw = sectionData[day];
       const e2raw = data2[day];

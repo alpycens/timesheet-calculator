@@ -4178,7 +4178,7 @@ const CD_WEEKS = [
 function _cdParse(s) { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
 function _cdFmt(s) {
   const dt = _cdParse(s);
-  return dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); // 20 Apr 2026
+  return dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'2-digit' }); // 20 Apr 26
 }
 
 // Verilen tarih (default: bugün) bir C&D haftasının içindeyse o haftayı döndür,
@@ -4199,10 +4199,10 @@ function renderCDTable() {
   const container = document.getElementById('cdTableContainer');
   if (!container) return;
   const active = getCurrentCDWeek();
-  let html = '<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:560px;font-size:13px">';
+  let html = '<div style="overflow-x:auto"><table style="border-collapse:collapse;width:auto;font-size:13px">';
   html += '<thead><tr>' +
     ['Month','Week','Start','End']
-      .map(h => `<th style="text-align:left;padding:8px 12px;background:var(--surface2);color:var(--accent2);font-family:'IBM Plex Mono',monospace;font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap">${h}</th>`)
+      .map(h => `<th style="text-align:left;padding:8px 6px;background:var(--surface2);color:var(--accent2);font-family:'IBM Plex Mono',monospace;font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap">${h}</th>`)
       .join('') + '</tr></thead><tbody>';
   CD_WEEKS.forEach(w => {
     const isNow = active && active.week === w.week;
@@ -4216,7 +4216,7 @@ function renderCDTable() {
       let bt = isNow ? `border-top:${fr};` : '';
       let bl = (isNow && pos === 'first') ? `border-left:${fr};` : '';
       let br = (isNow && pos === 'last') ? `border-right:${fr};` : '';
-      return `padding:8px 12px;${bt}${bb}${bl}${br}`;
+      return `padding:8px 6px;white-space:nowrap;${bt}${bb}${bl}${br}`;
     };
     html += '<tr>' +
       `<td style="${base('first')}">${w.month}${nowTag}</td>` +

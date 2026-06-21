@@ -2316,7 +2316,7 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
   [['Status', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
    ['SOR', (e) => e?.sorStr || '', 'var(--text-muted)', '700'],
    ['Time', (e) => (e && !e._empty && e.arr && e.dep) ? `${e.arr}-${e.effectiveDep || e.dep}` : '', 'var(--accent)', '700'],
-   ['Codes', (e) => (e && !e._empty) ? formatCodes(e) : '', '#d97706', '400']
+   ['Codes', (e) => (e && !e._empty) ? formatCodes(e) : '', '#d97706', '700']
   ].forEach(([label, fn, color, weight], rowIdx) => {
     // Satır arka planları (saydam tint → light & dark uyumlu):
     // Status=turuncu, SOR=sarı, Time=turkuaz, Codes=gri
@@ -4232,6 +4232,7 @@ function renderCDTable() {
   const container = document.getElementById('cdTableContainer');
   if (!container) return;
   const active = getCurrentCDWeek();
+  const curMonthName = new Date().toLocaleDateString('en-GB', { month: 'long' }); // örn "June"
   let html = '<div style="overflow-x:auto"><table style="border-collapse:collapse;width:auto;margin:0 auto;font-size:13px">';
   // Sütun renkleri (saydam tint → light & dark uyumlu):
   // Month=turuncu, Week=yeşil, Start/End=turkuaz
@@ -4243,15 +4244,21 @@ function renderCDTable() {
       .map((h,ci) => `<th style="text-align:left;padding:9px 16px;background:${colHBg[ci]};color:${colTxt[ci]};font-family:'IBM Plex Mono',monospace;font-weight:700;border-bottom:1px solid var(--border);white-space:nowrap">${h}</th>`)
       .join('') + '</tr></thead><tbody>';
   CD_WEEKS.forEach(w => {
-    const isNow = active && active.week === w.week;
-    const nowTag = isNow ? ' <span style="color:var(--accent);font-weight:700;font-size:11px">● NOW</span>' : '';
-    // Aktif ay: accent renkli çerçeve (dark mode'da da okunur).
-    const fr = isNow ? '2px solid var(--accent)' : '';
+    const isNow = active && active.week === w.week;          // C&D check aralığındaysak o hafta
+    const isCurMonth = !active && (w.month === curMonthName); // aralık dışındaysak içinde olduğumuz ay
+    const framed = isNow || isCurMonth;
+    // C&D check tarih aralığındaysak güçlü yeşil çerçeve + NOW (örn 29 Jun–5 Jul arasında
+    // June'da olsak bile çerçeve July satırına gider). Aralık dışındaysak içinde olduğumuz
+    // takvim ayını kibarca (ince blue-grey) çerçevele.
+    const fr = isNow ? '2px solid var(--accent)' : (isCurMonth ? '1.5px solid #94a3b8' : '');
+    const nowTag = isNow
+      ? ' <span style="color:var(--accent);font-weight:700;font-size:11px">● NOW</span>'
+      : '';
     const base = (pos, ci) => {
-      let bb = isNow ? `border-bottom:${fr};` : 'border-bottom:1px solid var(--border);';
-      let bt = isNow ? `border-top:${fr};` : '';
-      let bl = (isNow && pos === 'first') ? `border-left:${fr};` : '';
-      let br = (isNow && pos === 'last') ? `border-right:${fr};` : '';
+      let bb = framed ? `border-bottom:${fr};` : 'border-bottom:1px solid var(--border);';
+      let bt = framed ? `border-top:${fr};` : '';
+      let bl = (framed && pos === 'first') ? `border-left:${fr};` : '';
+      let br = (framed && pos === 'last') ? `border-right:${fr};` : '';
       return `padding:9px 16px;white-space:nowrap;background:${colBg[ci]};${bt}${bb}${bl}${br}`;
     };
     html += '<tr>' +

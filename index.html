@@ -3737,7 +3737,7 @@ function renderSORTableForPlant(plant, region) {
       html += '<div style="padding:10px 12px;border-bottom:1px solid var(--border)">';
       html += '<div style="font-weight:600;font-size:15.5px;margin-bottom:4px">' + r.status + '</div>';
       html += '<div style="font-size:13px;color:' + typeColor + ';font-family:monospace;margin-bottom:5px">' + r.type + '</div>';
-      html += '<div class="sor-time" style="font-family:monospace;font-size:13px;padding:3px 7px;border-radius:3px;margin-bottom:7px;display:inline-block">' + r.sor + '</div>';
+      html += '<div class="sor-time" style="font-family:monospace;font-size:13px;font-weight:700;padding:3px 7px;border-radius:3px;margin-bottom:7px;display:inline-block">' + r.sor + '</div>';
       // Render code list (no special highlighting for main absorb in SOR view)
       let codesHtml = '';
       if (r.codeItems && r.codeItems.length) {
@@ -3745,7 +3745,7 @@ function renderSORTableForPlant(plant, region) {
       }
       if (r.rcpNote != null) codesHtml += `<br><span style="color:#dc2626;font-weight:600">RCP: ${r.rcpNote} ${r.rcpCode || 'GSRM'}</span>`;
       if (r.trichNote) codesHtml += '<br><span style="color:#06b6d4;font-weight:600">0.75 GFSA (if Trich)</span>';
-      html += '<div style="color:#d97706;font-size:13px;line-height:1.7">' + codesHtml + '</div>';
+      html += '<div style="color:#d97706;font-size:13px;font-weight:700;line-height:1.7">' + codesHtml + '</div>';
       html += '</div>';
     });
     html += '</div>';

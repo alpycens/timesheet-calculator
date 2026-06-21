@@ -1403,6 +1403,44 @@ const ENF_CODES = {
 const ENF_LIST = Object.keys(ENF_CODES);
 const SAMPLING_OPTS = ['','RIM','Trichinella','TSE (Goats and Sheep) (including training)',"Aujeszky's",'EBL','Other'];
 
+// Sampling artık çoklu: d.samplings = [{type, qty}]. Aynı gün birden fazla sampling
+// seçilebilir. Eski tek-seçim (d.sampling + d.samplingQty) geriye dönük desteklenir.
+function getSamplings(d) {
+  if (Array.isArray(d.samplings)) return d.samplings.filter(s => s && s.type);
+  if (d.sampling) return [{ type: d.sampling, qty: parseInt(d.samplingQty) || 1 }];
+  return [];
+}
+function _samplingArr(day) {
+  const M = activeDaysMap();
+  const d = M[day];
+  if (!Array.isArray(d.samplings)) {        // eski tekil değeri bir kez migrate et
+    d.samplings = getSamplings(d);
+    delete d.sampling; delete d.samplingQty;
+  }
+  return d;
+}
+function addSampling(day, type) {
+  if (!type) return;
+  const d = _samplingArr(day);
+  d.samplings.push({ type, qty: 1 });
+  saveData(); renderTimesheet(); renderOutcome();
+}
+function updateSampling(day, idx, field, value) {
+  const d = _samplingArr(day);
+  if (!d.samplings[idx]) return;
+  if (field === 'qty') d.samplings[idx].qty = parseInt(value) || 1;
+  else if (field === 'type') {
+    if (!value) d.samplings.splice(idx, 1);   // '—' seçilince o satırı kaldır
+    else d.samplings[idx].type = value;
+  }
+  saveData(); renderTimesheet(); renderOutcome();
+}
+function removeSampling(day, idx) {
+  const d = _samplingArr(day);
+  d.samplings.splice(idx, 1);
+  saveData(); renderTimesheet(); renderOutcome();
+}
+
 let state = loadState();
 
 function _emptyDay() {
@@ -1504,11 +1542,13 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     const _cv = parseFloat(d.cdVal);
     if (!isNaN(_cv) && _cv > 0) GWAG = _cv;
   }
-  let   GFSA  = (absorber === 'GFSA' || isAlways('GFSA') || (d.sampling && d.sampling !== '')) ? (codes.GFSA ?? null) : null;
-  // Sampling "per sample" adedi GFSA değerini çarpar (max 1). Absorber GFSA ise dokunmaz.
-  if (GFSA != null && absorber !== 'GFSA' && d.sampling && d.sampling !== '') {
-    const _q = parseInt(d.samplingQty) || 1;
-    GFSA = Math.min(round25((codes.GFSA || 0) * _q), 1);
+  const _samps = getSamplings(d);
+  let   GFSA  = (absorber === 'GFSA' || isAlways('GFSA') || _samps.length > 0) ? (codes.GFSA ?? null) : null;
+  // Çoklu sampling: tüm seçili sampling'lerin adetleri toplanıp GFSA ile çarpılır (max 1).
+  // Absorber GFSA ise dokunmaz.
+  if (GFSA != null && absorber !== 'GFSA' && _samps.length > 0) {
+    const _totalQty = _samps.reduce((a, sm) => a + (parseInt(sm.qty) || 1), 0);
+    GFSA = Math.min(round25((codes.GFSA || 0) * _totalQty), 1);
   }
   // HLVI: Inside OV her zaman, diğer durumlarda SHA checkbox'a bağlı — absorber HLVI ise veya pin'liyse koşulsuz aktif
   const HLVI  = (absorber === 'HLVI' || isAlways('HLVI') || isInsideOV || d.sha) ? (codes.HLVI ?? null) : null;
@@ -1844,8 +1884,31 @@ function renderTimesheet() {
       `<div style="margin-top:3px;display:flex;flex-direction:column;align-items:center;gap:1px">` +
       `<span style="font-size:9px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;line-height:1">No. of samples</span>` +
       `<select onchange="updateField('${day}','${field}',this.value)" style="width:auto;min-width:46px;padding:2px 4px;font-size:11px;font-family:'IBM Plex Mono',monospace">${_qtyOpts(val)}</select></div>`;
-    const samplingQtySelect = (d.sampling && d.sampling !== '') ? _qtyBox('samplingQty', d.samplingQty) : '';
     const tbQtySelect = d.tb ? _qtyBox('tbQty', d.tbQty) : '';
+
+    // ─── Çoklu sampling hücresi ──────────────────────────────────
+    // Aynı gün birden fazla sampling: her satır = tip + adet (No. of samples) + sil.
+    // Altta "+ add sampling" ile yeni satır eklenir.
+    const _samplingList = getSamplings(d);
+    const _sampQtyOpts = (sel) => Array.from({length:10},(_,i)=>i+1)
+      .map(n => `<option value="${n}" ${String(n)===String(sel||1)?'selected':''}>${n}</option>`).join('');
+    let samplingCellHtml;
+    if (lockSamp) {
+      samplingCellHtml = `<select disabled style="opacity:0.55;cursor:not-allowed" title="GFSA is always active (set in Settings) — sampling selection not required"><option>—</option></select>`;
+    } else {
+      let _rows = '';
+      _samplingList.forEach((sm, idx) => {
+        const tOpts = SAMPLING_OPTS.map(o=>`<option value="${o}" ${o===sm.type?'selected':''}>${o||'—'}</option>`).join('');
+        _rows += `<div style="display:flex;align-items:center;gap:3px;margin-bottom:4px">` +
+          `<select onchange="updateSampling('${day}',${idx},'type',this.value)" style="flex:1;min-width:64px;font-size:11px">${tOpts}</select>` +
+          `<select onchange="updateSampling('${day}',${idx},'qty',this.value)" title="No. of samples" style="width:auto;min-width:42px;padding:2px 3px;font-size:11px">${_sampQtyOpts(sm.qty)}</select>` +
+          `<button onclick="removeSampling('${day}',${idx})" title="Remove sampling" style="border:none;background:transparent;color:var(--red);cursor:pointer;font-size:16px;line-height:1;padding:0 2px">×</button>` +
+          `</div>`;
+      });
+      const _addOpts = SAMPLING_OPTS.filter(o=>o).map(o=>`<option value="${o}">${o}</option>`).join('');
+      const _addCtrl = `<select onchange="addSampling('${day}',this.value);this.value=''" style="font-size:11px;color:var(--accent2)"><option value="">+ add sampling</option>${_addOpts}</select>`;
+      samplingCellHtml = `<div style="display:flex;flex-direction:column;gap:0;min-width:175px">${_rows}${_addCtrl}</div>`;
+    }
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="td-day">${day}</td>
@@ -1856,7 +1919,7 @@ function renderTimesheet() {
       <td style="width:120px">${arrHtml}</td>
       <td style="width:120px">${depHtml}</td>
       <td class="sor-time" style="width:120px;font-family:monospace;font-size:12px;white-space:nowrap;text-align:center">${sorHtml}</td>
-      <td style="min-width:80px"><div style="display:flex;flex-direction:column;gap:0"><select onchange="updateField('${day}','sampling',this.value)" ${sampDisableAttr}>${samplingOpts}</select>${samplingQtySelect}</div></td>
+      <td style="min-width:185px">${samplingCellHtml}</td>
       <td style="text-align:center;white-space:nowrap"><div style="display:flex;flex-direction:column;align-items:center;gap:0"><input type="checkbox" ${cbAttr(lockCD,  d.cd)}  onchange="updateField('${day}','cd',this.checked)">${cdValSelect}</div></td>
       <td style="text-align:center"><input type="checkbox" ${cbAttr(lockSHA, d.sha)} onchange="updateField('${day}','sha',this.checked)"></td>
       <td style="text-align:center;white-space:nowrap"><div style="display:flex;flex-direction:column;align-items:center;gap:0"><input type="checkbox" ${cbAttr(lockTB,  d.tb)}  onchange="updateField('${day}','tb',this.checked)">${tbQtySelect}</div></td>
@@ -1946,6 +2009,7 @@ function resetColumn(field) {
       d.arrival     = '';
       d.departure   = '';
       d.sampling    = '';
+      d.samplings   = [];
       d.cd          = false;
       d.sha         = false;
       d.tb          = false;
@@ -1979,6 +2043,7 @@ function clearAllDailyEntries() {
         d.arrival     = '';
         d.departure   = '';
         d.sampling    = '';
+        d.samplings   = [];
         d.cd          = false;
         d.sha         = false;
         d.tb          = false;

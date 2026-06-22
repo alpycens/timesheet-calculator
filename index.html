@@ -1876,7 +1876,17 @@ function renderTimesheet() {
     const samplingOpts = SAMPLING_OPTS.map(o=>`<option value="${o}" ${o===d.sampling?'selected':''}>${o||'—'}</option>`).join('');
     const arrHtml = cancelled ? '<span style="font-family:monospace;font-size:12px;color:#6b7280">00:00</span>' : timeSelect(day, 'arrival', d.arrival);
     const depHtml = cancelled ? '<span style="font-family:monospace;font-size:12px;color:#6b7280">00:00</span>' : timeSelect(day, 'departure', d.departure);
-    const sorHtml = getSOR(day, d.plant, d.status);
+    // RCP-only plantlerde (örn 4067) sabit SOR penceresi yoktur; codes 00:00-00:00
+    // gösterir. Bu durumda SOR'u kullanıcının girdiği arrival-departure'dan türet
+    // (girilmediyse boş bırak).
+    const _ovSorC  = (d.plant && d.status) ? lookupOV(day, d.plant, d.status)  : null;
+    const _mhiSorC = (d.plant && d.status) ? lookupMHI(day, d.plant, d.status) : null;
+    const isRcpOnlyPlant = (_ovSorC && _ovSorC.RCP_ONLY === true) || (_mhiSorC && _mhiSorC.RCP_ONLY === true);
+    const sorHtml = cancelled
+      ? getSOR(day, d.plant, d.status)
+      : (isRcpOnlyPlant
+          ? ((d.arrival && d.departure) ? `${d.arrival}-${d.departure}` : '')
+          : getSOR(day, d.plant, d.status));
 
     // ─── Hangi kodlar her zaman aktif? (pin'li veya MAIN_ABSORB) ───
     // O günün plant+status için OV ve MHI kodlarına bak:

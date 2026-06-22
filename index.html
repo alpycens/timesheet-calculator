@@ -2443,7 +2443,7 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
       [
         ['RCP',  (s) => s ? `${s.plant} ${s.status}` : '', '#dc2626', '600', '<br>+ '],
         ['Time', (s) => s ? s.sorStr : '',                  '#dc2626', '400', '<br>+ '],
-        ['',     (s) => s ? `${s.hours} ${s.code}` : '',    '#dc2626', '600', '<br>+ '],
+        ['Codes',(s) => s ? `${s.hours} ${s.code}` : '',    '#dc2626', '600', '<br>+ '],
       ].forEach(([label, fn, color, weight, joiner]) => {
         const lc = document.createElement('div');
         lc.className='og-cell og-row-label';
@@ -2551,7 +2551,7 @@ function renderMHIRcpSection(out) {
   [
     ['RCP',  (s) => `${s.plant} ${s.status}`, '#dc2626', '600', '<br>+ '],
     ['Time', (s) => s.sorStr,                  '#dc2626', '400', '<br>+ '],
-    ['',     (s) => `${s.hours} ${s.code}`,    '#dc2626', '600', '<br>+ '],
+    ['Codes',(s) => `${s.hours} ${s.code}`,    '#dc2626', '600', '<br>+ '],
   ].forEach(([label, fn, color, weight, joiner]) => {
     const lc = document.createElement('div');
     lc.className = 'og-cell og-row-label';

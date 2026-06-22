@@ -288,6 +288,10 @@
     background: linear-gradient(180deg, #94a3b8, #5d6b80);
     box-shadow: 0 1px 3px rgba(93,107,128,0.35);
   }
+  body.dark-mode .daily-label { color: #a7b4c8; }
+  body.dark-mode .daily-label::before { background: linear-gradient(180deg, #cbd5e1, #94a3b8); }
+  .sor-msg { color: #5d6b80; font-weight: 600; }
+  body.dark-mode .sor-msg { color: #a7b4c8; }
 
   /* ─── SOR FILTER ROW (Region + Plant) ─── */
   /* Her grup (label + select) atomik bir blok — wrap yapsa bile birlikte kalır.
@@ -307,11 +311,14 @@
     min-width: 0;
   }
   .sor-filter-group label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 15px;
-    color: var(--text-muted);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: #5d6b80;
     white-space: nowrap;
   }
+  body.dark-mode .sor-filter-group label { color: #a7b4c8; }
   .sor-filter-group select {
     font-size: 15px;
     padding: 6px 10px;
@@ -777,7 +784,7 @@
   <!-- ═══════════════ SOR PANEL ═══════════════ -->
   <div class="panel" id="panel-sor">
     <div style="margin-bottom:20px">
-      <div class="section-label">Plant SOR Reference</div>
+      <div class="daily-label" style="margin-bottom:14px">Plant SOR Reference</div>
       <div class="sor-filter-row">
         <div class="sor-filter-group">
           <label>Region:</label>
@@ -799,7 +806,7 @@
   <!-- ═══════════════ C&D PANEL ═══════════════ -->
   <div class="panel" id="panel-cd">
     <div style="margin-bottom:20px">
-      <div class="section-label">C&amp;D Weeks — 2026/27</div>
+      <div class="daily-label" style="margin-bottom:14px">C&amp;D Weeks — 2026/27</div>
       <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:14px;line-height:1.45">
         Cleaning &amp; Disinfection weeks for the 2026/27 accounting year (one per accounting period).
         When the current week falls inside one of these, a reminder appears on the Schedule tab.
@@ -3562,11 +3569,11 @@ function renderSORTable() {
   if (!container) return;
 
   if (!region) {
-    container.innerHTML = "<div style='color:var(--text-muted);font-size:14px'>Please select a region first.</div>";
+    container.innerHTML = "<div class='sor-msg' style='font-size:15px'>Please select a region first.</div>";
     return;
   }
   if (!plant) {
-    container.innerHTML = "<div style='color:var(--text-muted);font-size:14px'>Please select a plant.</div>";
+    container.innerHTML = "<div class='sor-msg' style='font-size:15px'>Please select a plant.</div>";
     return;
   }
 

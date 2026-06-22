@@ -393,7 +393,7 @@
   .ts-table thead th.group-enf { color: var(--purple); }
   /* Schedule başlık grup renkleri — tint solid surface2 üzerine katmanlanır
      (opak; sticky Day sütunu altındaki başlıkları kapatır, dark-mode uyumlu) */
-  .ts-table thead th.hdr-info  { background: linear-gradient(rgba(234,179,8,0.20),rgba(234,179,8,0.20)), var(--surface2); color: var(--accent2); }
+  .ts-table thead th.hdr-info  { background: linear-gradient(rgba(234,179,8,0.20),rgba(234,179,8,0.20)), var(--surface2); color: var(--accent); }
   .ts-table thead th:first-child.hdr-info { background: linear-gradient(rgba(234,179,8,0.20),rgba(234,179,8,0.20)), var(--surface2); }
   .ts-table thead th.hdr-sor   { background: linear-gradient(rgba(234,179,8,0.24),rgba(234,179,8,0.24)), var(--surface2); color: #92580a; }
   body.dark-mode .ts-table thead th.hdr-sor { color: #fcd34d; }
@@ -709,7 +709,7 @@
       <div style="display:flex;align-items:center;gap:10px">
         <div class="daily-label">Daily Entries</div>
         <button onclick="clearAllDailyEntries()" title="Clear ALL data on both 1st and 2nd pages"
-          style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:4px 10px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:5px;cursor:pointer;letter-spacing:0.5px">Clear</button>
+          style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:4px 10px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:5px;cursor:pointer;letter-spacing:0.5px">Clear</button>
       </div>
       <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden">
         <button id="slotTab-1st" onclick="switchSlot('1st')"
@@ -726,12 +726,12 @@
         <thead>
           <tr>
             <th class="hdr-info">Day</th>
-            <th class="hdr-info">Region <button onclick="resetColumn('region')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
-            <th class="hdr-info">Plant <button onclick="resetColumn('plant')" title="Reset Plant and clear dependent fields (Status, Arrival, Departure, Sampling, C&amp;D, SHA, TB, AI Zone, Enforcement, In/Out Hours) on this page" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
-            <th class="hdr-info">Plant Status <button onclick="resetColumn('plantStatus')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
-            <th class="hdr-info">Status <button onclick="resetColumn('status')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
-            <th class="group-time hdr-info">Arrival <button onclick="resetColumn('arrival')" title="Reset" style="font-size:13px;padding:1px 5px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
-            <th class="group-time hdr-info">Departure <button onclick="resetColumn('departure')" title="Reset" style="font-size:13px;padding:1px 5px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
+            <th class="hdr-info">Region <button onclick="resetColumn('region')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
+            <th class="hdr-info">Plant <button onclick="resetColumn('plant')" title="Reset Plant and clear dependent fields (Status, Arrival, Departure, Sampling, C&amp;D, SHA, TB, AI Zone, Enforcement, In/Out Hours) on this page" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
+            <th class="hdr-info">Plant Status <button onclick="resetColumn('plantStatus')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
+            <th class="hdr-info">Status <button onclick="resetColumn('status')" title="Reset" style="font-size:13.5px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
+            <th class="group-time hdr-info">Arrival <button onclick="resetColumn('arrival')" title="Reset" style="font-size:13px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
+            <th class="group-time hdr-info">Departure <button onclick="resetColumn('departure')" title="Reset" style="font-size:13px;padding:1px 5px;border:1px solid var(--accent2);background:var(--accent2);color:#fff;border-radius:3px;cursor:pointer;margin-left:4px">↺</button></th>
             <th class="group-time hdr-sor">SOR</th>
             <th class="group-checks hdr-check">Sampling</th>
             <th class="group-checks hdr-check" id="cdColHeader">C&amp;D</th>

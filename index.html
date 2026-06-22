@@ -393,10 +393,16 @@
   .ts-table thead th.group-enf { color: var(--purple); }
   /* Schedule başlık grup renkleri — tint solid surface2 üzerine katmanlanır
      (opak; sticky Day sütunu altındaki başlıkları kapatır, dark-mode uyumlu) */
-  .ts-table thead th.hdr-info  { background: linear-gradient(rgba(249,115,22,0.26),rgba(249,115,22,0.26)), var(--surface2); color: var(--accent2); }
-  .ts-table thead th:first-child.hdr-info { background: linear-gradient(rgba(249,115,22,0.26),rgba(249,115,22,0.26)), var(--surface2); }
+  .ts-table thead th.hdr-info  { background: linear-gradient(rgba(234,179,8,0.20),rgba(234,179,8,0.20)), var(--surface2); color: var(--accent2); }
+  .ts-table thead th:first-child.hdr-info { background: linear-gradient(rgba(234,179,8,0.20),rgba(234,179,8,0.20)), var(--surface2); }
   .ts-table thead th.hdr-sor   { background: linear-gradient(rgba(234,179,8,0.24),rgba(234,179,8,0.24)), var(--surface2); color: #92580a; }
   body.dark-mode .ts-table thead th.hdr-sor { color: #fcd34d; }
+  /* Dark mode: turuncu başlık ve sarı gün hücreleri koyu zeminde muddy görünmesin —
+     daha parlak tonlar + biraz daha açık base (surface2) kullan. */
+  body.dark-mode .ts-table thead th.hdr-info,
+  body.dark-mode .ts-table thead th:first-child.hdr-info {
+    background: linear-gradient(rgba(250,204,21,0.30),rgba(250,204,21,0.30)), var(--surface2);
+  }
   .ts-table thead th.hdr-check { background: linear-gradient(rgba(74,222,128,0.20),rgba(74,222,128,0.20)), var(--surface2); color: var(--accent); }
   .ts-table thead th.hdr-enf   { background: linear-gradient(rgba(167,139,250,0.24),rgba(167,139,250,0.24)), var(--surface2); color: var(--purple); }
   .ts-table tbody tr { border-bottom: 2px solid var(--border); transition: background 0.1s; }
@@ -411,7 +417,7 @@
     color: var(--text);
     letter-spacing: 0.04em;
     white-space: nowrap;
-    background: linear-gradient(rgba(234,179,8,0.18), rgba(234,179,8,0.18)), var(--surface);
+    background: var(--surface);
     width: 100px;
     position: sticky;
     left: 0;

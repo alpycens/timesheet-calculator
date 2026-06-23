@@ -2044,7 +2044,9 @@ function updateTime(day, field, part, value) {
   const cur = (M[day][field] || ':').split(':');
   if (part === 'h') cur[0] = value;
   else cur[1] = value;
-  M[day][field] = (cur[0] || cur[1]) ? (cur[0]||'00')+':'+(cur[1]||'00') : '';
+  // Kullanıcı bir kısmı '—' (boş) seçerse saati tamamen temizle (00:00'a düşürme).
+  // Bir değer seçilirse eksik kısmı 00 ile tamamla (hızlı giriş).
+  M[day][field] = (value === '') ? '' : (cur[0]||'00')+':'+(cur[1]||'00');
   saveData();
   renderTimesheet();
   renderOutcome();

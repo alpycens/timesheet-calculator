@@ -1665,10 +1665,20 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
 
   // 4 saatten az çalışıldıysa BREAK yazma (mola hakkı doğmaz). Çalışılan saat =
   // gerçek katılım (actualArr→actualDep); girilmemişse SOR penceresine düş.
+  // 4 saatten az çalışıldıysa BREAK YAZMA — ancak break'i main absorber'a EKLEME,
+  // sadece çıktıdan sil (fixedSum'da kalır → absorber değişmez, toplam break kadar azalır).
+  // OV Only plantlerde çalışma süresi tek bir parça değil; OV.arr → MHI.dep birleşik
+  // span'i üzerinden hesaplanır (SOR_CODES'taki birleşik aralık).
   let workedH = null;
-  if (actualArr && actualDep) workedH = round25(timeToH(actualDep) - timeToH(actualArr));
-  else if (sorTotal !== null) workedH = sorTotal;
-  if (workedH !== null && workedH < 4) BREAK = null;
+  if (d.status === 'OV Only' && SOR_CODES[d.plant] && SOR_CODES[d.plant]['OV Only']) {
+    const _p = String(SOR_CODES[d.plant]['OV Only']).split('-');
+    if (_p[0] && _p[1]) workedH = round25(timeToH(_p[1]) - timeToH(_p[0]));
+  } else if (actualArr && actualDep) {
+    workedH = round25(timeToH(actualDep) - timeToH(actualArr));
+  } else if (sorTotal !== null) {
+    workedH = sorTotal;
+  }
+  const hideBreak = (workedH !== null && workedH < 4);
 
   // Sabit (absorber dışındaki) kodların toplamı — bunlar sabit kalır, absorber dengeyi alır
   // NOT: RCP artık sorTotal'den çıkarıldığı için fixedSum'a eklenmez
@@ -1798,7 +1808,7 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   }
 
   return {
-    BREAK: BREAK_final,
+    BREAK: hideBreak ? null : BREAK_final,
     GBPS:  GBPS_final,
     GSRM:  GSRM_final,
     GPAS:  GPAS_final,

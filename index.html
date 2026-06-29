@@ -1545,7 +1545,7 @@ function sorDepTime(s) { if (!s) return null; return s.split('-')[1] || null; }
 function sorArrTime(s) { if (!s) return null; return s.split('-')[0] || null; }
 
 function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
-  const BREAK = codes.BREAK ?? null;
+  let   BREAK = codes.BREAK ?? null;
   const GBPS  = codes.GBPS  ?? null;
   const GSRM_base = codes.GSRM ?? null;
   // RCP: kodda RCP değeri varsa otomatik aktif. Ekstra (default GSRM) RCP olarak
@@ -1663,6 +1663,13 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   // (örn 9 saatlik SOR'un 1 saati RCP, kalan 8 saat normal kodlara dağılır)
   const totalToFill = (sorTotal !== null) ? round25(sorTotal - rcpVal) : null;
 
+  // 4 saatten az çalışıldıysa BREAK yazma (mola hakkı doğmaz). Çalışılan saat =
+  // gerçek katılım (actualArr→actualDep); girilmemişse SOR penceresine düş.
+  let workedH = null;
+  if (actualArr && actualDep) workedH = round25(timeToH(actualDep) - timeToH(actualArr));
+  else if (sorTotal !== null) workedH = sorTotal;
+  if (workedH !== null && workedH < 4) BREAK = null;
+
   // Sabit (absorber dışındaki) kodların toplamı — bunlar sabit kalır, absorber dengeyi alır
   // NOT: RCP artık sorTotal'den çıkarıldığı için fixedSum'a eklenmez
   // NOT: IUWT_total (early+late) burada zaten dahil — absorber otomatik düşer
@@ -1711,8 +1718,11 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   let absorberUplift = 0;
   const writtenAbsorber = codes[absorber];
   if (writtenAbsorber != null && totalToFill !== null) {
+    // NOT: BREAK için orijinal codes.BREAK kullanılır — "4 saatten az → break yok"
+    // kuralı BREAK'i null yapsa bile, yazılan absorber tam baseline'a göre yazıldığı
+    // için uplift kaymaz. Break kaldırıldığında o saat absorber'a (INSP) eklenir.
     const baselineFixed =
-      (absorber==='BREAK' ? 0 : (BREAK||0)) +
+      (absorber==='BREAK' ? 0 : (codes.BREAK||0)) +
       (absorber==='GBPS'  ? 0 : (GBPS ||0)) +
       (absorber==='GSRM'  ? 0 : (GSRM ||0)) +
       (absorber==='GPAS'  ? 0 : (GPAS ||0));

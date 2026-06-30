@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-06-21T23:45:12.515Z",
+  "exportedAt": "2026-06-30T13:46:43.852Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -832,13 +832,13 @@
         "arr": "15:00",
         "dep": "20:30",
         "MAIN_ABSORB": "INSP",
-        "BREAK": 0.5,
+        "BREAK": null,
         "GBPS": 0.5,
         "GSRM": 0.5,
         "GPAS": null,
         "GWAG": 0.75,
         "GAVI": null,
-        "INSP": 4,
+        "INSP": 4.5,
         "HLVI": 0.5,
         "GNTB": 0.25,
         "GFSA": 0.75,

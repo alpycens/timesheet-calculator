@@ -2404,7 +2404,9 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
       const block2 = renderSlotBlock(v2, false);
 
       if (block1 && block2) {
-        cell.innerHTML = `<div>${block1}</div><div style="text-align:center;color:var(--text-muted);font-size:14px;margin:4px 0">+</div><div>${block2}</div>`;
+        // Aynı gün iki farklı plant: ikinci planti, ilkinin altına net bir ayraç
+        // çizgisiyle uzatarak yaz ('+' yerine yatay çizgi → daha okunur, section uzar).
+        cell.innerHTML = `<div>${block1}</div><div style="border-top:1.5px solid var(--border);margin:6px -13px;opacity:0.9"></div><div>${block2}</div>`;
       } else if (block1) {
         cell.innerHTML = block1;
       } else if (block2) {

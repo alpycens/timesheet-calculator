@@ -2415,9 +2415,21 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
   };
 
   // Önce 1. slot tam bloğu; aynı gün ikinci bir plant varsa 2. slot tam bloğunu ALTINA ekle
-  renderRowSet(sectionData, false);
-  const hasSlot2 = DAYS.some(day => { const e = data2[day]; return e && !e._rcpOnly; });
-  if (hasSlot2) renderRowSet(data2, true);
+  // Bu grid (OV veya MHI) için hangi slotların gerçek verisi var?
+  const isReal = (e) => !!(e && !e._rcpOnly);
+  const slot1Has = DAYS.some(day => isReal(sectionData[day]));
+  const slot2Has = DAYS.some(day => isReal(data2[day]));
+  if (slot1Has && slot2Has) {
+    // Aynı rol iki farklı plantte → önce 1. blok, altına 2. blok
+    renderRowSet(sectionData, false);
+    renderRowSet(data2, true);
+  } else if (slot2Has) {
+    // Sadece 2. slot bu role ait (örn slot1=MHI, slot2=OV) → tek blok, boş 1. section AÇMA
+    renderRowSet(data2, false);
+  } else {
+    // Sadece 1. slot (veya hiçbiri) → tek blok
+    renderRowSet(sectionData, false);
+  }
 
   // ─── RCP satırlarını OV grid'in içine ekle (sadece ovGrid için) ───
   // 1st ve 2nd slot RCP'leri birleştirir: aynı gün her ikisinde de RCP varsa

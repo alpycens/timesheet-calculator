@@ -2359,83 +2359,65 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
     container.appendChild(cell);
   });
 
-  [['Status', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
-   ['SOR', (e) => e?.sorStr || '', 'var(--text-muted)', '700'],
-   ['Time', (e) => (e && !e._empty && e.arr && e.dep) ? `${e.arr}-${e.effectiveDep || e.dep}` : '', 'var(--accent)', '700'],
-   ['Codes', (e) => (e && !e._empty) ? formatCodes(e) : '', '#d97706', '700']
-  ].forEach(([label, fn, color, weight], rowIdx) => {
-    // Satır arka planları (saydam tint → light & dark uyumlu):
-    // Status=turuncu, SOR=sarı, Time=turkuaz, Codes=gri
-    const rowBg = { 0:'rgba(74,222,128,0.16)', 1:'rgba(234,179,8,0.13)', 2:'rgba(20,184,166,0.12)', 3:'rgba(120,130,145,0.12)' }[rowIdx] || '';
-    const lc = document.createElement('div'); lc.className='og-cell og-row-label'; lc.textContent=label;
-    if (rowBg) lc.style.background = rowBg;
-    container.appendChild(lc);
-    const isCodesRow = (rowIdx === 3); // 4. satır = kodlar satırı
-    DAYS.forEach(day => {
-      const cell = document.createElement('div'); cell.className='og-cell og-value';
-      cell.style.color=color; cell.style.fontWeight=weight; cell.style.fontSize='15px'; cell.style.whiteSpace='normal'; cell.style.lineHeight='1.6';
-      if (rowBg) cell.style.background = rowBg;
+  const ROWS = [
+    ['Status', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
+    ['SOR', (e) => e?.sorStr || '', 'var(--text-muted)', '700'],
+    ['Time', (e) => (e && !e._empty && e.arr && e.dep) ? `${e.arr}-${e.effectiveDep || e.dep}` : '', 'var(--accent)', '700'],
+    ['Codes', (e) => (e && !e._empty) ? formatCodes(e) : '', '#d97706', '700']
+  ];
+  const rowBgMap = { 0:'rgba(74,222,128,0.16)', 1:'rgba(234,179,8,0.13)', 2:'rgba(20,184,166,0.12)', 3:'rgba(120,130,145,0.12)' };
+  const stylizeIUWT = (match) => `<span style="font-size:10px;font-style:italic;color:#dc2626">${match}</span>`;
 
-      const e1raw = sectionData[day];
-      const e2raw = data2[day];
-      // Salt-RCP entry'ler ana OV/MHI grid'inde görünmez (sadece RCP section)
-      const e1 = (e1raw && e1raw._rcpOnly) ? null : e1raw;
-      const e2 = (e2raw && e2raw._rcpOnly) ? null : e2raw;
-      const v1 = e1 ? (fn(e1) || '') : '';
-      const v2 = e2 ? (fn(e2) || '') : '';
+  // Bir slotun tam bloğunu (Status/SOR/Time/Codes = 4 satır) render eder.
+  // isSecond=true ise ikinci plant bloğu; ilk bloğun altına belirgin ayraçla eklenir.
+  const renderRowSet = (dataset, isSecond) => {
+    ROWS.forEach(([label, fn, color, weight], rowIdx) => {
+      const rowBg = rowBgMap[rowIdx] || '';
+      const isCodesRow = (rowIdx === 3);
+      // 2. blok başlangıcını (ilk satır) belirgin üst çizgiyle ayır
+      const sepTop = (isSecond && rowIdx === 0) ? '3px solid var(--accent2)' : '';
 
-      // Codes satırında IUWT'nin "(if late start)" / "(if early finish)" etiketlerini
-      // küçük, italik, kırmızı yap. formatCodes bu etiketleri eklemiş olur.
-      const renderSlotBlock = (text, isSlot1) => {
-        if (!text) return '';
-        const stylize = (match) => `<span style="font-size:10px;font-style:italic;color:#dc2626">${match}</span>`;
-        let html = text.split('\n').map(line => {
-          if (isCodesRow) {
-            return line
-              .replace(/\(if late start\)/g,   stylize('(if late start)'))
-              .replace(/\(if early finish\)/g, stylize('(if early finish)'));
-          }
-          return line;
-        }).join('<br>');
-        return html;
-      };
+      const lc = document.createElement('div'); lc.className='og-cell og-row-label'; lc.textContent=label;
+      if (rowBg) lc.style.background = rowBg;
+      if (sepTop) lc.style.borderTop = sepTop;
+      container.appendChild(lc);
 
-      const block1 = renderSlotBlock(v1, true);
-      const block2 = renderSlotBlock(v2, false);
+      DAYS.forEach(day => {
+        const cell = document.createElement('div'); cell.className='og-cell og-value';
+        cell.style.color=color; cell.style.fontWeight=weight; cell.style.fontSize='15px'; cell.style.whiteSpace='normal'; cell.style.lineHeight='1.6';
+        if (rowBg) cell.style.background = rowBg;
+        if (sepTop) cell.style.borderTop = sepTop;
 
-      if (block1 && block2) {
-        // Aynı gün iki farklı plant: ikinci planti, ilkinin altına net bir ayraç
-        // çizgisiyle uzatarak yaz ('+' yerine yatay çizgi → daha okunur, section uzar).
-        cell.innerHTML = `<div>${block1}</div><div style="border-top:1.5px solid var(--border);margin:6px -13px;opacity:0.9"></div><div>${block2}</div>`;
-      } else if (block1) {
-        cell.innerHTML = block1;
-      } else if (block2) {
-        cell.innerHTML = block2;
-      } else {
-        cell.textContent = '';
-      }
+        const eraw = dataset[day];
+        // Salt-RCP entry'ler ana OV/MHI grid'inde görünmez (sadece RCP section)
+        const e = (eraw && eraw._rcpOnly) ? null : eraw;
+        const v = e ? (fn(e) || '') : '';
 
-      // Codes hücresinde, sadece ovGrid'de, statusu 'OV Only' OLAN ve o gün için
-      // gerçekten bir MHI timesheet kodu BULUNAN slotlar için kodların altına küçük
-      // kırmızı uyarı ekle.
-      // Genel kural: OV Only plantte MHI kodu yoksa uyarı GÖSTERME (örn 2900 — MHI
-      // timesheet kodu yok, dolayısıyla "don't forget MHI timesheet" gereksiz).
-      // lookupMHI() day-specific → generic → weekday fallback ve TEMP_MHI_CODES'u da
-      // kapsar; 4138/4392 için kayıt döner, 2900 için null döner.
-      if (isCodesRow && containerId === 'ovGrid') {
-        const slotNeedsMHI = (e) =>
-          !!(e && e.status === 'OV Only' && lookupMHI(day, e.plant, e.status));
-        const isOVOnly = slotNeedsMHI(e1) || slotNeedsMHI(e2);
-        if (isOVOnly) {
+        if (v) {
+          cell.innerHTML = v.split('\n').map(line => isCodesRow
+            ? line.replace(/\(if late start\)/g, stylizeIUWT('(if late start)')).replace(/\(if early finish\)/g, stylizeIUWT('(if early finish)'))
+            : line
+          ).join('<br>');
+        } else {
+          cell.textContent = '';
+        }
+
+        // OV Only + MHI timesheet uyarısı (sadece ovGrid, codes satırı)
+        if (isCodesRow && containerId === 'ovGrid' && e && e.status === 'OV Only' && lookupMHI(day, e.plant, e.status)) {
           const warn = document.createElement('div');
           warn.style.cssText = 'color:#dc2626;font-size:10px;font-weight:600;font-style:italic;margin-top:6px;line-height:1.3';
           warn.textContent = '⚠ Don\u2019t forget MHI timesheet';
           cell.appendChild(warn);
         }
-      }
-      container.appendChild(cell);
+        container.appendChild(cell);
+      });
     });
-  });
+  };
+
+  // Önce 1. slot tam bloğu; aynı gün ikinci bir plant varsa 2. slot tam bloğunu ALTINA ekle
+  renderRowSet(sectionData, false);
+  const hasSlot2 = DAYS.some(day => { const e = data2[day]; return e && !e._rcpOnly; });
+  if (hasSlot2) renderRowSet(data2, true);
 
   // ─── RCP satırlarını OV grid'in içine ekle (sadece ovGrid için) ───
   // 1st ve 2nd slot RCP'leri birleştirir: aynı gün her ikisinde de RCP varsa

@@ -1702,12 +1702,18 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   // absorberFull = absorber'ın IUWT'siz tam değeri. IUWT_total bunu aşarsa IUWT,
   // main code'un yerini TAMAMEN alır (tek "IUWT" satırı), absorber 0 olur.
   const absorberFull = (totalToFill !== null) ? round25(totalToFill - fixedSumBase) : null;
-  let IUWT_capped = IUWT_total;
-  let iuwtReplacesAbsorber = false;
-  if (!absorberIsGNTB && absorberFull !== null && absorberFull >= 0 && IUWT_total >= absorberFull && IUWT_total > 0) {
-    IUWT_capped = absorberFull;
-    iuwtReplacesAbsorber = true;
+  // IUWT toplamı absorber'ın (main code) tam değerini aşamaz. Aşarsa fazlalığı ÖNCE
+  // erken-çıkış (early finish) bileşeninden, yetmezse geç-başlangıçtan (late start) düş —
+  // late/early split KORUNUR, sadece toplam absorber değerine indirilir.
+  let iuwtLateC = iuwtLate, iuwtEarlyC = iuwtEarly;
+  if (!absorberIsGNTB && absorberFull !== null && absorberFull >= 0 && IUWT_total > absorberFull) {
+    let excess = round25(IUWT_total - absorberFull);
+    const cutE = Math.min(excess, iuwtEarlyC);
+    iuwtEarlyC = round25(iuwtEarlyC - cutE);
+    excess = round25(excess - cutE);
+    if (excess > 0) iuwtLateC = round25(Math.max(0, iuwtLateC - excess));
   }
+  const IUWT_capped = round25(iuwtLateC + iuwtEarlyC);
   const fixedSum = round25(fixedSumBase + IUWT_capped);
   const IUWT = (absorberIsGNTB) ? null : (IUWT_capped > 0 ? IUWT_capped : null);
 
@@ -1837,8 +1843,8 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     MAIN_ABSORB: absorber,
     // IUWT'nin iki bileşeni — render katmanı bunları kullanarak '(if late start)'
     // ve '(if early finish)' notlarını ekler. GNTB absorber'da gösterilmez.
-    _iuwtLate:  (absorberIsGNTB || iuwtReplacesAbsorber) ? 0 : (iuwtLate  > 0 ? iuwtLate  : 0),
-    _iuwtEarly: (absorberIsGNTB || iuwtReplacesAbsorber) ? 0 : (iuwtEarly > 0 ? iuwtEarly : 0),
+    _iuwtLate:  absorberIsGNTB ? 0 : (iuwtLateC  > 0 ? iuwtLateC  : 0),
+    _iuwtEarly: absorberIsGNTB ? 0 : (iuwtEarlyC > 0 ? iuwtEarlyC : 0),
     // GNTB absorber için ayrı: IUWT yerine '+X GNTB (if late start)' /
     // '+X GNTB (if early finish)' satırları gösterilir. Bu sayede ana GNTB
     // değeri düşülmüş halde kalır ve fark ayrı satır olarak görünür.
@@ -1865,8 +1871,9 @@ function calcCancelledCodes(sorStr, codes) {
   // HLVI main code: cancelled olsa bile IUWT'ye ÇEVİRME — HLVI olarak kalır, break'siz.
   // HLVI, sabit kodlar (GBPS/GSRM/GPAS) dışındaki tüm SOR'u alır; break düşülmez.
   if (mainAbsorb === 'HLVI') {
-    const fixedNoBreak = round25((GBPS||0) + (GSRM||0) + (GPAS||0));
-    const HLVI = sorTotal !== null ? round25(sorTotal - fixedNoBreak) : null;
+    // Break YAZILMAZ ama hesaptan düşülür (HLVI = SOR − break − sabit kodlar, normal
+    // HLVI değeri korunur) — cancel'da sadece break satırı gizlenir.
+    const HLVI = sorTotal !== null ? round25(sorTotal - fixedSum) : null;
     return { BREAK:null, GBPS, GSRM, GPAS, GWAG:null, GAVI:null, HLVI, GNTB:null, GFSA:null, INSP:null, IUWT:null, MAIN_ABSORB:'HLVI' };
   }
   const IUWT = sorTotal !== null ? round25(sorTotal - fixedSum) : null;

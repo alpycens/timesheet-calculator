@@ -1656,7 +1656,8 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   const absorberIsGNTB = (codes.MAIN_ABSORB && codes.MAIN_ABSORB.trim() === 'GNTB')
     || ((isTBOV || (isMHI && codes.GNTB != null && codes.INSP == null)) && !codes.MAIN_ABSORB);
   const IUWT_total = round25(iuwtEarly + iuwtLate);
-  const IUWT = (absorberIsGNTB) ? null : (IUWT_total > 0 ? IUWT_total : null);
+  // IUWT değeri capping'den SONRA atanır (absorber'ın tam değerini aşamaz — aşarsa
+  // main code'un yerini tamamen alır, tek satır olarak gösterilir).
 
   const sorTotal = (sorArr && sorDep) ? round25(timeToH(sorDep) - timeToH(sorArr)) : null;
   // RCP saati ayrı bir satırda gösterileceği için sorTotal'den düşülür
@@ -1685,7 +1686,8 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   // NOT: IUWT_total (early+late) burada zaten dahil — absorber otomatik düşer
   // ÖZEL DURUM: Absorber GNTB ise IUWT görmüyoruz; geç başlangıç farkını yine de
   // GNTB'den düşmek için fixedSum'a IUWT_total'i ekleriz, sadece IUWT göstermeyiz.
-  const fixedSum = round25(
+  // Sabit (absorber ve IUWT hariç) kodların toplamı
+  const fixedSumBase = round25(
     (absorber==='BREAK' ? 0 : (BREAK||0)) +
     (absorber==='GBPS'  ? 0 : (GBPS ||0)) +
     (absorber==='GSRM'  ? 0 : (GSRM ||0)) +
@@ -1694,10 +1696,20 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     (absorber==='GAVI'  ? 0 : (GAVI ||0)) +
     (absorber==='GFSA'  ? 0 : (GFSA ||0)) +
     (absorber==='HLVI'  ? 0 : (HLVI ||0)) +
-    (absorber==='GNTB'  ? 0 : (GNTB ||0)) +
-    (absorber==='INSP'  ? 0 : 0) + // INSP başlangıçta 0
-    (IUWT_total||0)
+    (absorber==='GNTB'  ? 0 : (GNTB ||0))
   );
+  // IUWT yalnızca MAIN code (absorber) kadar olabilir — sabit kodlara taşamaz.
+  // absorberFull = absorber'ın IUWT'siz tam değeri. IUWT_total bunu aşarsa IUWT,
+  // main code'un yerini TAMAMEN alır (tek "IUWT" satırı), absorber 0 olur.
+  const absorberFull = (totalToFill !== null) ? round25(totalToFill - fixedSumBase) : null;
+  let IUWT_capped = IUWT_total;
+  let iuwtReplacesAbsorber = false;
+  if (!absorberIsGNTB && absorberFull !== null && absorberFull >= 0 && IUWT_total >= absorberFull && IUWT_total > 0) {
+    IUWT_capped = absorberFull;
+    iuwtReplacesAbsorber = true;
+  }
+  const fixedSum = round25(fixedSumBase + IUWT_capped);
+  const IUWT = (absorberIsGNTB) ? null : (IUWT_capped > 0 ? IUWT_capped : null);
 
   // Final değerler — absorber hariç hepsi yukarıdaki değerleriyle kalır
   let INSP = (absorber === 'INSP') ? null : null; // INSP normalde absorber, default null
@@ -1825,8 +1837,8 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     MAIN_ABSORB: absorber,
     // IUWT'nin iki bileşeni — render katmanı bunları kullanarak '(if late start)'
     // ve '(if early finish)' notlarını ekler. GNTB absorber'da gösterilmez.
-    _iuwtLate:  absorberIsGNTB ? 0 : (iuwtLate  > 0 ? iuwtLate  : 0),
-    _iuwtEarly: absorberIsGNTB ? 0 : (iuwtEarly > 0 ? iuwtEarly : 0),
+    _iuwtLate:  (absorberIsGNTB || iuwtReplacesAbsorber) ? 0 : (iuwtLate  > 0 ? iuwtLate  : 0),
+    _iuwtEarly: (absorberIsGNTB || iuwtReplacesAbsorber) ? 0 : (iuwtEarly > 0 ? iuwtEarly : 0),
     // GNTB absorber için ayrı: IUWT yerine '+X GNTB (if late start)' /
     // '+X GNTB (if early finish)' satırları gösterilir. Bu sayede ana GNTB
     // değeri düşülmüş halde kalır ve fark ayrı satır olarak görünür.
@@ -1849,6 +1861,14 @@ function calcCancelledCodes(sorStr, codes) {
   const GSRM = codes?.GSRM ?? null;
   const GPAS = codes?.GPAS ?? null;
   const fixedSum = round25(BREAK_val + (GBPS||0) + (GSRM||0) + (GPAS||0));
+  const mainAbsorb = (codes?.MAIN_ABSORB || '').trim();
+  // HLVI main code: cancelled olsa bile IUWT'ye ÇEVİRME — HLVI olarak kalır, break'siz.
+  // HLVI, sabit kodlar (GBPS/GSRM/GPAS) dışındaki tüm SOR'u alır; break düşülmez.
+  if (mainAbsorb === 'HLVI') {
+    const fixedNoBreak = round25((GBPS||0) + (GSRM||0) + (GPAS||0));
+    const HLVI = sorTotal !== null ? round25(sorTotal - fixedNoBreak) : null;
+    return { BREAK:null, GBPS, GSRM, GPAS, GWAG:null, GAVI:null, HLVI, GNTB:null, GFSA:null, INSP:null, IUWT:null, MAIN_ABSORB:'HLVI' };
+  }
   const IUWT = sorTotal !== null ? round25(sorTotal - fixedSum) : null;
   return { BREAK:null, GBPS, GSRM, GPAS, GWAG:null, GAVI:null, HLVI:null, GNTB:null, GFSA:null, INSP:null, IUWT };
 }

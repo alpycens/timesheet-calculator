@@ -701,11 +701,33 @@
     display: none;
   }
   .wk-dot.on { display: inline-block; }
-  .week-bar input[type="date"] {
-    width: auto; min-width: 132px;
+  /* Tarih secici: yerel input tarayici/cihaz dilinde (orn Turkce ay adi)
+     render edildigi icin kendi metni SEFFAF yapilir; ustune en-GB
+     formatli metin (#weekPickerText) bindirilir. Alan gorunur ve
+     tiklanabilir kalir, sadece yazi bizden gelir. */
+  .wk-cal-wrap { position: relative; display: inline-flex; }
+  .week-bar input.wk-picker {
+    width: auto; min-width: 122px;
     padding: 4px 6px;
     font-size: 11.5px;
     font-family: 'IBM Plex Mono', monospace;
+    color: transparent;
+    caret-color: transparent;
+  }
+  .week-bar input.wk-picker::-webkit-datetime-edit,
+  .week-bar input.wk-picker::-webkit-datetime-edit-fields-wrapper,
+  .week-bar input.wk-picker::-webkit-datetime-edit-text,
+  .week-bar input.wk-picker::-webkit-datetime-edit-day-field,
+  .week-bar input.wk-picker::-webkit-datetime-edit-month-field,
+  .week-bar input.wk-picker::-webkit-datetime-edit-year-field { color: transparent; }
+  .wk-picker-text {
+    position: absolute; left: 8px; top: 50%;
+    transform: translateY(-50%);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--text);
+    pointer-events: none;
+    white-space: nowrap;
   }
   .wk-today {
     font-family: 'IBM Plex Mono', monospace;
@@ -776,8 +798,9 @@
     }
     .wk-center { min-width: 0; flex: 1 1 auto; }
     .wk-label { font-size: 12px; }
-    .week-bar input[type="date"] { min-width: 0; flex: 1 1 118px; font-size: 11px; }
     .wk-today { font-size: 11px; padding: 5px 8px; }
+    .week-bar input.wk-picker { min-width: 108px; font-size: 11px; }
+    .wk-picker-text { font-size: 11px; }
     .total-hours { height: 26px; padding: 0 10px; }
     .th-value { font-size: 14px; }
     .ts-table { font-size: 13.5px; min-width: 860px; }
@@ -843,7 +866,10 @@
           <span class="wk-dot" id="weekDot" title="This week has saved entries"></span>
         </div>
         <button class="wk-nav" onclick="changeWeek(1)" title="Next week" aria-label="Next week">&#8250;</button>
-        <input type="date" id="weekPicker" onchange="onWeekPick(this.value)" title="Jump to any week (pick any date)">
+        <span class="wk-cal-wrap" title="Jump to any week (pick any date)">
+          <input type="date" id="weekPicker" class="wk-picker" onchange="onWeekPick(this.value)" aria-label="Jump to any week">
+          <span class="wk-picker-text" id="weekPickerText">&mdash;</span>
+        </span>
         <button class="wk-today" id="weekTodayBtn" onclick="goToThisWeek()" title="Jump to the current week">This week</button>
       </div>
 
@@ -1698,6 +1724,9 @@ function renderWeekBar() {
   if (lbl) lbl.textContent = _wkLabel(currentWeekKey);
   const pick = document.getElementById('weekPicker');
   if (pick) pick.value = currentWeekKey;
+  // Gorunen metin en-GB — yerel input metni CSS ile seffaf
+  const pickTxt = document.getElementById('weekPickerText');
+  if (pickTxt) pickTxt.textContent = _wkParse(currentWeekKey).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
   const dot = document.getElementById('weekDot');
   if (dot) dot.classList.toggle('on', _weekHasData(state));
   const btn = document.getElementById('weekTodayBtn');
@@ -3116,7 +3145,7 @@ async function updateSyncStatusBanner() {
     }
   } catch(e) {}
 
-  const fmt = t => t ? new Date(t).toLocaleString() : '—';
+  const fmt = t => t ? new Date(t).toLocaleString('en-GB') : '—';
 
   if (!localTime && !remoteTime) {
     banner.style.display = 'none';

@@ -1958,7 +1958,6 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   // totalToFill'in azalmasıyla otomatik olarak GNTB azalır.
   const absorberIsGNTB = (codes.MAIN_ABSORB && codes.MAIN_ABSORB.trim() === 'GNTB')
     || ((isTBOV || (isMHI && codes.GNTB != null && codes.INSP == null)) && !codes.MAIN_ABSORB);
-  const IUWT_total = round25(iuwtEarly + iuwtLate);
   // IUWT değeri capping'den SONRA atanır (absorber'ın tam değerini aşamaz — aşarsa
   // main code'un yerini tamamen alır, tek satır olarak gösterilir).
 
@@ -1999,6 +1998,20 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   // 4 saat ve alti (<= 4) break yazilmaz — mola hakki ancak 4 saatten FAZLA
   // calisildiginda dogar (orn 07:00-11:00 = tam 4h -> break yok).
   const hideBreak = !breakAlways && (workedH !== null && workedH <= 4);
+  // Gizlenen BREAK saati IUWT'den dusulur (once early finish, sonra late start).
+  // Boylece main absorber GERCEK calisilan saati gosterir:
+  // orn 10:00-17:00 penceresi, 10:00-10:15 katilim -> 0.25 INSP + 6.25 IUWT
+  // (eskisi: 6.5 IUWT, INSP 0 — break fixedSum'da kalip IUWT tavanini yiyordu).
+  if (hideBreak && (BREAK || 0) > 0) {
+    let _bcut = BREAK || 0;
+    const _ce = Math.min(_bcut, iuwtEarly);
+    iuwtEarly = round25(iuwtEarly - _ce);
+    _bcut = round25(_bcut - _ce);
+    if (_bcut > 0) iuwtLate = round25(Math.max(0, iuwtLate - _bcut));
+  }
+  // Toplam IUWT — break dusumu YAPILDIKTAN sonra hesaplanir ki capping
+  // guncel degeri kullansin (aksi halde cifte kesinti olurdu).
+  const IUWT_total = round25(iuwtEarly + iuwtLate);
 
   // Sabit (absorber dışındaki) kodların toplamı — bunlar sabit kalır, absorber dengeyi alır
   // NOT: RCP artık sorTotal'den çıkarıldığı için fixedSum'a eklenmez

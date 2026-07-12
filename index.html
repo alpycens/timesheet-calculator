@@ -1996,7 +1996,9 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   // kosul ne olursa olsun break claim edilir. Admin panelde BREAK sutunundaki
   // pin ile satir bazinda ayarlanir.
   const breakAlways = isAlways('BREAK');
-  const hideBreak = !breakAlways && (workedH !== null && workedH < 4);
+  // 4 saat ve alti (<= 4) break yazilmaz — mola hakki ancak 4 saatten FAZLA
+  // calisildiginda dogar (orn 07:00-11:00 = tam 4h -> break yok).
+  const hideBreak = !breakAlways && (workedH !== null && workedH <= 4);
 
   // Sabit (absorber dışındaki) kodların toplamı — bunlar sabit kalır, absorber dengeyi alır
   // NOT: RCP artık sorTotal'den çıkarıldığı için fixedSum'a eklenmez

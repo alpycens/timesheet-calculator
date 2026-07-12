@@ -730,6 +730,20 @@
   }
   .td-day.is-today { box-shadow: inset 3px 0 0 var(--accent), 2px 0 4px rgba(0,0,0,0.08); }
   .td-day.is-today .td-date { color: var(--accent); font-weight: 700; }
+  /* NWD / Standby mini isaretleri — gun adinin altinda kucuk kutucuklar */
+  .day-flags { display:flex; gap:8px; margin-top:5px; }
+  .day-flag {
+    display:inline-flex; align-items:center; gap:3px;
+    font-size:9px; font-weight:600; letter-spacing:0.05em;
+    color: var(--text-muted); cursor:pointer; user-select:none;
+  }
+  .day-flag input { width:11px; height:11px; margin:0; cursor:pointer; accent-color: var(--accent2); }
+  .day-flag.f-sb input { accent-color: var(--accent3); }
+  .day-flag.on { color: var(--accent2); }
+  .day-flag.f-sb.on { color: var(--accent3); }
+  /* NWD isaretli gun satiri hafifce soluk */
+  tr.row-nwd td:not(.td-day) { opacity: 0.45; }
+  tr.row-nwd .td-day { color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -1672,7 +1686,7 @@ function goToThisWeek()    { goToWeek(_wkKey(_mondayOf(new Date()))); }
 function onWeekPick(val)   { if (val) goToWeek(val); }
 
 function _emptyDay() {
-  return { region:'', plant:'', plantStatus:'', status:'', arrival:'', departure:'', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'' };
+  return { region:'', plant:'', plantStatus:'', status:'', arrival:'', departure:'', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'', nwd:false, standby:false };
 }
 
 function defaultState() {
@@ -1881,14 +1895,28 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   // span'i üzerinden hesaplanır (SOR_CODES'taki birleşik aralık).
   let workedH = null;
   if (d.status === 'OV Only' && SOR_CODES[d.plant] && SOR_CODES[d.plant]['OV Only']) {
+    // OV Only: pencere DEGIL, gercek katilim esas alinir — OV arrival'dan MHI
+    // departure'a birlesik span. Kullanicinin girdigi arrival/departure birlesik
+    // pencereye clip edilir (arr pencere basindan onceyse pencere basi; dep
+    // girilmediyse pencere sonu). Orn pencere 07:00-17:00, girilen 08:00-10:15
+    // -> 2.25h < 4 -> break yok (hem OV hem MHI tarafinda).
     const _p = String(SOR_CODES[d.plant]['OV Only']).split('-');
-    if (_p[0] && _p[1]) workedH = round25(timeToH(_p[1]) - timeToH(_p[0]));
+    if (_p[0] && _p[1]) {
+      const ws = timeToH(_p[0]), we = timeToH(_p[1]);
+      const effArr = (d.arrival   && timeToH(d.arrival)   > ws) ? timeToH(d.arrival)   : ws;
+      const effDep = (d.departure && timeToH(d.departure) < we) ? timeToH(d.departure) : we;
+      workedH = round25(Math.max(0, effDep - effArr));
+    }
   } else if (actualArr && actualDep) {
     workedH = round25(timeToH(actualDep) - timeToH(actualArr));
   } else if (sorTotal !== null) {
     workedH = sorTotal;
   }
-  const hideBreak = (workedH !== null && workedH < 4);
+  // Pinli BREAK (ALWAYS_ACTIVE 'BREAK' iceriyor): 4 saat kurali UYGULANMAZ —
+  // kosul ne olursa olsun break claim edilir. Admin panelde BREAK sutunundaki
+  // pin ile satir bazinda ayarlanir.
+  const breakAlways = isAlways('BREAK');
+  const hideBreak = !breakAlways && (workedH !== null && workedH < 4);
 
   // Sabit (absorber dışındaki) kodların toplamı — bunlar sabit kalır, absorber dengeyi alır
   // NOT: RCP artık sorTotal'den çıkarıldığı için fixedSum'a eklenmez
@@ -2224,9 +2252,21 @@ function renderTimesheet() {
       const _addCtrl = `<select onchange="addSampling('${day}',this.value);this.value=''" style="font-size:11px;color:var(--accent2)"><option value="">+ add sampling</option>${_addOpts}</select>`;
       samplingCellHtml = `<div style="display:flex;flex-direction:column;gap:0;min-width:175px">${_rows}${_addCtrl}</div>`;
     }
+    // NWD / Standby gun-seviyesi isaretler — her zaman 1. slottan (state.days) okunur,
+    // 2nd sayfada da ayni deger gorunur (gunun kendisine ait, ziyarete degil).
+    const _flags = state.days[day] || {};
+    const _fNWD = !!_flags.nwd, _fSB = !!_flags.standby;
     const tr = document.createElement('tr');
+    if (_fNWD) tr.className = 'row-nwd';
     tr.innerHTML = `
-      <td class="td-day${_dayIsToday ? ' is-today' : ''}">${day}<div class="td-date">${_dayDateStr}</div></td>
+      <td class="td-day${_dayIsToday ? ' is-today' : ''}">${day}<div class="td-date">${_dayDateStr}</div>
+        <div class="day-flags">
+          <label class="day-flag${_fNWD ? ' on' : ''}" title="Non-Working Day — mark days you did not work">
+            <input type="checkbox" ${_fNWD ? 'checked' : ''} onchange="updateDayFlag('${day}','nwd',this.checked)">NWD</label>
+          <label class="day-flag f-sb${_fSB ? ' on' : ''}" title="Standby — adds 4h to the weekly total">
+            <input type="checkbox" ${_fSB ? 'checked' : ''} onchange="updateDayFlag('${day}','standby',this.checked)">S/B</label>
+        </div>
+      </td>
       <td style="min-width:110px"><select onchange="updateField('${day}','region',this.value)">${regionOpts}</select></td>
       <td style="min-width:110px"><select onchange="updateField('${day}','plant',this.value)" ${!d.region?'disabled style="opacity:0.5"':''}>${plantOpts}</select></td>
       <td style="width:100px"><select onchange="updateField('${day}','plantStatus',this.value)">${plantStatusOpts}</select></td>
@@ -2246,6 +2286,17 @@ function renderTimesheet() {
     tbody.appendChild(tr);
   });
   updateTotalHours();
+}
+
+// NWD / Standby toggle — gun-seviyesi: hangi slot acik olursa olsun 1. slotta
+// (state.days) saklanir. Standby toplam saate +4 ekler (updateTotalHours).
+function updateDayFlag(day, field, checked) {
+  const d = state.days[day];
+  if (!d) return;
+  d[field] = !!checked;
+  saveData();
+  renderTimesheet();
+  renderOutcome();
 }
 
 function updateField(day, field, value) {
@@ -2368,6 +2419,8 @@ function clearAllDailyEntries() {
         d.enforcement = '';
         d.enfInHours  = '';
         d.enfOutHours = '';
+        d.nwd         = false;
+        d.standby     = false;
       });
     });
     saveData();
@@ -2933,6 +2986,11 @@ function updateTotalHours() {
       if (e && typeof e.outHours === 'number' && !isNaN(e.outHours)) total += e.outHours;
     });
   });
+  // Standby gunleri: her isaretli gun toplam saate +4 ekler
+  DAYS.forEach(day => {
+    const d = state.days[day];
+    if (d && d.standby) total += 4;
+  });
   total = round25(total);
   el.textContent = Number.isInteger(total) ? String(total) : total.toFixed(2).replace(/0$/,'');
 }
@@ -3076,7 +3134,10 @@ function rcpInputTemp(val, codeVal, table, i) {
 function numInputWithPin(val, table, i, fieldKey, isPinned) {
   const onChangeNum = table === 'OV' ? `updateOVCode(${i},'${fieldKey}',this.value)` : `updateMHICode(${i},'${fieldKey}',this.value)`;
   const onPin = table === 'OV' ? `togglePinOV(${i},'${fieldKey}',this.checked)` : `togglePinMHI(${i},'${fieldKey}',this.checked)`;
-  const pinTitle = isPinned ? 'Always active — click to make conditional' : 'Make always active (independent of checkbox)';
+  const pinTitle = fieldKey === 'BREAK'
+    ? (isPinned ? 'BREAK always claimed — even under 4h worked. Click to restore the 4-hour rule.'
+                : 'Pin BREAK: claim it regardless of hours worked (overrides the under-4h rule)')
+    : (isPinned ? 'Always active — click to make conditional' : 'Make always active (independent of checkbox)');
   return `<div style="display:flex;align-items:center;gap:3px">
     <input type="number" step="0.25" min="0" value="${val??''}" placeholder="—" style="width:52px;padding:4px 5px;font-size:11px" onchange="${onChangeNum}">
     <label title="${pinTitle}" style="cursor:pointer;display:inline-flex;align-items:center;font-size:13px;${isPinned?'filter:none;opacity:1':'filter:grayscale(1);opacity:0.45'}">
@@ -3202,7 +3263,7 @@ function renderOVCodesTable() {
       <td>${codeTimeSelect(row.arr, 'OV', i, 'arr')}</td>
       <td>${codeTimeSelect(row.dep, 'OV', i, 'dep')}</td>
       <td>${mainAbsorbSelect(row.MAIN_ABSORB || '', [...OV_ABSORB_FIELDS, ...EXTRA_CODES], f('MAIN_ABSORB'))}</td>
-      <td>${numInput(row.BREAK, f('BREAK'))}</td><td>${numInput(row.GBPS, f('GBPS'))}</td>
+      <td>${pin('BREAK')}</td><td>${numInput(row.GBPS, f('GBPS'))}</td>
       <td>${numInput(row.GSRM, f('GSRM'))}</td><td>${numInput(row.GPAS, f('GPAS'))}</td>
       <td>${pin('GWAG')}</td><td>${pin('GAVI')}</td>
       <td>${numInput(row.INSP, f('INSP'))}</td><td>${pin('HLVI')}</td>
@@ -3262,7 +3323,7 @@ function renderMHICodesTable() {
       <td>${codeTimeSelect(row.arr, 'MHI', i, 'arr')}</td>
       <td>${codeTimeSelect(row.dep, 'MHI', i, 'dep')}</td>
       <td>${mainAbsorbSelect(row.MAIN_ABSORB || '', [...MHI_ABSORB_FIELDS, ...EXTRA_CODES], f('MAIN_ABSORB'))}</td>
-      <td>${numInput(row.BREAK, f('BREAK'))}</td><td>${numInput(row.GBPS, f('GBPS'))}</td>
+      <td>${pin('BREAK')}</td><td>${numInput(row.GBPS, f('GBPS'))}</td>
       <td>${numInput(row.GSRM, f('GSRM'))}</td><td>${numInput(row.GPAS, f('GPAS'))}</td>
       <td>${numInput(row.INSP, f('INSP'))}</td><td>${pin('GNTB')}</td>
       <td>${pin('GFSA')}</td>

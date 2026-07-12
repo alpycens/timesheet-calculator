@@ -4762,6 +4762,35 @@ renderTimesheet();
 renderOutcome();
 updateCDScheduleBanner();
 loadCodesFromFile(); // codes.json varsa otomatik yükle (yoksa default'a fallback)
+
+// ─── FARE TEKERLEGI ILE YATAY KAYDIRMA ─────────────────────────
+// Sadece YATAY kaydirilabilen alanlarin (orn Schedule tablosu, TAPP
+// gridleri) uzerinde tekerlek cevrilince dikey delta yatay kaydirmaya
+// cevrilir. Hem yatay hem dikey kayan alanlarda (codes editor scroll-y)
+// normal dikey davranis korunur. Kaydiracak yer kalmadiysa sayfa
+// kaydirmasi engellenmez.
+try {
+  document.addEventListener('wheel', function (e) {
+    if (!e.deltaY || e.ctrlKey) return;                       // zoom/pinch karisma
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;      // zaten yatay hareket
+    let el = e.target;
+    while (el && el !== document.body) {
+      if (el.nodeType === 1) {
+        const st = getComputedStyle(el);
+        const hx = (st.overflowX === 'auto' || st.overflowX === 'scroll') && el.scrollWidth  > el.clientWidth  + 1;
+        const vy = (st.overflowY === 'auto' || st.overflowY === 'scroll') && el.scrollHeight > el.clientHeight + 1;
+        if (hx && !vy) {
+          const before = el.scrollLeft;
+          el.scrollLeft += e.deltaY;
+          if (el.scrollLeft !== before) { e.preventDefault(); }
+          return;
+        }
+        if (hx || vy) return; // dikey kayan alan: normal davranis
+      }
+      el = el.parentElement;
+    }
+  }, { passive: false });
+} catch (err) {}
 </script>
 </body>
 </html>

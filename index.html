@@ -664,6 +664,72 @@
     main { padding: 12px; }
     header { padding: 0 12px; }
   }
+  /* ─── WEEK NAVIGATION BAR ─────────────────────────────────── */
+  .week-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    font-family: 'IBM Plex Mono', monospace;
+    white-space: nowrap;
+  }
+  .wk-nav {
+    width: 28px; height: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 17px; line-height: 1;
+    padding: 0;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .wk-nav:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  .wk-center {
+    display: inline-flex; align-items: center; gap: 6px;
+    min-width: 176px; justify-content: center;
+    padding: 0 4px;
+  }
+  .wk-label { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: 0.01em; }
+  .wk-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+    display: none;
+  }
+  .wk-dot.on { display: inline-block; }
+  .week-bar input[type="date"] {
+    width: auto; min-width: 132px;
+    padding: 4px 6px;
+    font-size: 11.5px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .wk-today {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    padding: 5px 10px;
+    border: 1px solid var(--accent2);
+    background: transparent;
+    color: var(--accent2);
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 0.4px;
+  }
+  .wk-today:hover { background: var(--accent2); color: #fff; }
+  .wk-today.current { opacity: 0.45; cursor: default; }
+  .wk-today.current:hover { background: transparent; color: var(--accent2); }
+  .td-day .td-date {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0;
+    margin-top: 2px;
+  }
+  .td-day.is-today { box-shadow: inset 3px 0 0 var(--accent), 2px 0 4px rgba(0,0,0,0.08); }
+  .td-day.is-today .td-date { color: var(--accent); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -703,6 +769,19 @@
   <!-- ═══════════════ TIMESHEET PANEL ═══════════════ -->
   <div class="panel active" id="panel-timesheet">
     <div class="ts-header">
+
+      <!-- Week navigation — her hafta ayrı kayıt tutulur (localStorage: ts_weeks) -->
+      <div class="week-bar">
+        <button class="wk-nav" onclick="changeWeek(-1)" title="Previous week" aria-label="Previous week">&#8249;</button>
+        <div class="wk-center">
+          <span class="wk-label" id="weekLabel">&mdash;</span>
+          <span class="wk-dot" id="weekDot" title="This week has saved entries"></span>
+        </div>
+        <button class="wk-nav" onclick="changeWeek(1)" title="Next week" aria-label="Next week">&#8250;</button>
+        <input type="date" id="weekPicker" onchange="onWeekPick(this.value)" title="Jump to any week (pick any date)">
+        <button class="wk-today" id="weekTodayBtn" onclick="goToThisWeek()" title="Jump to the current week">This week</button>
+      </div>
+
       <div class="total-hours" id="totalHours" title="Total hours for the week (excluding break)">
         <span class="th-label">TOTAL</span>
         <span class="th-value" id="totalHoursValue">0</span><span class="th-unit">h</span>
@@ -1482,7 +1561,115 @@ function removeSampling(day, idx) {
   saveData(); renderTimesheet(); renderOutcome();
 }
 
+// ─── WEEK NAVIGATION / PER-WEEK STORAGE ─────────────────────────
+// Her hafta ayrı bir kayit olarak saklanir:
+//   localStorage['ts_weeks']        = { 'YYYY-MM-DD'(Pazartesi): {activeSlot, days, days2}, ... }
+//   localStorage['ts_current_week'] = son acilan haftanin Pazartesi tarihi
+// Eski tek-haftalik 'ts_state' kaydi ilk acilista icinde bulunulan haftaya tasinir.
+const WEEKS_KEY    = 'ts_weeks';
+const WEEK_CUR_KEY = 'ts_current_week';
+
+function _wkPad(n) { return String(n).padStart(2, '0'); }
+function _wkKey(dt) { return dt.getFullYear() + '-' + _wkPad(dt.getMonth()+1) + '-' + _wkPad(dt.getDate()); }
+function _wkParse(key) { const [y,m,d] = String(key).split('-').map(Number); return new Date(y, (m||1)-1, d||1); }
+function _wkAddDays(dt, n) { const d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()); d.setDate(d.getDate()+n); return d; }
+// Verilen tarihin ait oldugu haftanin PAZARTESI'si (hafta Pzt-Paz)
+function _mondayOf(dt) {
+  const d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+  const dow = (d.getDay() + 6) % 7;  // Pzt=0 ... Paz=6
+  d.setDate(d.getDate() - dow);
+  return d;
+}
+function _wkFmt(dt) { return dt.toLocaleDateString('en-GB', { day:'numeric', month:'short' }); }   // 6 Jul
+// "6 Jul - 12 Jul, 2026"
+function _wkLabel(key) {
+  const mon = _wkParse(key), sun = _wkAddDays(mon, 6);
+  return _wkFmt(mon) + ' - ' + _wkFmt(sun) + ', ' + sun.getFullYear();
+}
+// Haftanin belirli gununun tarihi (DAYS sirasina gore)
+function _wkDayDate(key, day) {
+  const i = DAYS.indexOf(day);
+  return _wkAddDays(_wkParse(key), i < 0 ? 0 : i);
+}
+function _isToday(dt) {
+  const n = new Date();
+  return dt.getFullYear()===n.getFullYear() && dt.getMonth()===n.getMonth() && dt.getDate()===n.getDate();
+}
+
+// Aktif hafta (Pazartesi anahtari)
+let currentWeekKey = (function () {
+  let saved = null;
+  try { saved = localStorage.getItem(WEEK_CUR_KEY); } catch (e) {}
+  if (saved && /^\d{4}-\d{2}-\d{2}$/.test(saved)) return _wkKey(_mondayOf(_wkParse(saved)));
+  return _wkKey(_mondayOf(new Date()));
+})();
+
+function _loadWeeks() {
+  try { const raw = localStorage.getItem(WEEKS_KEY); if (raw) return JSON.parse(raw) || {}; } catch (e) {}
+  return {};
+}
+function _saveWeeks(weeks) {
+  try { localStorage.setItem(WEEKS_KEY, JSON.stringify(weeks)); } catch (e) {}
+}
+// Bir haftada veri var mi? (nokta gostergesi icin)
+function _weekHasData(w) {
+  if (!w) return false;
+  return ['days','days2'].some(k => {
+    const M = w[k] || {};
+    return DAYS.some(day => {
+      const d = M[day] || {};
+      return !!(d.region || d.plant || d.plantStatus || d.status || d.arrival || d.departure ||
+                d.cd || d.sha || d.tb || d.ai || d.enforcement || d.enfInHours || d.enfOutHours ||
+                (Array.isArray(d.samplings) && d.samplings.length) || d.sampling);
+    });
+  });
+}
+
 let state = loadState();
+
+// Hafta cubugunu (etiket, tarih secici, nokta, This week butonu) guncelle
+function renderWeekBar() {
+  const lbl = document.getElementById('weekLabel');
+  if (lbl) lbl.textContent = _wkLabel(currentWeekKey);
+  const pick = document.getElementById('weekPicker');
+  if (pick) pick.value = currentWeekKey;
+  const dot = document.getElementById('weekDot');
+  if (dot) dot.classList.toggle('on', _weekHasData(state));
+  const btn = document.getElementById('weekTodayBtn');
+  if (btn) {
+    const isCur = currentWeekKey === _wkKey(_mondayOf(new Date()));
+    btn.classList.toggle('current', isCur);
+    btn.title = isCur ? 'You are on the current week' : 'Jump to the current week';
+  }
+}
+
+// Slot (1st/2nd) butonlarini state'e gore senkronla
+function _syncSlotButtons() {
+  const slot = state.activeSlot || '1st';
+  ['1st','2nd'].forEach(s => {
+    const b = document.getElementById('slotTab-' + s);
+    if (b) {
+      b.style.background = s===slot ? 'var(--accent2)' : 'transparent';
+      b.style.color      = s===slot ? '#fff' : 'var(--text-muted)';
+    }
+  });
+}
+
+// Baska bir haftaya gec: once mevcut haftayi kaydet, sonra hedefi yukle.
+function goToWeek(key) {
+  saveData();                                   // mevcut hafta diske yazilsin
+  currentWeekKey = _wkKey(_mondayOf(_wkParse(key)));
+  try { localStorage.setItem(WEEK_CUR_KEY, currentWeekKey); } catch (e) {}
+  state = loadState();                          // hedef haftanin verisi (yoksa bos)
+  _syncSlotButtons();
+  renderWeekBar();
+  renderTimesheet();
+  renderOutcome();
+  updateCDScheduleBanner();
+}
+function changeWeek(delta) { goToWeek(_wkKey(_wkAddDays(_wkParse(currentWeekKey), delta * 7))); }
+function goToThisWeek()    { goToWeek(_wkKey(_mondayOf(new Date()))); }
+function onWeekPick(val)   { if (val) goToWeek(val); }
 
 function _emptyDay() {
   return { region:'', plant:'', plantStatus:'', status:'', arrival:'', departure:'', sampling:'', cd:false, sha:false, tb:false, ai:false, enforcement:'', enfInHours:'', enfOutHours:'' };
@@ -1505,12 +1692,24 @@ function defaultState() {
   };
 }
 
+// Aktif haftanin (currentWeekKey) verisini yukle. Hafta yoksa bos state doner.
 function loadState() {
   const def = defaultState();
   try {
-    const s = localStorage.getItem('ts_state');
-    if (s) {
-      const saved = JSON.parse(s);
+    let weeks = _loadWeeks();
+    // ── Migration: eski tek-haftalik 'ts_state' → icinde bulunulan haftaya tasi
+    if (!Object.keys(weeks).length) {
+      const legacy = localStorage.getItem('ts_state');
+      if (legacy) {
+        const parsed = JSON.parse(legacy);
+        if (parsed && (parsed.days || parsed.days2)) {
+          weeks[_wkKey(_mondayOf(new Date()))] = parsed;
+          _saveWeeks(weeks);
+        }
+      }
+    }
+    const saved = weeks[currentWeekKey];
+    if (saved) {
       if (!saved.days) saved.days = {};
       DAYS.forEach(day => { saved.days[day] = Object.assign({}, def.days[day], saved.days[day] || {}); });
       // 2. slot için migration — eski kayıtlarda days2 yok, boş init
@@ -1532,7 +1731,17 @@ function slotDaysMap(slot) {
   return slot === '2nd' ? state.days2 : state.days;
 }
 
-function saveData() { try { localStorage.setItem('ts_state', JSON.stringify(state)); } catch(e) {} }
+// Aktif haftayi ts_weeks icine yaz. (ts_state geriye donuk uyum icin ayna kayit.)
+function saveData() {
+  try {
+    const weeks = _loadWeeks();
+    weeks[currentWeekKey] = state;
+    _saveWeeks(weeks);
+    localStorage.setItem(WEEK_CUR_KEY, currentWeekKey);
+    localStorage.setItem('ts_state', JSON.stringify(state));
+  } catch(e) {}
+  try { renderWeekBar(); } catch(e) {}
+}
 function markDirty() {}
 
 function timeToH(t) {
@@ -1913,6 +2122,10 @@ function renderTimesheet() {
   DAYS.forEach(day => {
     const d = activeDaysMap()[day];
     if (!d) return;
+    // Gun hucresinde o haftanin gercek tarihi gosterilir (orn "6 Jul")
+    const _dayDate    = _wkDayDate(currentWeekKey, day);
+    const _dayDateStr = _wkFmt(_dayDate);
+    const _dayIsToday = _isToday(_dayDate);
     const cancelled = d.plantStatus === 'Cancelled';
     // Region seçilmediyse plant dropdown boş; seçildiyse o region'a ait plantlar
     const availablePlants = d.region ? ['', ...getPlantsByRegion(d.region)] : [''];
@@ -2013,7 +2226,7 @@ function renderTimesheet() {
     }
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="td-day">${day}</td>
+      <td class="td-day${_dayIsToday ? ' is-today' : ''}">${day}<div class="td-date">${_dayDateStr}</div></td>
       <td style="min-width:110px"><select onchange="updateField('${day}','region',this.value)">${regionOpts}</select></td>
       <td style="min-width:110px"><select onchange="updateField('${day}','plant',this.value)" ${!d.region?'disabled style="opacity:0.5"':''}>${plantOpts}</select></td>
       <td style="width:100px"><select onchange="updateField('${day}','plantStatus',this.value)">${plantStatusOpts}</select></td>
@@ -2135,7 +2348,7 @@ function resetColumn(field) {
 // sampling, cd, sha, tb, ai, enforcement, enfInHours, enfOutHours.
 function clearAllDailyEntries() {
   console.log('[clearAllDailyEntries] called — VERSION 2026-05-14-v5');
-  if (!confirm('Are you sure you want to delete all data?\n\nThis will clear all entries on both 1st and 2nd pages and cannot be undone.')) return;
+  if (!confirm('Clear all entries for ' + _wkLabel(currentWeekKey) + '?\n\nThis clears both 1st and 2nd pages for THIS WEEK only. Other weeks are not affected. This cannot be undone.')) return;
   try {
     [state.days, state.days2].forEach(M => {
       DAYS.forEach(day => {
@@ -4350,7 +4563,8 @@ function renderCDTable() {
 // içindeyse göster, değilse gizle.
 function updateCDScheduleBanner() {
   const el = document.getElementById('cdScheduleWarning');
-  const w = getCurrentCDWeek();
+  // Bugun degil, SECILI hafta baz alinir (hafta oklariyla gezerken de dogru calisir)
+  const w = getCurrentCDWeek(_wkParse(currentWeekKey));
   // Schedule tablosundaki "C&D" sütun başlığını C&D haftasında kırmızı yap.
   const colHdr = document.getElementById('cdColHeader');
   if (colHdr) {
@@ -4399,6 +4613,7 @@ function toggleDarkMode() {
     }
   });
 })();
+renderWeekBar();
 renderTimesheet();
 renderOutcome();
 updateCDScheduleBanner();

@@ -415,7 +415,7 @@
   .ts-table tbody tr { border-bottom: 2px solid var(--border); transition: background 0.1s; }
   .ts-table tbody tr:last-child { border-bottom: none; }
   .ts-table tbody tr:hover { background: #ffffff05; }
-  .ts-table td { padding: 5px 7px; border-right: 1px solid var(--border-soft); vertical-align: middle; }
+  .ts-table td { padding: 3px 7px; border-right: 1px solid var(--border-soft); vertical-align: middle; }
   .ts-table td:last-child { border-right: none; }
   .td-day {
     font-family: 'IBM Plex Mono', monospace;
@@ -748,18 +748,22 @@
     font-weight: 500;
     color: var(--text-muted);
     letter-spacing: 0;
-    margin-top: 2px;
+    margin-top: 1px;
+    line-height: 1.2;
   }
   .td-day.is-today { box-shadow: inset 3px 0 0 var(--accent), 2px 0 4px rgba(0,0,0,0.08); }
   .td-day.is-today .td-date { color: var(--accent); font-weight: 700; }
-  /* NWD / Standby mini isaretleri — gun adinin altinda kucuk kutucuklar */
-  .day-flags { display:flex; gap:8px; margin-top:5px; flex-wrap:wrap; }
+  /* NWD / Standby / Training mini isaretleri — gun adinin altinda,
+     tek sutun ve COK dar satir araligiyla: 3 bayrak eklenince gun
+     satirlari uzamasin, hafta PC'de tek ekrana sigsin. */
+  .day-flags { display:flex; flex-direction:column; align-items:flex-start; gap:0; margin-top:2px; }
   .day-flag {
     display:inline-flex; align-items:center; gap:3px;
-    font-size:9px; font-weight:600; letter-spacing:0.05em;
+    font-size:8.5px; font-weight:600; letter-spacing:0.04em;
+    line-height:1.35;
     color: var(--text-muted); cursor:pointer; user-select:none;
   }
-  .day-flag input { width:11px; height:11px; margin:0; cursor:pointer; accent-color: var(--accent2); }
+  .day-flag input { width:10px; height:10px; margin:0; cursor:pointer; accent-color: var(--accent2); }
   .day-flag.f-sb input { accent-color: var(--accent3); }
   .day-flag.f-tr input { accent-color: #a78bfa; }
   .day-flag.on { color: var(--accent2); }

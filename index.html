@@ -756,14 +756,14 @@
   /* NWD / Standby / Training mini isaretleri — gun adinin altinda,
      tek sutun ve COK dar satir araligiyla: 3 bayrak eklenince gun
      satirlari uzamasin, hafta PC'de tek ekrana sigsin. */
-  .day-flags { display:flex; flex-direction:column; align-items:flex-start; gap:0; margin-top:2px; }
+  .day-flags { display:flex; flex-direction:column; align-items:flex-start; gap:2px; margin-top:3px; }
   .day-flag {
-    display:inline-flex; align-items:center; gap:3px;
-    font-size:8.5px; font-weight:600; letter-spacing:0.04em;
-    line-height:1.35;
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:10.5px; font-weight:600; letter-spacing:0.04em;
+    line-height:1.4;
     color: var(--text-muted); cursor:pointer; user-select:none;
   }
-  .day-flag input { width:10px; height:10px; margin:0; cursor:pointer; accent-color: var(--accent2); }
+  .day-flag input { width:14px; height:14px; margin:0; cursor:pointer; accent-color: var(--accent2); }
   .day-flag.f-sb input { accent-color: var(--accent3); }
   .day-flag.f-tr input { accent-color: #a78bfa; }
   .day-flag.on { color: var(--accent2); }
@@ -813,8 +813,9 @@
     .ts-table td select, .ts-table td input { font-size: 13px; max-width: 100%; }
     .td-day { width: 84px; font-size: 11px; }
     .ts-table-wrap { -webkit-overflow-scrolling: touch; }
-    .day-flags { gap: 5px; }
-    .day-flag { font-size: 8.5px; }
+    .day-flags { gap: 3px; }
+    .day-flag { font-size: 10px; }
+    .day-flag input { width: 15px; height: 15px; }
   }
   @media (max-width: 420px) {
     .brand-logo { width: 38px; height: 38px; }
@@ -2354,14 +2355,11 @@ function renderTimesheet() {
     // NWD / Standby gun-seviyesi isaretler — her zaman 1. slottan (state.days) okunur,
     // 2nd sayfada da ayni deger gorunur (gunun kendisine ait, ziyarete degil).
     const _flags = state.days[day] || {};
-    const _fNWD = !!_flags.nwd, _fSB = !!_flags.standby, _fTR = !!_flags.training;
+    const _fSB = !!_flags.standby, _fTR = !!_flags.training;
     const tr = document.createElement('tr');
-    if (_fNWD) tr.className = 'row-nwd';
     tr.innerHTML = `
       <td class="td-day${_dayIsToday ? ' is-today' : ''}">${day}<div class="td-date">${_dayDateStr}</div>
         <div class="day-flags">
-          <label class="day-flag${_fNWD ? ' on' : ''}" title="Non-Working Day — mark days you did not work">
-            <input type="checkbox" ${_fNWD ? 'checked' : ''} onchange="updateDayFlag('${day}','nwd',this.checked)">NWD</label>
           <label class="day-flag f-sb${_fSB ? ' on' : ''}" title="Standby — adds 4h to the weekly total">
             <input type="checkbox" ${_fSB ? 'checked' : ''} onchange="updateDayFlag('${day}','standby',this.checked)">Standby</label>
           <label class="day-flag f-tr${_fTR ? ' on' : ''}" title="Training day">

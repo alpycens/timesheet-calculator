@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-07-28T06:56:02.802Z",
+  "exportedAt": "2026-07-28T07:13:21.130Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -815,16 +815,13 @@
         "arr": "08:00",
         "dep": "15:00",
         "MAIN_ABSORB": "INSP",
-        "ALWAYS_ACTIVE": [
-          "GFSA"
-        ],
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 0.25,
         "GPAS": 0.5,
         "GWAG": 0.75,
         "GAVI": null,
-        "INSP": 5,
+        "INSP": 5.5,
         "HLVI": 0.5,
         "GNTB": 0.25,
         "GFSA": 0.5,
@@ -852,16 +849,13 @@
         "arr": "07:30",
         "dep": "15:30",
         "MAIN_ABSORB": "INSP",
-        "ALWAYS_ACTIVE": [
-          "GFSA"
-        ],
         "BREAK": 0.5,
         "GBPS": null,
         "GSRM": null,
         "GPAS": null,
         "GWAG": 0.75,
         "GAVI": null,
-        "INSP": 7.25,
+        "INSP": 7.5,
         "HLVI": 0.5,
         "GNTB": 0.25,
         "GFSA": 0.25,

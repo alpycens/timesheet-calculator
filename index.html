@@ -586,7 +586,14 @@
     color: var(--text-muted);
     justify-content: center;
   }
-  .og-header.day-col { color: #ea580c; }
+  .og-header.day-col { color: #ea580c; flex-direction: column; gap: 1px; line-height: 1.2; }
+  .og-header-date {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text-muted);
+  }
 
   .og-section-header {
     background: var(--accent-soft);
@@ -1038,6 +1045,9 @@
         </div>
       </div>
       <div id="syncStatusBanner" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:16px;font-family:'IBM Plex Mono',monospace;font-size:13px"></div>
+
+
+
       <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
         <div style="display:flex;align-items:center;gap:6px">
           <label style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-muted)">Region:</label>
@@ -2750,6 +2760,23 @@ function formatCodes(entry) {
   return parts.join('\n');
 }
 
+// TAPP outcome grid'lerinin ust satiri: her gun basligina secili haftanin
+// tarihini ekler (Schedule sekmesiyle ayni _wkDayDate/_wkFmt kaynagi).
+function renderOGHeader(container) {
+  ['', ...DAYS].forEach((d, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'og-cell og-header' + (i > 0 ? ' day-col' : '');
+    if (i > 0) {
+      let dateStr = '';
+      try { dateStr = _wkFmt(_wkDayDate(currentWeekKey, d)); } catch(e) {}
+      cell.innerHTML = dateStr ? `${d}<div class="og-header-date">${dateStr}</div>` : d;
+    } else {
+      cell.textContent = d;
+    }
+    container.appendChild(cell);
+  });
+}
+
 function renderOutcomeSection(containerId, sectionData, sectionData2) {
   // sectionData = 1. slot outcome'u, sectionData2 = 2. slot outcome'u (opsiyonel)
   // İki slot da bir gün için doluysa, satırdaki değer slot1 + '+' + slot2 olarak gösterilir.
@@ -2758,12 +2785,7 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
   container.innerHTML = '';
   container.style.gridTemplateColumns = `70px repeat(${DAYS.length}, minmax(120px, 1fr))`;
 
-  ['', ...DAYS].forEach((d, i) => {
-    const cell = document.createElement('div');
-    cell.className = 'og-cell og-header' + (i > 0 ? ' day-col' : '');
-    cell.textContent = d;
-    container.appendChild(cell);
-  });
+  renderOGHeader(container);
 
   const ROWS = [
     ['Status', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
@@ -2893,12 +2915,7 @@ function renderEnfSection(containerId, sectionData) {
   container.innerHTML = '';
   container.style.gridTemplateColumns = `70px repeat(${DAYS.length}, minmax(120px, 1fr))`;
 
-  ['', ...DAYS].forEach((d, i) => {
-    const cell = document.createElement('div');
-    cell.className = 'og-cell og-header' + (i > 0 ? ' day-col' : '');
-    cell.textContent = d;
-    container.appendChild(cell);
-  });
+  renderOGHeader(container);
 
   [['', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
    ['SOR', (e) => e?.outHours > 0 ? '00:00-00:00' : '', 'var(--text-muted)', '700'],
@@ -2959,12 +2976,7 @@ function renderMHIRcpSection(out) {
   container.innerHTML = '';
   container.style.gridTemplateColumns = `70px repeat(${DAYS.length}, minmax(120px, 1fr))`;
 
-  ['', ...DAYS].forEach((d, i) => {
-    const cell = document.createElement('div');
-    cell.className = 'og-cell og-header' + (i > 0 ? ' day-col' : '');
-    cell.textContent = d;
-    container.appendChild(cell);
-  });
+  renderOGHeader(container);
 
   const joinSlots = (fn, day, joiner) => {
     const a = rcpData1[day] ? fn(rcpData1[day]) : '';
@@ -4220,23 +4232,19 @@ function renderSORTableForPlant(plant, region) {
 // codes.json dosyasına export ediyoruz. Sayfa açılınca codes.json
 // varsa yüklüyor, yoksa gömülü default değerlere fallback yapıyor.
 
+// Bekleyen tablo duzenlemelerini (_ovRows/_mhiRows) kalici OV_CODES/MHI_CODES'a
+// isler; Region ve Plant listelerini tazeler. Save/Export oncesi cagirilir.
 function commitPendingCodeRows() {
-  // Region ve Plant bilgilerini de tazele (saveCodesEdit ile aynı mantık)
   const allRows = [...(_ovRows || []), ...(_mhiRows || [])];
   if (allRows.length > 0) {
     allRows.forEach(r => {
       const p = String(r.plant || '');
       if (!p) return;
-      if (r.region) {
-        PLANT_REGIONS[p] = r.region;
-      } else if (!PLANT_REGIONS[p]) {
-        PLANT_REGIONS[p] = REGIONS[0] || 'Cluster27';
-      }
+      if (r.region) { PLANT_REGIONS[p] = r.region; }
+      else if (!PLANT_REGIONS[p]) { PLANT_REGIONS[p] = REGIONS[0] || 'Cluster27'; }
     });
     const tablePlants = new Set(allRows.map(r => String(r.plant)).filter(p => p));
-    tablePlants.forEach(p => {
-      if (!PLANTS.includes(p)) PLANTS.push(p);
-    });
+    tablePlants.forEach(p => { if (!PLANTS.includes(p)) PLANTS.push(p); });
   }
   if (_ovRows) {
     const newOV = rowsToCodeObj(_ovRows);
@@ -4252,9 +4260,8 @@ function commitPendingCodeRows() {
   }
 }
 
-function exportCodesJSON() {
+function buildCodesJSON() {
   commitPendingCodeRows();
-  // Tablo değişikliklerinden PLANT_REGIONS'u tazele
   Object.keys(OV_CODES).concat(Object.keys(MHI_CODES)).forEach(p => {
     if (!PLANT_REGIONS[p]) PLANT_REGIONS[p] = '';
   });
@@ -4268,7 +4275,11 @@ function exportCodesJSON() {
     OV_CODES: OV_CODES,
     MHI_CODES: MHI_CODES,
   };
-  const json = JSON.stringify(payload, null, 2);
+  return JSON.stringify(payload, null, 2);
+}
+
+function exportCodesJSON() {
+  const json = buildCodesJSON();
   const blob = new Blob([json], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);

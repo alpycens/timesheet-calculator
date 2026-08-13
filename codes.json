@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-08-06T13:53:44.825Z",
+  "exportedAt": "2026-08-13T14:26:17.689Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -521,6 +521,9 @@
         "arr": "07:30",
         "dep": "11:00",
         "MAIN_ABSORB": "INSP",
+        "ALWAYS_ACTIVE": [
+          "BREAK"
+        ],
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 0.25,
@@ -538,6 +541,9 @@
         "arr": "07:30",
         "dep": "11:00",
         "MAIN_ABSORB": "INSP",
+        "ALWAYS_ACTIVE": [
+          "BREAK"
+        ],
         "BREAK": 0.5,
         "GBPS": 0.25,
         "GSRM": 0.25,

@@ -2709,10 +2709,12 @@ function computeOutcome(daysMap) {
           // Cancel mantığıyla birebir aynı: BREAK yazılmaz, IUWT = sorTotal - sabit
           // kodlar (örn 7h gross − 0.5 break = 6.5 IUWT) ve IUWT main absorber'ın
           // (INSP) yerine geçer. Eskiden gross sorTotal (7) yazıyordu — yanlıştı.
-          // _noAttend: Time sütununda SOR penceresi (örn 11:00-14:30) GÖSTERİLMEZ,
-          // çünkü o pencereye hiç girilmedi; sadece IUWT kodu görünür.
+          // Time sütununda TAPP'e girilecek saat gösterilir: kullanıcının çıkış
+          // saati hem giriş hem çıkış (örn 11:00 çıkış → "11:00-11:00"). Böylece
+          // MHI penceresine girilmediği ama o anda kapıdan çıkıldığı belli olur.
           const computed = calcCancelledCodes(mhiSorStr, mhiCodes);
-          result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, arr:mhiCodes.arr, dep:mhiCodes.dep, sorStr:mhiSorStr, _noAttend:true, ...computed };
+          const noAttTime = (d.departure && timeToH(d.departure) !== null) ? d.departure : mhiCodes.arr;
+          result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, arr:noAttTime, dep:noAttTime, sorStr:mhiSorStr, _noAttend:true, ...computed };
         }
       } else {
         // Normal MHI
@@ -2792,7 +2794,7 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
   const ROWS = [
     ['Status', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
     ['SOR', (e) => e?.sorStr || '', 'var(--text-muted)', '700'],
-    ['Time', (e) => (e && !e._empty && !e._noAttend && e.arr && e.dep) ? `${e.arr}-${e.effectiveDep || e.dep}` : '', 'var(--accent)', '700'],
+    ['Time', (e) => (e && !e._empty && e.arr && e.dep) ? `${e.arr}-${e.effectiveDep || e.dep}` : '', 'var(--accent)', '700'],
     ['Codes', (e) => (e && !e._empty) ? formatCodes(e) : '', '#d97706', '700']
   ];
   const rowBgMap = { 0:'rgba(74,222,128,0.16)', 1:'rgba(234,179,8,0.13)', 2:'rgba(20,184,166,0.12)', 3:'rgba(120,130,145,0.12)' };

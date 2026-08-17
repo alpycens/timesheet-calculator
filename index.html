@@ -2707,14 +2707,13 @@ function computeOutcome(daysMap) {
         } else {
           // MHI penceresine hiç girilmedi → çalışılmadı sayılır.
           // Cancel mantığıyla birebir aynı: BREAK yazılmaz, IUWT = sorTotal - sabit
-          // kodlar (örn 7h gross − 0.5 break = 6.5 IUWT) ve IUWT main absorber'ın
-          // (INSP) yerine geçer. Eskiden gross sorTotal (7) yazıyordu — yanlıştı.
-          // Time sütununda TAPP'e girilecek saat gösterilir: kullanıcının çıkış
-          // saati hem giriş hem çıkış (örn 11:00 çıkış → "11:00-11:00"). Böylece
-          // MHI penceresine girilmediği ama o anda kapıdan çıkıldığı belli olur.
+          // kodlar ve IUWT main absorber'ın (INSP) yerine geçer.
+          // Time sütununa TAPP'e 00:00-00:00 girilir: MHI SOR arrival'dan ÖNCE
+          // çıkıldığı için o segmente hiç katılım yok (örn MHI 11:00-14:30, çıkış
+          // 10:00 veya 11:00 → 00:00-00:00). Katılım olan günler yukarıdaki
+          // clip dalında gerçek aralığı gösterir.
           const computed = calcCancelledCodes(mhiSorStr, mhiCodes);
-          const noAttTime = (d.departure && timeToH(d.departure) !== null) ? d.departure : mhiCodes.arr;
-          result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, arr:noAttTime, dep:noAttTime, sorStr:mhiSorStr, _noAttend:true, ...computed };
+          result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, arr:'00:00', dep:'00:00', sorStr:mhiSorStr, _noAttend:true, ...computed };
         }
       } else {
         // Normal MHI

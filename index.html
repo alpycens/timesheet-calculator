@@ -2080,7 +2080,12 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     if (excess > 0) iuwtLateC = round25(Math.max(0, iuwtLateC - excess));
   }
   const IUWT_capped = round25(iuwtLateC + iuwtEarlyC);
-  const fixedSum = round25(fixedSumBase + IUWT_capped);
+  // HLVI absorber: erken bitiş / geç başlangıç farkı AYRI satır olarak değil,
+  // doğrudan ana HLVI değerine dahil edilir (tek satır, "if early finish" YOK).
+  // Bunu sağlamak için IUWT_capped'ı fixedSum'a EKLEMEYİZ → absorberValue tam SOR
+  // değeri olarak kalır (örn 8061 Morning OV: erken çıksa bile 7.25 HLVI).
+  // GNTB ise eskisi gibi ayrı satır gösterdiği için IUWT_capped'ı dahil eder.
+  const fixedSum = round25(fixedSumBase + (absorberIsHLVI ? 0 : IUWT_capped));
   const IUWT = (absorberAbsorbsIUWT) ? null : (IUWT_capped > 0 ? IUWT_capped : null);
 
   // Final değerler — absorber hariç hepsi yukarıdaki değerleriyle kalır
@@ -2218,8 +2223,10 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     _gntbEarly: absorberIsGNTB ? (iuwtEarly > 0 ? round25(iuwtEarly + gntbEarlyExtra) : 0) : 0,
     // HLVI absorber için ayrı: aynı GNTB mantığı — IUWT yerine '+X HLVI (if late
     // start)' / '+X HLVI (if early finish)'. HLVI her zaman claim edilir, IUWT asla.
-    _hlviLate:  absorberIsHLVI ? (iuwtLate  > 0 ? iuwtLate  : 0) : 0,
-    _hlviEarly: absorberIsHLVI ? (iuwtEarly > 0 ? round25(iuwtEarly + gntbEarlyExtra) : 0) : 0,
+    // HLVI absorber: fark ayrı satır olarak GÖSTERİLMEZ — ana HLVI değerine dahil
+    // edildi (fixedSum'a IUWT eklenmediği için). Bu alanlar 0 kalır.
+    _hlviLate:  0,
+    _hlviEarly: 0,
     // RCP ayrı section için: saat aralığı (örn "16:00-17:00") ve değer (1 GSRM)
     rcpRange: rcpRange,
     rcpHours: (rcpVal > 0 ? rcpVal : null),
@@ -2770,9 +2777,6 @@ function formatCodes(entry) {
   // Ana GNTB değeri düşülmüş, fark burada görünür (örn 6.5 GNTB + 1 GNTB if late start)
   if ((entry._gntbLate  || 0) > 0) parts.push(`${entry._gntbLate} GNTB (if late start)`);
   if ((entry._gntbEarly || 0) > 0) parts.push(`${entry._gntbEarly} GNTB (if early finish)`);
-  // HLVI absorber özel durumu: IUWT yerine ek HLVI satırları (GNTB ile aynı mantık).
-  if ((entry._hlviLate  || 0) > 0) parts.push(`${entry._hlviLate} HLVI (if late start)`);
-  if ((entry._hlviEarly || 0) > 0) parts.push(`${entry._hlviEarly} HLVI (if early finish)`);
   return parts.join('\n');
 }
 

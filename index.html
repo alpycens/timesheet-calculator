@@ -1986,6 +1986,12 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   // totalToFill'in azalmasıyla otomatik olarak GNTB azalır.
   const absorberIsGNTB = (codes.MAIN_ABSORB && codes.MAIN_ABSORB.trim() === 'GNTB')
     || ((isTBOV || (isMHI && codes.GNTB != null && codes.INSP == null)) && !codes.MAIN_ABSORB);
+  // Absorber HLVI ise: GNTB gibi davranır — IUWT HİÇ claim edilmez, erken bitiş /
+  // geç başlangıç farkı doğrudan HLVI'den absorbe edilir (HLVI her zaman claim
+  // edilir, erken bitse bile). "if early finish" notu HLVI satırında gösterilir.
+  const absorberIsHLVI = (codes.MAIN_ABSORB && codes.MAIN_ABSORB.trim() === 'HLVI');
+  // IUWT'yi absorbe eden (gizleyen) herhangi bir absorber
+  const absorberAbsorbsIUWT = absorberIsGNTB || absorberIsHLVI;
   // IUWT değeri capping'den SONRA atanır (absorber'ın tam değerini aşamaz — aşarsa
   // main code'un yerini tamamen alır, tek satır olarak gösterilir).
 
@@ -2066,7 +2072,7 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   // erken-çıkış (early finish) bileşeninden, yetmezse geç-başlangıçtan (late start) düş —
   // late/early split KORUNUR, sadece toplam absorber değerine indirilir.
   let iuwtLateC = iuwtLate, iuwtEarlyC = iuwtEarly;
-  if (!absorberIsGNTB && absorberFull !== null && absorberFull >= 0 && IUWT_total > absorberFull) {
+  if (!absorberAbsorbsIUWT && absorberFull !== null && absorberFull >= 0 && IUWT_total > absorberFull) {
     let excess = round25(IUWT_total - absorberFull);
     const cutE = Math.min(excess, iuwtEarlyC);
     iuwtEarlyC = round25(iuwtEarlyC - cutE);
@@ -2075,7 +2081,7 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   }
   const IUWT_capped = round25(iuwtLateC + iuwtEarlyC);
   const fixedSum = round25(fixedSumBase + IUWT_capped);
-  const IUWT = (absorberIsGNTB) ? null : (IUWT_capped > 0 ? IUWT_capped : null);
+  const IUWT = (absorberAbsorbsIUWT) ? null : (IUWT_capped > 0 ? IUWT_capped : null);
 
   // Final değerler — absorber hariç hepsi yukarıdaki değerleriyle kalır
   let INSP = (absorber === 'INSP') ? null : null; // INSP normalde absorber, default null
@@ -2125,7 +2131,7 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
   // (tam katılımda tek satır 7.5 görünür).
   let gntbEarlyExtra = 0;
   let mainUplift = absorberUplift;
-  if (absorberIsGNTB && iuwtEarly > 0 && absorberUplift > 0) {
+  if (absorberAbsorbsIUWT && iuwtEarly > 0 && absorberUplift > 0) {
     gntbEarlyExtra = absorberUplift;
     mainUplift = 0;
   }
@@ -2203,13 +2209,17 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     MAIN_ABSORB: absorber,
     // IUWT'nin iki bileşeni — render katmanı bunları kullanarak '(if late start)'
     // ve '(if early finish)' notlarını ekler. GNTB absorber'da gösterilmez.
-    _iuwtLate:  absorberIsGNTB ? 0 : (iuwtLateC  > 0 ? iuwtLateC  : 0),
-    _iuwtEarly: absorberIsGNTB ? 0 : (iuwtEarlyC > 0 ? iuwtEarlyC : 0),
+    _iuwtLate:  absorberAbsorbsIUWT ? 0 : (iuwtLateC  > 0 ? iuwtLateC  : 0),
+    _iuwtEarly: absorberAbsorbsIUWT ? 0 : (iuwtEarlyC > 0 ? iuwtEarlyC : 0),
     // GNTB absorber için ayrı: IUWT yerine '+X GNTB (if late start)' /
     // '+X GNTB (if early finish)' satırları gösterilir. Bu sayede ana GNTB
     // değeri düşülmüş halde kalır ve fark ayrı satır olarak görünür.
     _gntbLate:  absorberIsGNTB ? (iuwtLate  > 0 ? iuwtLate  : 0) : 0,
     _gntbEarly: absorberIsGNTB ? (iuwtEarly > 0 ? round25(iuwtEarly + gntbEarlyExtra) : 0) : 0,
+    // HLVI absorber için ayrı: aynı GNTB mantığı — IUWT yerine '+X HLVI (if late
+    // start)' / '+X HLVI (if early finish)'. HLVI her zaman claim edilir, IUWT asla.
+    _hlviLate:  absorberIsHLVI ? (iuwtLate  > 0 ? iuwtLate  : 0) : 0,
+    _hlviEarly: absorberIsHLVI ? (iuwtEarly > 0 ? round25(iuwtEarly + gntbEarlyExtra) : 0) : 0,
     // RCP ayrı section için: saat aralığı (örn "16:00-17:00") ve değer (1 GSRM)
     rcpRange: rcpRange,
     rcpHours: (rcpVal > 0 ? rcpVal : null),
@@ -2760,6 +2770,9 @@ function formatCodes(entry) {
   // Ana GNTB değeri düşülmüş, fark burada görünür (örn 6.5 GNTB + 1 GNTB if late start)
   if ((entry._gntbLate  || 0) > 0) parts.push(`${entry._gntbLate} GNTB (if late start)`);
   if ((entry._gntbEarly || 0) > 0) parts.push(`${entry._gntbEarly} GNTB (if early finish)`);
+  // HLVI absorber özel durumu: IUWT yerine ek HLVI satırları (GNTB ile aynı mantık).
+  if ((entry._hlviLate  || 0) > 0) parts.push(`${entry._hlviLate} HLVI (if late start)`);
+  if ((entry._hlviEarly || 0) > 0) parts.push(`${entry._hlviEarly} HLVI (if early finish)`);
   return parts.join('\n');
 }
 

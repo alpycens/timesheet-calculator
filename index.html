@@ -2228,12 +2228,13 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     _hlviLate:  0,
     _hlviEarly: 0,
     // HLVI absorber ek satırı: ana HLVI tam değeri (örn 9 HLVI) gösterildikten
-    // sonra, erken çıkılan / geç başlanan aralık SADECE SAAT olarak ayrı satıra
-    // yazılır (kod/miktar YOK). Örn SOR 08:00-18:00, çıkış 16:00 → "16:00-18:00".
+    // sonra, erken çıkılan / geç başlanan aralık İKİ SATIR olarak eklenir:
+    //   1. satır: saat aralığı (örn "16:00-18:00") — render'da Time gibi YEŞİL
+    //   2. satır: kod (örn "2 HLVI") — normal codes rengi (turuncu)
     _hlviExtra: (absorberIsHLVI ? (() => {
       const notes = [];
-      if (iuwtLate  > 0 && sorArr && actualArr) notes.push(`${sorArr}-${actualArr}`);
-      if (iuwtEarly > 0 && actualDep && sorDep) notes.push(`${actualDep}-${sorDep}`);
+      if (iuwtLate  > 0 && sorArr && actualArr) notes.push(`${sorArr}-${actualArr}`, `${iuwtLate} HLVI`);
+      if (iuwtEarly > 0 && actualDep && sorDep) notes.push(`${actualDep}-${sorDep}`, `${iuwtEarly} HLVI`);
       return notes.length ? notes.join('\n') : null;
     })() : null),
     // RCP ayrı section için: saat aralığı (örn "16:00-17:00") ve değer (1 GSRM)
@@ -2852,10 +2853,16 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
         const v = e ? (fn(e) || '') : '';
 
         if (v) {
-          cell.innerHTML = v.split('\n').map(line => isCodesRow
-            ? line.replace(/\(if late start\)/g, stylizeIUWT('(if late start)')).replace(/\(if early finish\)/g, stylizeIUWT('(if early finish)'))
-            : line
-          ).join('<br>');
+          cell.innerHTML = v.split('\n').map(line => {
+            if (!isCodesRow) return line;
+            // Salt saat aralığı satırı (örn "16:00-18:00") — HLVI extra: Time gibi yeşil
+            if (/^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/.test(line.trim())) {
+              return `<span style="color:var(--accent)">${line}</span>`;
+            }
+            return line
+              .replace(/\(if late start\)/g, stylizeIUWT('(if late start)'))
+              .replace(/\(if early finish\)/g, stylizeIUWT('(if early finish)'));
+          }).join('<br>');
         } else {
           cell.textContent = '';
         }

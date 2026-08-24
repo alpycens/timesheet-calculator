@@ -2227,14 +2227,13 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     // edildi (fixedSum'a IUWT eklenmediği için). Bu alanlar 0 kalır.
     _hlviLate:  0,
     _hlviEarly: 0,
-    // HLVI absorber ek NOT satırı: ana HLVI tam değeri (örn 9 HLVI) gösterildikten
-    // sonra, erken çıkılan / geç başlanan aralık ayrı bilgi satırı olarak eklenir.
-    // Örn SOR 08:00-18:00, çıkış 16:00 → "16:00-18:00 2 HLVI". Bu TAPP'e ekstra
-    // olarak girilebilecek eksik zaman aralığını gösterir.
+    // HLVI absorber ek satırı: ana HLVI tam değeri (örn 9 HLVI) gösterildikten
+    // sonra, erken çıkılan / geç başlanan aralık SADECE SAAT olarak ayrı satıra
+    // yazılır (kod/miktar YOK). Örn SOR 08:00-18:00, çıkış 16:00 → "16:00-18:00".
     _hlviExtra: (absorberIsHLVI ? (() => {
       const notes = [];
-      if (iuwtLate  > 0 && sorArr && actualArr) notes.push(`${sorArr}-${actualArr} ${iuwtLate} HLVI`);
-      if (iuwtEarly > 0 && actualDep && sorDep) notes.push(`${actualDep}-${sorDep} ${iuwtEarly} HLVI`);
+      if (iuwtLate  > 0 && sorArr && actualArr) notes.push(`${sorArr}-${actualArr}`);
+      if (iuwtEarly > 0 && actualDep && sorDep) notes.push(`${actualDep}-${sorDep}`);
       return notes.length ? notes.join('\n') : null;
     })() : null),
     // RCP ayrı section için: saat aralığı (örn "16:00-17:00") ve değer (1 GSRM)

@@ -2227,6 +2227,16 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     // edildi (fixedSum'a IUWT eklenmediği için). Bu alanlar 0 kalır.
     _hlviLate:  0,
     _hlviEarly: 0,
+    // HLVI absorber ek NOT satırı: ana HLVI tam değeri (örn 9 HLVI) gösterildikten
+    // sonra, erken çıkılan / geç başlanan aralık ayrı bilgi satırı olarak eklenir.
+    // Örn SOR 08:00-18:00, çıkış 16:00 → "16:00-18:00 2 HLVI". Bu TAPP'e ekstra
+    // olarak girilebilecek eksik zaman aralığını gösterir.
+    _hlviExtra: (absorberIsHLVI ? (() => {
+      const notes = [];
+      if (iuwtLate  > 0 && sorArr && actualArr) notes.push(`${sorArr}-${actualArr} ${iuwtLate} HLVI`);
+      if (iuwtEarly > 0 && actualDep && sorDep) notes.push(`${actualDep}-${sorDep} ${iuwtEarly} HLVI`);
+      return notes.length ? notes.join('\n') : null;
+    })() : null),
     // RCP ayrı section için: saat aralığı (örn "16:00-17:00") ve değer (1 GSRM)
     rcpRange: rcpRange,
     rcpHours: (rcpVal > 0 ? rcpVal : null),
@@ -2777,6 +2787,7 @@ function formatCodes(entry) {
   // Ana GNTB değeri düşülmüş, fark burada görünür (örn 6.5 GNTB + 1 GNTB if late start)
   if ((entry._gntbLate  || 0) > 0) parts.push(`${entry._gntbLate} GNTB (if late start)`);
   if ((entry._gntbEarly || 0) > 0) parts.push(`${entry._gntbEarly} GNTB (if early finish)`);
+  if (entry._hlviExtra) entry._hlviExtra.split('\n').forEach(l => parts.push(l));
   return parts.join('\n');
 }
 

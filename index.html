@@ -1046,6 +1046,21 @@
       </div>
       <div id="syncStatusBanner" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:16px;font-family:'IBM Plex Mono',monospace;font-size:13px"></div>
 
+      <details id="displayNamesPanel" style="margin-bottom:16px;border:1px solid var(--border);border-radius:8px;background:var(--surface)">
+        <summary style="cursor:pointer;padding:10px 14px;font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--text);font-weight:600;user-select:none">Display Names &mdash; plant &amp; cluster aliases</summary>
+        <div style="padding:4px 14px 14px">
+          <div style="font-size:12.5px;color:var(--text-muted);line-height:1.5;margin-bottom:12px">
+            Ekranda (Schedule ve TAPP) gerçek plant numaraları / cluster adları yerine burada tanımladığın isimler görünür. Bu Codes sekmesinde numaralar aynen kalır. İsim boş bırakılırsa o plant/cluster için numara/ad gösterilir. Değişiklikler bu tarayıcıda saklanır.
+          </div>
+          <div id="displayNamesEditor"></div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap">
+            <button onclick="saveDisplayNamesFromUI()" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:6px 14px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:5px;cursor:pointer">Save names</button>
+            <button onclick="resetDisplayNames()" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:6px 14px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:5px;cursor:pointer">Reset to defaults</button>
+            <span id="displayNamesStatus" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-muted)"></span>
+          </div>
+        </div>
+      </details>
+
 
 
       <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
@@ -1229,6 +1244,114 @@ let PLANT_REGIONS = {
   '8145': 'Cluster27',
   '8165': 'Cluster27',
 };
+
+// ═══════════ GÖRÜNEN İSİM KATMANI (display names) ═══════════
+// Güvenlik/gizlilik için: codes sekmesinde gerçek plant numaraları ve cluster
+// adları kalır; Schedule dropdown'ları ve TAPP çıktısı bunların yerine takma
+// isimleri gösterir. Eşleşmeler localStorage 'ts_display_names' altında tutulur
+// ve arayüzden (codes editor > Display Names paneli) düzenlenebilir.
+const DISPLAY_NAMES_KEY = 'ts_display_names';
+// İlk kurulum varsayılanları — kullanıcının verdiği eşleşmeler
+const DEFAULT_PLANT_NAMES = {
+  '2172':'Dogukan','4138':'Alp','8145':'Charlotte','8165':'Maissa','4133':'Jaime',
+  '4015':'Roberto','4392':'Berk','2900':'Ceren','8072':'Kaan','2690':'Taban',
+  '8061':'Aycan','8119':'Anil','8201':'Daniela','8249':'Aysegul'
+};
+const DEFAULT_REGION_NAMES = { 'Cluster27':'Karolina','Cluster26':'Mehmet' };
+
+let PLANT_NAMES = {}, REGION_NAMES = {};
+(function _loadDisplayNames() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(DISPLAY_NAMES_KEY) || 'null'); } catch(e) {}
+  if (saved && (saved.plants || saved.regions)) {
+    PLANT_NAMES  = Object.assign({}, saved.plants  || {});
+    REGION_NAMES = Object.assign({}, saved.regions || {});
+    // Tek seferlik düzeltme: 2172 daha önce "Burak" olarak kaydedildiyse (eski
+    // varsayılan) ve elle başka bir şeye çevrilmediyse "Dogukan"a taşı.
+    if (PLANT_NAMES['2172'] === 'Burak') {
+      PLANT_NAMES['2172'] = 'Dogukan';
+      try { localStorage.setItem(DISPLAY_NAMES_KEY, JSON.stringify({ plants:PLANT_NAMES, regions:REGION_NAMES })); } catch(e) {}
+    }
+  } else {
+    // İlk açılış: varsayılanları uygula ve kaydet
+    PLANT_NAMES  = Object.assign({}, DEFAULT_PLANT_NAMES);
+    REGION_NAMES = Object.assign({}, DEFAULT_REGION_NAMES);
+    try { localStorage.setItem(DISPLAY_NAMES_KEY, JSON.stringify({ plants:PLANT_NAMES, regions:REGION_NAMES })); } catch(e) {}
+  }
+})();
+
+function saveDisplayNames() {
+  try { localStorage.setItem(DISPLAY_NAMES_KEY, JSON.stringify({ plants:PLANT_NAMES, regions:REGION_NAMES })); } catch(e) {}
+}
+
+// Display Names editör tablosunu çizer: tüm cluster'lar + tüm plant'ler (codes'ta
+// geçen numaralar dahil), her biri için isim input'u.
+function renderDisplayNamesEditor() {
+  const box = document.getElementById('displayNamesEditor');
+  if (!box) return;
+  // Tüm plant numaralarını topla: sabit PLANTS + OV/MHI codes anahtarları
+  const plantSet = new Set(PLANTS.filter(p => p));
+  Object.keys(OV_CODES).forEach(p => plantSet.add(p));
+  Object.keys(MHI_CODES).forEach(p => plantSet.add(p));
+  Object.keys(PLANT_REGIONS).forEach(p => plantSet.add(p));
+  const plants = [...plantSet].sort();
+  // Tüm cluster'lar
+  const regionSet = new Set(REGIONS);
+  Object.values(PLANT_REGIONS).forEach(r => { if (r) regionSet.add(r); });
+  const regions = [...regionSet];
+
+  const inp = (val, kind, key) =>
+    `<input type="text" value="${(val||'').replace(/"/g,'&quot;')}" data-kind="${kind}" data-key="${key}" placeholder="—"
+       style="padding:5px 8px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;width:150px">`;
+
+  let html = '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:12px;color:var(--text-muted);margin:2px 0 6px">CLUSTERS</div>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:8px 16px;margin-bottom:14px">';
+  regions.forEach(r => {
+    html += `<label style="display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-muted)"><span style="min-width:84px">${r}</span>${inp(REGION_NAMES[r], 'region', r)}</label>`;
+  });
+  html += '</div>';
+
+  html += '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:12px;color:var(--text-muted);margin:2px 0 6px">PLANTS</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 16px">';
+  plants.forEach(p => {
+    html += `<label style="display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-muted)"><span style="min-width:54px">${p}</span>${inp(PLANT_NAMES[p], 'plant', p)}</label>`;
+  });
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+function saveDisplayNamesFromUI() {
+  const box = document.getElementById('displayNamesEditor');
+  if (!box) return;
+  const nextP = {}, nextR = {};
+  box.querySelectorAll('input[data-kind]').forEach(el => {
+    const v = el.value.trim();
+    if (!v) return;
+    if (el.dataset.kind === 'plant')  nextP[el.dataset.key] = v;
+    if (el.dataset.kind === 'region') nextR[el.dataset.key] = v;
+  });
+  PLANT_NAMES = nextP; REGION_NAMES = nextR;
+  saveDisplayNames();
+  const st = document.getElementById('displayNamesStatus');
+  if (st) { st.textContent = 'Saved.'; setTimeout(() => { if (st) st.textContent = ''; }, 2500); }
+  // Ekrandaki görünümleri tazele
+  try { renderTimesheet(); } catch(e) {}
+  try { renderOutcome(); } catch(e) {}
+}
+
+function resetDisplayNames() {
+  PLANT_NAMES  = Object.assign({}, DEFAULT_PLANT_NAMES);
+  REGION_NAMES = Object.assign({}, DEFAULT_REGION_NAMES);
+  saveDisplayNames();
+  renderDisplayNamesEditor();
+  const st = document.getElementById('displayNamesStatus');
+  if (st) { st.textContent = 'Reset to defaults.'; setTimeout(() => { if (st) st.textContent = ''; }, 2500); }
+  try { renderTimesheet(); } catch(e) {}
+  try { renderOutcome(); } catch(e) {}
+}
+// Görünen etiket: isim tanımlıysa onu, yoksa ham değeri döndürür.
+function plantLabel(p)  { if (!p) return ''; return PLANT_NAMES[p]  || p; }
+function regionLabel(r) { if (!r) return ''; return REGION_NAMES[r] || r; }
 
 function getPlantsByRegion(region) {
   if (!region) return [];
@@ -2307,8 +2430,8 @@ function renderTimesheet() {
     const cancelled = d.plantStatus === 'Cancelled';
     // Region seçilmediyse plant dropdown boş; seçildiyse o region'a ait plantlar
     const availablePlants = d.region ? ['', ...getPlantsByRegion(d.region)] : [''];
-    const regionOpts = ['', ...REGIONS].map(r=>`<option value="${r}" ${r===d.region?'selected':''}>${r||'—'}</option>`).join('');
-    const plantOpts = availablePlants.map(p=>`<option value="${p}" ${p===d.plant?'selected':''}>${p||'—'}</option>`).join('');
+    const regionOpts = ['', ...REGIONS].map(r=>`<option value="${r}" ${r===d.region?'selected':''}>${r?regionLabel(r):'—'}</option>`).join('');
+    const plantOpts = availablePlants.map(p=>`<option value="${p}" ${p===d.plant?'selected':''}>${p?plantLabel(p):'—'}</option>`).join('');
     const plantStatusOpts = STATUSES.map(s=>`<option value="${s}" ${s===d.plantStatus?'selected':''}>${s||'—'}</option>`).join('');
     const enfOpts = ['', ...ENF_LIST].map(e=>`<option value="${e}" ${e===d.enforcement?'selected':''}>${e||'—'}</option>`).join('');
     const samplingOpts = SAMPLING_OPTS.map(o=>`<option value="${o}" ${o===d.sampling?'selected':''}>${o||'—'}</option>`).join('');
@@ -2819,7 +2942,7 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
   renderOGHeader(container);
 
   const ROWS = [
-    ['Status', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
+    ['Status', (e) => e ? `${plantLabel(e.plant)} ${e.status}` : '', 'var(--accent2)', '600'],
     ['SOR', (e) => e?.sorStr || '', 'var(--text-muted)', '700'],
     ['Time', (e) => (e && !e._empty && e.arr && e.dep) ? `${e.arr}-${e.effectiveDep || e.dep}` : '', 'var(--accent)', '700'],
     ['Codes', (e) => (e && !e._empty) ? formatCodes(e) : '', '#d97706', '700']
@@ -2954,7 +3077,7 @@ function renderEnfSection(containerId, sectionData) {
 
   renderOGHeader(container);
 
-  [['', (e) => e ? `${e.plant} ${e.status}` : '', 'var(--accent2)', '600'],
+  [['', (e) => e ? `${plantLabel(e.plant)} ${e.status}` : '', 'var(--accent2)', '600'],
    ['SOR', (e) => e?.outHours > 0 ? '00:00-00:00' : '', 'var(--text-muted)', '700'],
    ['Time', (e) => e?.outHours > 0 ? '00:00-00:00' : '', 'var(--accent)', '700'],
    ['', (e) => e ? [e.type, e.enfClass, e.outHours?`${e.outHours} Out Hrs`:null].filter(Boolean).join(' | ') : '', '#d97706', '700']
@@ -3183,6 +3306,7 @@ function checkPin() {
     document.getElementById('codesLock').style.display = 'none';
     document.getElementById('codesEditor').style.display = 'block';
     renderCodesEditor();
+    renderDisplayNamesEditor();
     updateSyncStatusBanner();
   } else {
     document.getElementById('pinError').style.display = 'block';
@@ -3688,6 +3812,7 @@ function saveCodesEdit() {
   // savedAt önemli: yerel düzenleme remote codes.json'dan daha yeni mi kontrolü için
   try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES, SOR_DISPLAY_DAYS, savedAt: new Date().toISOString() })); } catch(e) {}
   renderOutcome(); renderCodesEditor(); renderTimesheet();
+  try { renderDisplayNamesEditor(); } catch(e) {}
   // SOR sekmesini de tazele (yeni eklenen kodlar SOR'a yansısın)
   try { populateSORRegions(); populateSORPlants(); renderSORTable(); } catch(e) {}
   // Banner'ı tazele — yerel versiyon artık daha yeni

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "exportedAt": "2026-08-13T14:26:17.689Z",
+  "exportedAt": "2026-09-22T11:00:07.315Z",
   "REGIONS": [
     "Cluster27",
     "Cluster26"
@@ -404,26 +404,6 @@
         "GNTB": 0.25,
         "GFSA": 0.25,
         "RCP": null,
-        "GNED": null
-      }
-    },
-    "4067": {
-      "OV": {
-        "arr": "00:00",
-        "dep": "00:00",
-        "MAIN_ABSORB": "GSRM",
-        "BREAK": null,
-        "GBPS": null,
-        "GSRM": null,
-        "GPAS": null,
-        "GWAG": null,
-        "GAVI": null,
-        "INSP": null,
-        "HLVI": null,
-        "GNTB": null,
-        "GFSA": 0.25,
-        "RCP": 1,
-        "RCP_ONLY": true,
         "GNED": null
       }
     },
@@ -1191,24 +1171,6 @@
         "GNTB": null,
         "GFSA": null,
         "RCP": null,
-        "GNED": null
-      }
-    },
-    "4067": {
-      "MHI": {
-        "arr": "00:00",
-        "dep": "00:00",
-        "MAIN_ABSORB": "GSRM",
-        "BREAK": null,
-        "GBPS": null,
-        "GSRM": null,
-        "GPAS": null,
-        "INSP": null,
-        "GNTB": null,
-        "GFSA": null,
-        "RCP": 1,
-        "RCP_CODE": "GSRM",
-        "RCP_ONLY": true,
         "GNED": null
       }
     },

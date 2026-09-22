@@ -4157,7 +4157,7 @@ function populateSORRegions() {
   if (!sel) return;
   const current = sel.value;
   sel.innerHTML = '<option value="">— Select —</option>' +
-    REGIONS.map(r => `<option value="${r}" ${r===current?'selected':''}>${r}</option>`).join('');
+    REGIONS.map(r => `<option value="${r}" ${r===current?'selected':''}>${regionLabel(r)}</option>`).join('');
 }
 
 function populateSORPlants() {
@@ -4168,7 +4168,7 @@ function populateSORPlants() {
   const plants = region ? getPlantsByRegion(region) : [];
   const current = plantSel.value;
   plantSel.innerHTML = '<option value="">— Select —</option>' +
-    plants.map(p => `<option value="${p}" ${p===current?'selected':''}>${p}</option>`).join('');
+    plants.map(p => `<option value="${p}" ${p===current?'selected':''}>${plantLabel(p)}</option>`).join('');
 }
 
 function onSORRegionChange() {
@@ -4644,7 +4644,7 @@ function renderSORDisplaySettings() {
 
   regionOrder.forEach(region => {
     html += `<div style="margin-bottom:28px">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;color:var(--accent2);padding:8px 0;border-bottom:2px solid var(--accent2);margin-bottom:12px">${region}</div>`;
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;color:var(--accent2);padding:8px 0;border-bottom:2px solid var(--accent2);margin-bottom:12px">${regionLabel(region)}</div>`;
 
     byRegion[region].forEach(plant => {
       const ovStatuses  = _baseStatusesFor(plant, OV_CODES);
@@ -4652,7 +4652,7 @@ function renderSORDisplaySettings() {
       if (ovStatuses.length === 0 && mhiStatuses.length === 0) return;
 
       html += `<div style="margin-bottom:18px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px">
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">Plant ${plant}</div>`;
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">${plantLabel(plant)}</div>`;
 
       ovStatuses.forEach(status => {
         html += _renderSORDisplayRow(plant, 'OV', status);

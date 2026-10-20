@@ -1029,6 +1029,7 @@
         <button id="adminTab-temporary" onclick="switchAdminTab('temporary')" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:8px 20px;border:none;background:transparent;color:var(--text-muted);border-radius:4px 4px 0 0;cursor:pointer;border:1px solid var(--border);border-bottom:none">Temporary Changes</button>
         <button id="adminTab-dropdown" onclick="switchAdminTab('dropdown')" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:8px 20px;border:none;background:transparent;color:var(--text-muted);border-radius:4px 4px 0 0;cursor:pointer;border:1px solid var(--border);border-bottom:none">Drop-Down</button>
         <button id="adminTab-sor-display" onclick="switchAdminTab('sor-display')" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:8px 20px;border:none;background:transparent;color:var(--text-muted);border-radius:4px 4px 0 0;cursor:pointer;border:1px solid var(--border);border-bottom:none">SOR Display</button>
+        <button id="adminTab-display" onclick="switchAdminTab('display')" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:8px 20px;border:none;background:transparent;color:var(--text-muted);border-radius:4px 4px 0 0;cursor:pointer;border:1px solid var(--border);border-bottom:none">Display Names</button>
       </div>
 
       <!-- CODES section -->
@@ -1045,23 +1046,6 @@
         </div>
       </div>
       <div id="syncStatusBanner" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:16px;font-family:'IBM Plex Mono',monospace;font-size:13px"></div>
-
-      <details id="displayNamesPanel" style="margin-bottom:16px;border:1px solid var(--border);border-radius:8px;background:var(--surface)">
-        <summary style="cursor:pointer;padding:10px 14px;font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--text);font-weight:600;user-select:none">Display Names &mdash; plant &amp; cluster aliases</summary>
-        <div style="padding:4px 14px 14px">
-          <div style="font-size:12.5px;color:var(--text-muted);line-height:1.5;margin-bottom:12px">
-            Ekranda (Schedule ve TAPP) gerçek plant numaraları / cluster adları yerine burada tanımladığın isimler görünür. Bu Codes sekmesinde numaralar aynen kalır. İsim boş bırakılırsa o plant/cluster için numara/ad gösterilir. Değişiklikler bu tarayıcıda saklanır.
-          </div>
-          <div id="displayNamesEditor"></div>
-          <div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap">
-            <button onclick="saveDisplayNamesFromUI()" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:6px 14px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:5px;cursor:pointer">Save names</button>
-            <button onclick="resetDisplayNames()" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:6px 14px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:5px;cursor:pointer">Reset to defaults</button>
-            <span id="displayNamesStatus" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-muted)"></span>
-          </div>
-        </div>
-      </details>
-
-
 
       <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
         <div style="display:flex;align-items:center;gap:6px">
@@ -1211,12 +1195,27 @@
           <button onclick="saveSORDisplay()" style="font-family:'IBM Plex Mono',monospace;font-size:16px;padding:6px 16px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:4px;cursor:pointer">Save Changes</button>
         </div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px;line-height:1.5">
-          For each plant/status, tick the days you want to appear in the <b>SOR</b> tab.
-          Tick <b>All</b> to show on every day. If nothing is ticked for a row, that
-          plant/status will not appear in SOR at all.
+          For each plant/status, tick the <b>weekdays</b> (Mon–Fri) you want to appear in the <b>SOR</b> tab.
+          Tick <b>All</b> to show on every day. If no weekday is ticked for a row, that plant/status will not appear in SOR.
+          <br><b>Sat / Sun</b> ticks are different: they do <b>not</b> show in SOR — they only make that plant/status
+          selectable on that weekend day in the <b>Schedule</b> tab, and its codes flow through to <b>TAPP</b>.
         </div>
         <div id="sorDisplayContainer"></div>
       </div><!-- end adminSection-sor-display -->
+
+      <div id="adminSection-display" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="ts-title">Display Names</div>
+          <button onclick="saveDisplayNames()" style="font-family:'IBM Plex Mono',monospace;font-size:16px;padding:6px 16px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:4px;cursor:pointer">Save Changes</button>
+        </div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px;line-height:1.5">
+          Give each <b>cluster</b> and/or <b>plant</b> a display name (e.g. a person's name). When a name is set,
+          it is shown everywhere (Schedule, SOR, TAPP) <b>instead of</b> the cluster name / plant number.
+          Leave a box empty to keep the original cluster name / plant number.
+          <br>After editing, click <b>Save Changes</b>, then <b>Export codes.json</b> and upload it to GitHub so everyone sees the names.
+        </div>
+        <div id="displayNamesContainer"></div>
+      </div><!-- end adminSection-display -->
 
     </div>
   </div>
@@ -1245,113 +1244,41 @@ let PLANT_REGIONS = {
   '8165': 'Cluster27',
 };
 
-// ═══════════ GÖRÜNEN İSİM KATMANI (display names) ═══════════
-// Güvenlik/gizlilik için: codes sekmesinde gerçek plant numaraları ve cluster
-// adları kalır; Schedule dropdown'ları ve TAPP çıktısı bunların yerine takma
-// isimleri gösterir. Eşleşmeler localStorage 'ts_display_names' altında tutulur
-// ve arayüzden (codes editor > Display Names paneli) düzenlenebilir.
-const DISPLAY_NAMES_KEY = 'ts_display_names';
-// İlk kurulum varsayılanları — kullanıcının verdiği eşleşmeler
-const DEFAULT_PLANT_NAMES = {
-  '2172':'Dogukan','4138':'Alp','8145':'Charlotte','8165':'Maissa','4133':'Jaime',
-  '4015':'Roberto','4392':'Berk','2900':'Ceren','8072':'Kaan','2690':'Taban',
-  '8061':'Aycan','8119':'Anil','8201':'Daniela','8249':'Aysegul'
-};
-const DEFAULT_REGION_NAMES = { 'Cluster27':'Karolina','Cluster26':'Mehmet' };
-
-let PLANT_NAMES = {}, REGION_NAMES = {};
-(function _loadDisplayNames() {
-  let saved = null;
-  try { saved = JSON.parse(localStorage.getItem(DISPLAY_NAMES_KEY) || 'null'); } catch(e) {}
-  if (saved && (saved.plants || saved.regions)) {
-    PLANT_NAMES  = Object.assign({}, saved.plants  || {});
-    REGION_NAMES = Object.assign({}, saved.regions || {});
-    // Tek seferlik düzeltme: 2172 daha önce "Burak" olarak kaydedildiyse (eski
-    // varsayılan) ve elle başka bir şeye çevrilmediyse "Dogukan"a taşı.
-    if (PLANT_NAMES['2172'] === 'Burak') {
-      PLANT_NAMES['2172'] = 'Dogukan';
-      try { localStorage.setItem(DISPLAY_NAMES_KEY, JSON.stringify({ plants:PLANT_NAMES, regions:REGION_NAMES })); } catch(e) {}
-    }
-  } else {
-    // İlk açılış: varsayılanları uygula ve kaydet
-    PLANT_NAMES  = Object.assign({}, DEFAULT_PLANT_NAMES);
-    REGION_NAMES = Object.assign({}, DEFAULT_REGION_NAMES);
-    try { localStorage.setItem(DISPLAY_NAMES_KEY, JSON.stringify({ plants:PLANT_NAMES, regions:REGION_NAMES })); } catch(e) {}
-  }
+// ═══════════ SCHEDULE WEEKEND (kod-bazlı hafta sonu) ═══════════
+// SOR Display panelinde bir status için Cumartesi/Pazar işaretlenirse, o seçim
+// BURAYA yazılır (SOR_DISPLAY_DAYS'e DEĞİL). Böylece hafta sonu seçimi SADECE
+// Schedule dropdown'ını ve TAPP'i etkiler; SOR sekmesinde görünmez.
+// Yapı: { plant: { "OV|status": ["SATURDAY","SUNDAY"], "MHI|status": [...] } }
+// localStorage key: ts_schedule_weekend; codes.json'da SCHEDULE_WEEKEND alanı.
+const SCHEDULE_WEEKEND_KEY = 'ts_schedule_weekend';
+let SCHEDULE_WEEKEND = {};
+(function _loadScheduleWeekend() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SCHEDULE_WEEKEND_KEY) || 'null');
+    if (saved && typeof saved === 'object') SCHEDULE_WEEKEND = saved;
+  } catch(e) {}
 })();
-
-function saveDisplayNames() {
-  try { localStorage.setItem(DISPLAY_NAMES_KEY, JSON.stringify({ plants:PLANT_NAMES, regions:REGION_NAMES })); } catch(e) {}
+function saveScheduleWeekend() {
+  try { localStorage.setItem(SCHEDULE_WEEKEND_KEY, JSON.stringify(SCHEDULE_WEEKEND)); } catch(e) {}
 }
 
-// Display Names editör tablosunu çizer: tüm cluster'lar + tüm plant'ler (codes'ta
-// geçen numaralar dahil), her biri için isim input'u.
-function renderDisplayNamesEditor() {
-  const box = document.getElementById('displayNamesEditor');
-  if (!box) return;
-  // Tüm plant numaralarını topla: sabit PLANTS + OV/MHI codes anahtarları
-  const plantSet = new Set(PLANTS.filter(p => p));
-  Object.keys(OV_CODES).forEach(p => plantSet.add(p));
-  Object.keys(MHI_CODES).forEach(p => plantSet.add(p));
-  Object.keys(PLANT_REGIONS).forEach(p => plantSet.add(p));
-  const plants = [...plantSet].sort();
-  // Tüm cluster'lar
-  const regionSet = new Set(REGIONS);
-  Object.values(PLANT_REGIONS).forEach(r => { if (r) regionSet.add(r); });
-  const regions = [...regionSet];
-
-  const inp = (val, kind, key) =>
-    `<input type="text" value="${(val||'').replace(/"/g,'&quot;')}" data-kind="${kind}" data-key="${key}" placeholder="—"
-       style="padding:5px 8px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;width:150px">`;
-
-  let html = '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:12px;color:var(--text-muted);margin:2px 0 6px">CLUSTERS</div>';
-  html += '<div style="display:flex;flex-wrap:wrap;gap:8px 16px;margin-bottom:14px">';
-  regions.forEach(r => {
-    html += `<label style="display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-muted)"><span style="min-width:84px">${r}</span>${inp(REGION_NAMES[r], 'region', r)}</label>`;
-  });
-  html += '</div>';
-
-  html += '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:12px;color:var(--text-muted);margin:2px 0 6px">PLANTS</div>';
-  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 16px">';
-  plants.forEach(p => {
-    html += `<label style="display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-muted)"><span style="min-width:54px">${p}</span>${inp(PLANT_NAMES[p], 'plant', p)}</label>`;
-  });
-  html += '</div>';
-  box.innerHTML = html;
+// Görünen isim katmanı: cluster (region) ve plant için kişi/takma ad eşlemesi.
+// Admin > Display Names sekmesinden düzenlenir; codes.json'da REGION_DISPLAY /
+// PLANT_DISPLAY alanları olarak taşınır (herkese dağıtım JSON üzerinden olur).
+// Bir değer için ad girilmişse ekranda SADECE o ad gösterilir; boşsa ham
+// cluster adı / plant numarası gösterilir.
+let REGION_DISPLAY = {};
+let PLANT_DISPLAY  = {};
+function plantLabel(p)  {
+  if (!p) return '';
+  const n = PLANT_DISPLAY[String(p)];
+  return (n && String(n).trim()) ? String(n).trim() : String(p);
 }
-
-function saveDisplayNamesFromUI() {
-  const box = document.getElementById('displayNamesEditor');
-  if (!box) return;
-  const nextP = {}, nextR = {};
-  box.querySelectorAll('input[data-kind]').forEach(el => {
-    const v = el.value.trim();
-    if (!v) return;
-    if (el.dataset.kind === 'plant')  nextP[el.dataset.key] = v;
-    if (el.dataset.kind === 'region') nextR[el.dataset.key] = v;
-  });
-  PLANT_NAMES = nextP; REGION_NAMES = nextR;
-  saveDisplayNames();
-  const st = document.getElementById('displayNamesStatus');
-  if (st) { st.textContent = 'Saved.'; setTimeout(() => { if (st) st.textContent = ''; }, 2500); }
-  // Ekrandaki görünümleri tazele
-  try { renderTimesheet(); } catch(e) {}
-  try { renderOutcome(); } catch(e) {}
+function regionLabel(r) {
+  if (!r) return '';
+  const n = REGION_DISPLAY[String(r)];
+  return (n && String(n).trim()) ? String(n).trim() : String(r);
 }
-
-function resetDisplayNames() {
-  PLANT_NAMES  = Object.assign({}, DEFAULT_PLANT_NAMES);
-  REGION_NAMES = Object.assign({}, DEFAULT_REGION_NAMES);
-  saveDisplayNames();
-  renderDisplayNamesEditor();
-  const st = document.getElementById('displayNamesStatus');
-  if (st) { st.textContent = 'Reset to defaults.'; setTimeout(() => { if (st) st.textContent = ''; }, 2500); }
-  try { renderTimesheet(); } catch(e) {}
-  try { renderOutcome(); } catch(e) {}
-}
-// Görünen etiket: isim tanımlıysa onu, yoksa ham değeri döndürür.
-function plantLabel(p)  { if (!p) return ''; return PLANT_NAMES[p]  || p; }
-function regionLabel(r) { if (!r) return ''; return REGION_NAMES[r] || r; }
 
 function getPlantsByRegion(region) {
   if (!region) return [];
@@ -1482,6 +1409,21 @@ function getValidStatuses(day, plant) {
         result.add(key);
       }
     }
+  }
+
+  // ─── SCHEDULE WEEKEND: kod-bazlı hafta sonu seçimi (SADECE Schedule/TAPP) ──
+  // Admin'de bir status için Cumartesi/Pazar işaretlenmişse, o status O GÜN
+  // Schedule dropdown'ında seçilebilir ve TAPP'e yansır. SOR sekmesini ETKİLEMEZ.
+  const _sw = SCHEDULE_WEEKEND[String(plant)];
+  if (_sw) {
+    Object.keys(_sw).forEach(k => {
+      const arr = _sw[k];
+      if (Array.isArray(arr) && arr.includes(day)) {
+        const parts = k.split('|');            // "OV|OV Only" → status = "OV Only"
+        const status = parts.length === 2 ? parts[1] : k;
+        if (status) result.add(status);
+      }
+    });
   }
 
   // ─── FALLBACK: hafta içi & sonuç boş ise, plantin tüm base statuslarını aç ───
@@ -1634,13 +1576,25 @@ function _firstDaySpecificForStatus(p, status) {
 // strict=true  (TEMP için): sadece day-specific veya generic (hafta içi). Weekday
 //   fallback YOK — sadece bir gün için temp girdiysen, diğer günler bundan
 //   etkilenmesin, ana koda düşsün.
+// Schedule Weekend'de bu plant+status, verilen gün için işaretli mi? (OV/MHI farketmez)
+// Böylece hafta sonu için işaretlenen generic kodlar lookup'ta (Schedule/TAPP) geçerli olur.
+function _schedWeekendAllows(plant, status, day) {
+  const m = SCHEDULE_WEEKEND[String(plant)];
+  if (!m) return false;
+  const ov = m['OV|' + status], mhi = m['MHI|' + status];
+  return (Array.isArray(ov) && ov.includes(day)) || (Array.isArray(mhi) && mhi.includes(day));
+}
+
 function _lookupInTable(table, day, plant, status, strict) {
   const p = table[String(plant)];
   if (!p) return null;
   const daySpecific = p[day + '_' + status];
   if (daySpecific) return daySpecific;
-  if (p[status] && WEEKDAYS.includes(day)) return p[status];
-  if (!strict && WEEKDAYS.includes(day)) {
+  // Generic kayıt: hafta içinde her zaman; hafta sonu ise SADECE Schedule Weekend'de
+  // o gün için işaretlenmişse geçerli (kod-bazlı hafta sonu seçimi; SOR'u etkilemez).
+  const dayAllowed = WEEKDAYS.includes(day) || _schedWeekendAllows(plant, status, day);
+  if (p[status] && dayAllowed) return p[status];
+  if (!strict && dayAllowed) {
     const fallback = _firstDaySpecificForStatus(p, status);
     if (fallback) return fallback;
   }
@@ -1708,7 +1662,7 @@ function getSORValidStatuses(day, plant) {
   const result = new Set();
   const sources = [OV_CODES[String(plant)], MHI_CODES[String(plant)],
                    TEMP_OV_CODES[String(plant)], TEMP_MHI_CODES[String(plant)]];
-  const isWeekend = (day === 'SATURDAY' || day === 'SUNDAY');
+  const isWeekend = (day === 'SATURDAY' || day === 'SUNDAY'); // SOR hafta sonu generic GÖSTERMEZ
   const dayPrefix = day + '_';
   const ALL_DAY_PREFIXES = DAYS.map(d => d + '_');
 
@@ -2364,7 +2318,16 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     rcpRange: rcpRange,
     rcpHours: (rcpVal > 0 ? rcpVal : null),
     // Time sütununda gösterilecek effective departure (RCP düşülmüş)
-    effectiveDep: effectiveDep
+    effectiveDep: effectiveDep,
+    // TAPP'te GFSA değerinin yanına yazılacak sampling tip ad(lar)ı. Schedule'da
+    // seçilen sampling tipleri (örn RIM, Trichinella) GFSA satırında etiketlenir.
+    // Birden fazla farklı tip seçiliyse virgülle ayrılır; yoksa boş string.
+    _gfsaLabel: (() => {
+      if (!_samps.length) return '';
+      const seen = [];
+      _samps.forEach(sm => { if (sm.type && seen.indexOf(sm.type) === -1) seen.push(sm.type); });
+      return seen.join(', ');
+    })()
   };
 }
 
@@ -2892,10 +2855,14 @@ function formatCodes(entry) {
   const mainAbsorb = (entry.MAIN_ABSORB || '').trim();
   const present = fields.filter(k => entry[k] != null && entry[k] !== '');
   const normal  = present.filter(k => k !== mainAbsorb);
-  const parts = normal.map(k => `${entry[k]} ${k}`);
+  // GFSA satırında, Schedule'da seçilen sampling tip adı (örn RIM / Trichinella)
+  // değerin yanına yazılır: "0.25 GFSA RIM". Diğer kodlar normal gösterilir.
+  const _gfsaLbl = (entry._gfsaLabel || '').trim();
+  const _fmt = (k) => (k === 'GFSA' && _gfsaLbl) ? `${entry[k]} ${k} (${_gfsaLbl})` : `${entry[k]} ${k}`;
+  const parts = normal.map(_fmt);
   // MAIN_ABSORB satırı (varsa ve değeri varsa) → en altın bir üstüne
   if (mainAbsorb && entry[mainAbsorb] != null && entry[mainAbsorb] !== '') {
-    parts.push(`${entry[mainAbsorb]} ${mainAbsorb}`);
+    parts.push(_fmt(mainAbsorb));
   }
   // IUWT en altta — _iuwtLate ve _iuwtEarly varsa ayrı satırlarda etiketle.
   // Yoksa (örn computeOutcome'un "tümü IUWT" fallback'i) tek satır yaz.
@@ -3306,7 +3273,6 @@ function checkPin() {
     document.getElementById('codesLock').style.display = 'none';
     document.getElementById('codesEditor').style.display = 'block';
     renderCodesEditor();
-    renderDisplayNamesEditor();
     updateSyncStatusBanner();
   } else {
     document.getElementById('pinError').style.display = 'block';
@@ -3810,9 +3776,8 @@ function saveCodesEdit() {
   if (_mhiRows) { const newMHI = rowsToMHIObj(_mhiRows); Object.keys(MHI_CODES).forEach(k=>delete MHI_CODES[k]); Object.assign(MHI_CODES, newMHI); _mhiRows=null; }
   // localStorage'a kaydet ki sayfa yenilenince kaybolmasın
   // savedAt önemli: yerel düzenleme remote codes.json'dan daha yeni mi kontrolü için
-  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES, SOR_DISPLAY_DAYS, savedAt: new Date().toISOString() })); } catch(e) {}
+  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES, SOR_DISPLAY_DAYS, REGION_DISPLAY, PLANT_DISPLAY, savedAt: new Date().toISOString() })); } catch(e) {}
   renderOutcome(); renderCodesEditor(); renderTimesheet();
-  try { renderDisplayNamesEditor(); } catch(e) {}
   // SOR sekmesini de tazele (yeni eklenen kodlar SOR'a yansısın)
   try { populateSORRegions(); populateSORPlants(); renderSORTable(); } catch(e) {}
   // Banner'ı tazele — yerel versiyon artık daha yeni
@@ -4434,6 +4399,9 @@ function buildCodesJSON() {
     PLANT_REGIONS: PLANT_REGIONS,
     EXTRA_CODES: EXTRA_CODES,
     SOR_DISPLAY_DAYS: SOR_DISPLAY_DAYS,
+    SCHEDULE_WEEKEND: SCHEDULE_WEEKEND,
+    REGION_DISPLAY: REGION_DISPLAY,
+    PLANT_DISPLAY: PLANT_DISPLAY,
     OV_CODES: OV_CODES,
     MHI_CODES: MHI_CODES,
   };
@@ -4484,11 +4452,19 @@ function importCodesJSON(input) {
         Object.keys(SOR_DISPLAY_DAYS).forEach(k => delete SOR_DISPLAY_DAYS[k]);
         Object.assign(SOR_DISPLAY_DAYS, data.SOR_DISPLAY_DAYS);
       }
+      if (data.REGION_DISPLAY && typeof data.REGION_DISPLAY === 'object') {
+        Object.keys(REGION_DISPLAY).forEach(k => delete REGION_DISPLAY[k]);
+        Object.assign(REGION_DISPLAY, data.REGION_DISPLAY);
+      }
+      if (data.PLANT_DISPLAY && typeof data.PLANT_DISPLAY === 'object') {
+        Object.keys(PLANT_DISPLAY).forEach(k => delete PLANT_DISPLAY[k]);
+        Object.assign(PLANT_DISPLAY, data.PLANT_DISPLAY);
+      }
       // PLANTS'ı tazele (yeni eklenmiş plantlar olabilir)
       Object.keys({...OV_CODES, ...MHI_CODES}).forEach(p => {
         if (!PLANTS.includes(p)) PLANTS.push(p);
       });
-      try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES, SOR_DISPLAY_DAYS, savedAt: new Date().toISOString() })); } catch(err) {}
+      try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES, SOR_DISPLAY_DAYS, REGION_DISPLAY, PLANT_DISPLAY, savedAt: new Date().toISOString() })); } catch(err) {}
       _ovRows = null;
       _mhiRows = null;
       renderCodesEditor();
@@ -4503,6 +4479,14 @@ function importCodesJSON(input) {
   };
   reader.readAsText(file);
 }
+
+// ─── GÖMÜLÜ CODES (SharePoint/offline için) ──────────────────────
+// codes.json ayrı dosya olarak bulunamazsa (örn SharePoint Site Assets'te
+// tek dosya olarak açıldığında) bu gömülü sürüm kullanılır. Admin'de yapıp
+// Export ettiğin codes.json'un içeriği buraya yazılır; index.html'i yeniden
+// yükleyince herkes güncel kodları görür. En güncel JSON'u gömmek için bu
+// satırı değiştirmen yeterli.
+const EMBEDDED_CODES = {"version":2,"exportedAt":"2026-10-06T06:14:25.562Z","REGIONS":["Cluster27","Cluster26"],"PLANT_REGIONS":{"2172":"Cluster27","2690":"Cluster27","4015":"Cluster27","4133":"Cluster27","4138":"Cluster27","4392":"Cluster27","8072":"Cluster27","8145":"Cluster27","8165":"Cluster27"},"EXTRA_CODES":[],"SOR_DISPLAY_DAYS":{},"OV_CODES":{"2172":{"Inside OV":{"arr":"08:00","dep":"18:00","BREAK":0.5,"GBPS":0.5,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":9,"GNTB":0.5,"GFSA":0.5,"RCP":null},"Lairage OV":{"arr":"06:30","dep":"17:30","BREAK":0.5,"GBPS":0.5,"GSRM":null,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":9.5,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null}},"2690":{"OV":{"arr":"07:00","dep":"16:00","BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":7.25,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null}},"4015":{"OV":{"arr":"07:00","dep":"18:00","BREAK":0.5,"GBPS":0.5,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":0.5,"INSP":10,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null}},"4133":{"OV":{"arr":"05:30","dep":"15:30","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":9,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null},"THURSDAY_OV":{"arr":"05:30","dep":"16:30","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":10,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null},"FRIDAY_OV":{"arr":"05:30","dep":"16:30","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":10,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null}},"4138":{"OV Only":{"arr":"07:00","dep":"10:00","BREAK":null,"GBPS":0.5,"GSRM":0.5,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":1.75,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null}},"4392":{"OV Only":{"arr":"07:30","dep":"11:00","BREAK":null,"GBPS":0.25,"GSRM":0.5,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":2.5,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null}},"8072":{"OV":{"arr":"07:00","dep":"15:00","BREAK":0.5,"GBPS":0.5,"GSRM":null,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":6.75,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null},"FRIDAY_OV":{"arr":"06:30","dep":"14:00","BREAK":0.5,"GBPS":0.25,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":6.75,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null},"MONDAY_TB OV":{"arr":"09:00","dep":"16:00","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":0.5,"GNTB":7.5,"GFSA":0.5,"RCP":null},"TUESDAY_TB OV":{"arr":"10:00","dep":"16:00","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":0.5,"GNTB":7.5,"GFSA":0.5,"RCP":null},"THURSDAY_TB OV":{"arr":"09:00","dep":"16:00","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":0.5,"GNTB":7.5,"GFSA":0.5,"RCP":null}},"8145":{"OV":{"arr":"08:00","dep":"17:00","BREAK":null,"GBPS":0.5,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":7.5,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null},"OV Afternoon":{"arr":"15:00","dep":"20:30","BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":4,"HLVI":0.5,"GNTB":0.5,"GFSA":0.75,"RCP":null},"OV Morning":{"arr":"07:30","dep":"15:00","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":6.5,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null}},"8165":{"MONDAY_OV":{"arr":"06:45","dep":"18:00","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":9,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null},"TUESDAY_OV":{"arr":"06:45","dep":"17:00","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":8,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null},"WEDNESDAY_OV":{"arr":"06:45","dep":"17:00","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":8,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null},"THURSDAY_OV":{"arr":"06:45","dep":"16:00","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":7,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null},"FRIDAY_OV":{"arr":"06:45","dep":"13:00","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":4,"HLVI":0.5,"GNTB":0.5,"GFSA":0.5,"RCP":null}}},"MHI_CODES":{"2172":{"MHI":{"arr":"07:00","dep":"17:30","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":9.5,"GNTB":null,"GFSA":null,"RCP":null}},"2690":{"MHI":{"arr":"07:00","dep":"11:00","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":3.75,"GNTB":null,"GFSA":null,"RCP":null},"MONDAY_MHI":{"arr":"07:00","dep":"11:00","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":3.75,"GNTB":null,"GFSA":null,"RCP":null},"THURSDAY_MHI":{"arr":"07:00","dep":"11:00","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":3.75,"GNTB":null,"GFSA":null,"RCP":null}},"4015":{"MHI":{"arr":"07:30","dep":"18:00","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":10,"GNTB":null,"GFSA":null,"RCP":null}},"4133":{"MHI":{"arr":"06:00","dep":"15:15","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":8.25,"GNTB":null,"GFSA":null,"RCP":null},"THURSDAY_MHI":{"arr":"06:00","dep":"16:15","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":9.25,"GNTB":null,"GFSA":null,"RCP":null},"FRIDAY_MHI":{"arr":"06:00","dep":"16:15","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":9.25,"GNTB":null,"GFSA":null,"RCP":null}},"4138":{"OV Only":{"arr":"10:00","dep":"17:00","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":6.5,"GNTB":null,"GFSA":null,"RCP":null}},"4392":{"OV Only":{"arr":"11:00","dep":"14:30","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":3,"GNTB":null,"GFSA":null,"RCP":null}},"8072":{"MHI1":{"arr":"07:15","dep":"14:45","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":6.5,"GNTB":null,"GFSA":null,"RCP":null},"TUESDAY_MHI1":{"arr":"10:00","dep":"16:00","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":null,"GNTB":7.5,"GFSA":null,"RCP":null},"FRIDAY_MHI1":{"arr":"07:00","dep":"14:00","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":6.5,"GNTB":null,"GFSA":null,"RCP":null},"MONDAY_MHI2":{"arr":"10:30","dep":"15:00","BREAK":0,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":4.25,"GNTB":null,"GFSA":null,"RCP":null},"TUESDAY_MHI2":{"arr":"10:30","dep":"15:00","BREAK":0,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":4.25,"GNTB":null,"GFSA":null,"RCP":null},"WEDNESDAY_MHI2":{"arr":"10:30","dep":"15:00","BREAK":0,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":4.25,"GNTB":null,"GFSA":null,"RCP":null},"THURSDAY_MHI2":{"arr":"09:00","dep":"16:00","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":null,"GNTB":7.5,"GFSA":null,"RCP":null},"MHI2":{"arr":"10:30","dep":"15:00","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":3.75,"GNTB":null,"GFSA":null,"RCP":null}},"8145":{"MONDAY_MHI":{"arr":"08:15","dep":"14:00","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":5.5,"GNTB":null,"GFSA":null,"RCP":null},"MHI":{"arr":"08:15","dep":"14:00","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":5.5,"GNTB":null,"GFSA":null,"RCP":null}},"8165":{"MONDAY_MHI":{"arr":"07:00","dep":"18:00","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":9.5,"GNTB":null,"GFSA":null,"RCP":null},"TUESDAY_MHI":{"arr":"07:00","dep":"18:00","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":9.5,"GNTB":null,"GFSA":null,"RCP":null},"WEDNESDAY_MHI":{"arr":"07:00","dep":"17:00","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":8.5,"GNTB":null,"GFSA":null,"RCP":null},"THURSDAY_MHI":{"arr":"07:00","dep":"16:00","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":7.5,"GNTB":null,"GFSA":null,"RCP":null},"FRIDAY_MHI":{"arr":"07:00","dep":"13:00","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":4.5,"GNTB":null,"GFSA":null,"RCP":null},"MHI":{"arr":"07:00","dep":"18:00","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":9.5,"GNTB":null,"GFSA":null,"RCP":null}}}};
 
 // Sayfa açılırken codes.json'u dene; yoksa localStorage'a, o da yoksa gömülü default'a düş.
 async function loadCodesFromFile() {
@@ -4526,6 +4510,22 @@ async function loadCodesFromFile() {
     if (data.SOR_DISPLAY_DAYS && typeof data.SOR_DISPLAY_DAYS === 'object') {
       Object.keys(SOR_DISPLAY_DAYS).forEach(k => delete SOR_DISPLAY_DAYS[k]);
       Object.assign(SOR_DISPLAY_DAYS, data.SOR_DISPLAY_DAYS);
+    }
+    // Hafta sonu (Schedule-only) seçimleri: codes.json/gömülü sürümden gelir.
+    // AMA kullanıcının kendi yerel seçimi (ts_schedule_weekend) varsa ona dokunma —
+    // böylece "Save dedim ama henüz Export/embed etmedim" durumunda seçim kaybolmaz.
+    // Yerel seçim yoksa codes verisindeki ayarı uygula (herkese dağıtım bu yolla olur).
+    if (data.SCHEDULE_WEEKEND && typeof data.SCHEDULE_WEEKEND === 'object'
+        && localStorage.getItem(SCHEDULE_WEEKEND_KEY) === null) {
+      SCHEDULE_WEEKEND = data.SCHEDULE_WEEKEND;
+    }
+    if (data.REGION_DISPLAY && typeof data.REGION_DISPLAY === 'object') {
+      Object.keys(REGION_DISPLAY).forEach(k => delete REGION_DISPLAY[k]);
+      Object.assign(REGION_DISPLAY, data.REGION_DISPLAY);
+    }
+    if (data.PLANT_DISPLAY && typeof data.PLANT_DISPLAY === 'object') {
+      Object.keys(PLANT_DISPLAY).forEach(k => delete PLANT_DISPLAY[k]);
+      Object.assign(PLANT_DISPLAY, data.PLANT_DISPLAY);
     }
     Object.keys({...OV_CODES, ...MHI_CODES}).forEach(p => {
       if (!PLANTS.includes(p)) PLANTS.push(p);
@@ -4556,6 +4556,18 @@ async function loadCodesFromFile() {
     }
   } catch(e) { /* file:// veya 404 — sessizce geç */ }
 
+  // codes.json ayrı dosya olarak YOKSA gömülü sürümü "remote" gibi kullan.
+  // Böylece SharePoint'te tek dosya açıldığında bile güncel kodlar gelir.
+  // (Ayrı codes.json varsa ve daha yeniyse o kazanır — geriye dönük uyum.)
+  if (!remoteData && typeof EMBEDDED_CODES !== 'undefined' && EMBEDDED_CODES) {
+    remoteData = EMBEDDED_CODES;
+    remoteTime = EMBEDDED_CODES.exportedAt ? new Date(EMBEDDED_CODES.exportedAt).getTime() : 1;
+  } else if (remoteData && typeof EMBEDDED_CODES !== 'undefined' && EMBEDDED_CODES) {
+    // Hem ayrı dosya hem gömülü var: daha yeni olanı seç
+    const embTime = EMBEDDED_CODES.exportedAt ? new Date(EMBEDDED_CODES.exportedAt).getTime() : 0;
+    if (embTime > remoteTime) { remoteData = EMBEDDED_CODES; remoteTime = embTime; }
+  }
+
   // ─── KAYNAK SEÇİMİ ─────────────────────────────────────────────
   // 1. Eğer yerel (localStorage) versiyon REMOTE'tan daha yeni ise → yerel kullan
   //    (kullanıcı son düzenlemesini henüz GitHub'a yüklememiş olabilir)
@@ -4581,6 +4593,7 @@ async function loadCodesFromFile() {
     if (source === 'remote') {
       try { localStorage.setItem('ts_codes', JSON.stringify({
         OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES, SOR_DISPLAY_DAYS,
+        REGION_DISPLAY, PLANT_DISPLAY,
         savedAt: chosen.exportedAt || new Date().toISOString()
       })); } catch(e) {}
     }
@@ -4591,7 +4604,7 @@ async function loadCodesFromFile() {
 
 // ─── ADMIN SUB-TABS ─────────────────────────────────────────────
 function switchAdminTab(tab) {
-  ['codes','temporary','dropdown','sor-display'].forEach(t => {
+  ['codes','temporary','dropdown','sor-display','display'].forEach(t => {
     const sec = document.getElementById('adminSection-'+t);
     if (sec) sec.style.display = t===tab ? 'block' : 'none';
     const btn = document.getElementById('adminTab-'+t);
@@ -4602,6 +4615,61 @@ function switchAdminTab(tab) {
   });
   if (tab === 'sor-display') renderSORDisplaySettings();
   if (tab === 'temporary')  renderTempCodesEditor();
+  if (tab === 'display')    renderDisplayNames();
+}
+
+// ─── DISPLAY NAMES (cluster / plant → kişi adı) ────────────────
+function _dispAttr(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function renderDisplayNames() {
+  const c = document.getElementById('displayNamesContainer');
+  if (!c) return;
+  const inputStyle = "font-family:'IBM Plex Mono',monospace;font-size:14px;padding:6px 10px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:4px;width:220px";
+  const thStyle = "text-align:left;padding:6px 10px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border)";
+  const tdStyle = "padding:6px 10px;border-bottom:1px solid var(--border)";
+
+  // Clusters (regions)
+  let html = `<div style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:var(--accent2);margin:4px 0 10px">Clusters</div>`;
+  html += `<table style="border-collapse:collapse;margin-bottom:26px"><tr><th style="${thStyle}">Cluster</th><th style="${thStyle}">Display name</th></tr>`;
+  REGIONS.forEach(r => {
+    html += `<tr><td style="${tdStyle};font-weight:700">${_dispAttr(r)}</td>`
+          + `<td style="${tdStyle}"><input id="disp-region-${_dispAttr(r)}" type="text" placeholder="(keep ${_dispAttr(r)})" value="${_dispAttr(REGION_DISPLAY[String(r)] || '')}" style="${inputStyle}"></td></tr>`;
+  });
+  html += `</table>`;
+
+  // Plants
+  const plants = [...new Set([...Object.keys(OV_CODES), ...Object.keys(MHI_CODES)])]
+    .sort((a,b) => String(a).localeCompare(String(b), undefined, { numeric:true }));
+  html += `<div style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:var(--accent2);margin:4px 0 10px">Plants</div>`;
+  html += `<table style="border-collapse:collapse"><tr><th style="${thStyle}">Plant</th><th style="${thStyle}">Display name</th></tr>`;
+  plants.forEach(p => {
+    html += `<tr><td style="${tdStyle};font-weight:700">${_dispAttr(p)}</td>`
+          + `<td style="${tdStyle}"><input id="disp-plant-${_dispAttr(p)}" type="text" placeholder="(keep ${_dispAttr(p)})" value="${_dispAttr(PLANT_DISPLAY[String(p)] || '')}" style="${inputStyle}"></td></tr>`;
+  });
+  html += `</table>`;
+  c.innerHTML = html;
+}
+function saveDisplayNames() {
+  const plants = [...new Set([...Object.keys(OV_CODES), ...Object.keys(MHI_CODES)])];
+  Object.keys(REGION_DISPLAY).forEach(k => delete REGION_DISPLAY[k]);
+  Object.keys(PLANT_DISPLAY).forEach(k => delete PLANT_DISPLAY[k]);
+  REGIONS.forEach(r => {
+    const el = document.getElementById('disp-region-' + _dispAttr(r));
+    const v = el ? el.value.trim() : '';
+    if (v) REGION_DISPLAY[String(r)] = v;
+  });
+  plants.forEach(p => {
+    const el = document.getElementById('disp-plant-' + _dispAttr(p));
+    const v = el ? el.value.trim() : '';
+    if (v) PLANT_DISPLAY[String(p)] = v;
+  });
+  try { localStorage.setItem('ts_codes', JSON.stringify({ OV_CODES, MHI_CODES, PLANT_REGIONS, REGIONS, EXTRA_CODES, SOR_DISPLAY_DAYS, REGION_DISPLAY, PLANT_DISPLAY, savedAt: new Date().toISOString() })); } catch(e) {}
+  // Tüm görünümleri tazele — isimler her yerde güncellensin
+  try { renderTimesheet(); } catch(e) {}
+  try { renderOutcome(); } catch(e) {}
+  try { renderCodesEditor(); } catch(e) {}
+  try { populateSORRegions(); populateSORPlants(); renderSORTable(); } catch(e) {}
+  try { updateSyncStatusBanner(); } catch(e) {}
+  alert('Display names saved. Now use Export codes.json and upload it to GitHub so everyone sees them.');
 }
 
 // ─── SOR DISPLAY SETTINGS ──────────────────────────────────────
@@ -4675,8 +4743,10 @@ function renderSORDisplaySettings() {
 
 function _renderSORDisplayRow(plant, type, status) {
   const key = type + '|' + status;
+  // Hafta içi tikler SOR_DISPLAY_DAYS'ten, hafta sonu tikler SCHEDULE_WEEKEND'ten.
   const saved = (SOR_DISPLAY_DAYS[plant] && SOR_DISPLAY_DAYS[plant][key]) || [];
-  const savedSet = new Set(saved);
+  const savedWknd = (SCHEDULE_WEEKEND[plant] && SCHEDULE_WEEKEND[plant][key]) || [];
+  const savedSet = new Set([...saved, ...savedWknd]);
   const allTicked = _SOR_DAY_LABELS.every(([d]) => savedSet.has(d));
   const dataAttr = `data-plant="${plant}" data-key="${key}"`;
 
@@ -4719,21 +4789,32 @@ function _sorDispToggleDay(el) {
 function saveSORDisplay() {
   const container = document.getElementById('sorDisplayContainer');
   if (!container) return;
-  const next = {};
+  const nextSOR = {};   // hafta içi günler → SOR_DISPLAY_DAYS (SOR sekmesini etkiler)
+  const nextWknd = {};  // Cmt/Pzr günler → SCHEDULE_WEEKEND (SADECE Schedule/TAPP)
   container.querySelectorAll('.sor-disp-row').forEach(row => {
     const plant = row.getAttribute('data-plant');
     const key   = row.getAttribute('data-key');
-    const days = [];
+    const weekdayDays = [];
+    const weekendDays = [];
     row.querySelectorAll('.sor-disp-day').forEach(b => {
-      if (b.checked) days.push(b.getAttribute('data-day'));
+      if (!b.checked) return;
+      const d = b.getAttribute('data-day');
+      if (d === 'SATURDAY' || d === 'SUNDAY') weekendDays.push(d);
+      else weekdayDays.push(d);
     });
-    if (days.length > 0) {
-      if (!next[plant]) next[plant] = {};
-      next[plant][key] = days;
+    if (weekdayDays.length > 0) {
+      if (!nextSOR[plant]) nextSOR[plant] = {};
+      nextSOR[plant][key] = weekdayDays;
+    }
+    if (weekendDays.length > 0) {
+      if (!nextWknd[plant]) nextWknd[plant] = {};
+      nextWknd[plant][key] = weekendDays;
     }
   });
   Object.keys(SOR_DISPLAY_DAYS).forEach(k => delete SOR_DISPLAY_DAYS[k]);
-  Object.assign(SOR_DISPLAY_DAYS, next);
+  Object.assign(SOR_DISPLAY_DAYS, nextSOR);
+  SCHEDULE_WEEKEND = nextWknd;
+  saveScheduleWeekend();
   try {
     const cached = JSON.parse(localStorage.getItem('ts_codes') || '{}');
     cached.SOR_DISPLAY_DAYS = SOR_DISPLAY_DAYS;
@@ -4741,7 +4822,8 @@ function saveSORDisplay() {
     localStorage.setItem('ts_codes', JSON.stringify(cached));
   } catch(e) {}
   try { renderSORTable(); } catch(e) {}
-  alert('SOR display settings saved!');
+  try { renderTimesheet(); } catch(e) {}
+  alert('Saved! Hafta sonu seçimleri sadece Schedule/TAPP için geçerli; SOR sekmesinde görünmez.');
 }
 
 // ─── DROP-DOWN EDITOR ───────────────────────────────────────────

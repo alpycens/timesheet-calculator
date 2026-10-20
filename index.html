@@ -2319,14 +2319,20 @@ function calcCodes(codes, d, sorStr, actualDep, isMHI, actArrOverride) {
     rcpHours: (rcpVal > 0 ? rcpVal : null),
     // Time sütununda gösterilecek effective departure (RCP düşülmüş)
     effectiveDep: effectiveDep,
-    // TAPP'te GFSA değerinin yanına yazılacak sampling tip ad(lar)ı. Schedule'da
-    // seçilen sampling tipleri (örn RIM, Trichinella) GFSA satırında etiketlenir.
-    // Birden fazla farklı tip seçiliyse virgülle ayrılır; yoksa boş string.
-    _gfsaLabel: (() => {
-      if (!_samps.length) return '';
-      const seen = [];
-      _samps.forEach(sm => { if (sm.type && seen.indexOf(sm.type) === -1) seen.push(sm.type); });
-      return seen.join(', ');
+    // TAPP'te GFSA her sampling tipi için AYRI satır gösterilir (birleştirilmez):
+    //   "0.25 GFSA (RIM)", "0.25 GFSA (Trichinella)" gibi. Her satırın değeri =
+    //   plant GFSA kodu × o tipin adedi (max 1). Aynı tip birden çok eklenmişse
+    //   adetleri toplanır → tek satır. Toplam sayı (entry.GFSA) hesapta aynı kalır;
+    //   bu alan yalnızca gösterim içindir. Absorber GFSA ise bölünmez (null).
+    _gfsaParts: (() => {
+      if (!_samps.length || absorber === 'GFSA') return null;
+      const byType = {};
+      _samps.forEach(sm => { if (sm.type) byType[sm.type] = (byType[sm.type] || 0) + (parseInt(sm.qty) || 1); });
+      const parts = Object.keys(byType).map(type => ({
+        name: type,
+        val: Math.min(round25((codes.GFSA || 0) * byType[type]), 1)
+      }));
+      return parts.length ? parts : null;
     })()
   };
 }
@@ -2855,14 +2861,22 @@ function formatCodes(entry) {
   const mainAbsorb = (entry.MAIN_ABSORB || '').trim();
   const present = fields.filter(k => entry[k] != null && entry[k] !== '');
   const normal  = present.filter(k => k !== mainAbsorb);
-  // GFSA satırında, Schedule'da seçilen sampling tip adı (örn RIM / Trichinella)
-  // değerin yanına yazılır: "0.25 GFSA RIM". Diğer kodlar normal gösterilir.
-  const _gfsaLbl = (entry._gfsaLabel || '').trim();
-  const _fmt = (k) => (k === 'GFSA' && _gfsaLbl) ? `${entry[k]} ${k} (${_gfsaLbl})` : `${entry[k]} ${k}`;
-  const parts = normal.map(_fmt);
+  // GFSA: sampling seçiliyse her tip AYRI satır olur → "0.25 GFSA (RIM)",
+  // "0.25 GFSA (Trichinella)". Tek bir birleşik satır YAZILMAZ. Sampling yoksa
+  // (absorber/pin GFSA) normal tek satır gösterilir.
+  const _gfsaParts = Array.isArray(entry._gfsaParts) ? entry._gfsaParts : null;
+  const _emit = (arr, k) => {
+    if (k === 'GFSA' && _gfsaParts && _gfsaParts.length) {
+      _gfsaParts.forEach(p => arr.push(`${p.val} ${k} (${p.name})`));
+    } else {
+      arr.push(`${entry[k]} ${k}`);
+    }
+  };
+  const parts = [];
+  normal.forEach(k => _emit(parts, k));
   // MAIN_ABSORB satırı (varsa ve değeri varsa) → en altın bir üstüne
   if (mainAbsorb && entry[mainAbsorb] != null && entry[mainAbsorb] !== '') {
-    parts.push(_fmt(mainAbsorb));
+    _emit(parts, mainAbsorb);
   }
   // IUWT en altta — _iuwtLate ve _iuwtEarly varsa ayrı satırlarda etiketle.
   // Yoksa (örn computeOutcome'un "tümü IUWT" fallback'i) tek satır yaz.

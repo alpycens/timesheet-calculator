@@ -287,6 +287,36 @@
   }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
+  /* Aynı statüsün RSL + RCP bloklarını tek grup olarak sıkı tutar; gruplar arası
+     net boşluk bırakır (OV grubu / MHI grubu / Out of Work birbirinden ayrışsın). */
+  .ts-sect { margin-bottom: 34px; }
+  .ts-sect:last-child { margin-bottom: 0; }
+  /* RCP alt-başlığı: RSL grid'ine yapışık, kompakt, RCP kırmızısıyla etiketli. */
+  .rcp-sublabel {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #dc2626; font-weight: 700;
+    margin: 0 0 6px; padding: 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .rcp-sublabel::after { content: ''; flex: 1; height: 1px; background: rgba(220,38,38,0.35); }
+
+  /* OV Only → "Don't forget MHI timesheet" uyarısı: dolgulu kırmızı rozet + nabız. */
+  @keyframes mhiPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.50); }
+    50%      { box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+  }
+  .mhi-warn {
+    display: inline-block;
+    color: #fff; background: #dc2626;
+    font-size: 11.5px; font-weight: 800; font-style: normal;
+    letter-spacing: 0.3px; line-height: 1.25;
+    margin-top: 9px; padding: 5px 10px; border-radius: 6px;
+    border: 1px solid #b91c1c;
+    animation: mhiPulse 1.8s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) { .mhi-warn { animation: none; } }
+
   /* "Daily Entries" — şık, belirgin, blue-grey başlık */
   .daily-label {
     font-family: 'IBM Plex Sans', sans-serif;
@@ -988,24 +1018,28 @@
 
     <div class="totals-strip" id="totalsStrip"></div>
 
-    <div class="daily-label" style="margin-bottom:12px">OV Timesheet — RSL</div>
-    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="ovGrid"></div></div>
-
-    <div id="rcpSection" style="display:none">
-      <div class="section-label">OV — RCP</div>
-      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="rcpGrid"></div></div>
+    <div class="ts-sect">
+      <div class="daily-label" style="margin-bottom:10px">OV Timesheet</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="ovGrid"></div></div>
+      <div id="rcpSection" style="display:none;margin-top:10px">
+        <div class="rcp-sublabel">OV — RCP</div>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="rcpGrid"></div></div>
+      </div>
     </div>
 
-    <div class="daily-label" style="margin-bottom:12px">MHI Timesheet — RSL</div>
-    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="mhiGrid"></div></div>
-
-    <div id="mhiRcpSection" style="display:none">
-      <div class="section-label">MHI — RCP</div>
-      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="mhiRcpGrid"></div></div>
+    <div class="ts-sect">
+      <div class="daily-label" style="margin-bottom:10px">MHI Timesheet</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="mhiGrid"></div></div>
+      <div id="mhiRcpSection" style="display:none;margin-top:10px">
+        <div class="rcp-sublabel">MHI — RCP</div>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="mhiRcpGrid"></div></div>
+      </div>
     </div>
 
-    <div class="daily-label" style="margin-bottom:12px">Out of Work Activities</div>
-    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="enfGrid"></div></div>
+    <div class="ts-sect">
+      <div class="daily-label" style="margin-bottom:10px">Out of Work Activities</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="outcome-grid" id="enfGrid"></div></div>
+    </div>
   </div>
 
 
@@ -1105,11 +1139,11 @@
         <button onclick="clearCodesFilter()" style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:4px 12px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:4px;cursor:pointer">Clear</button>
       </div>
       <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px;line-height:1.5;padding:9px 12px;border:1px dashed var(--border);border-radius:6px">
-        <b>Aktivite yönlendirme (RSL / RCP):</b> Bir aktivitenin kodunu (C&amp;D→GWAG, sampling→GFSA,
-        SHA→HLVI, TB→GNTB, AI→GAVI) hangi grubun kolonuna değer olarak girersen, Schedule'da o
-        aktiviteyi işaretlediğinde kod <b>o gruba</b> yazılır. Değer <b>RSL</b> kolonundaysa RSL'e,
-        <b>RCP</b> kolonundaysa RCP'ye gider (RCP için o plant/status'ün RCP Arrival/Departure'ı dolu
-        olmalı). Aynı kodu iki grupta da doldurursan <b>RCP önceliklidir</b>.
+        <b>Activity routing (RSL / RCP):</b> Whichever group column you enter an activity's code value in
+        (C&amp;D→GWAG, sampling→GFSA, SHA→HLVI, TB→GNTB, AI→GAVI), the code is written to <b>that group</b>
+        when you tick the activity on the Schedule. A value in the <b>RSL</b> column goes to RSL; a value in
+        the <b>RCP</b> column goes to RCP (the plant/status must have its RCP Arrival/Departure filled in).
+        If you fill the same code in both groups, <b>RCP takes priority</b>.
       </div>
       <div class="section-label">OV Codes</div>
       <div class="ts-table-wrap scroll-y" style="margin-bottom:24px">
@@ -2927,7 +2961,11 @@ function computeOutcome(daysMap) {
   //   - Değer RCP kolonunda (RCP_GROUP) → tik RCP'de aktive olur, RSL'de sayılmaz.
   // Böylece "bu aktivite hep RSL/RCP'ye gitsin" ayarı, değeri o grubun kolonuna
   // yazmakla Codes editöründe sabitlenir; çift sayım olmaz.
-  const _rcpHasVal = (c, k) => { const rg = c && c.RCP_GROUP; if (!rg) return false; const v = rg[k]; return v != null && v !== '' && !isNaN(parseFloat(v)); };
+  const _hasRcpWin = (c) => !!(c && c.RCP_GROUP && c.RCP_GROUP.arr && c.RCP_GROUP.dep);
+  const _rcpHasVal = (c, k) => { if (!_hasRcpWin(c)) return false; const v = c.RCP_GROUP[k]; return v != null && v !== '' && !isNaN(parseFloat(v)); };
+  // Enforcement in-hours (IENF/NENF) yönlendirmesi: kodun ENF_GROUP alanı 'RCP' ise
+  // enforcement RSL'de sayılmaz, RCP segmentine işlenir (varsayılan RSL).
+  const _enfToRcp = (c) => !!(c && c.ENF_GROUP === 'RCP' && _hasRcpWin(c));
   const _dRSL = (dd, c) => {
     const nd = { ...dd };
     if (_rcpHasVal(c,'GWAG')) { nd.cd = false; }
@@ -2935,9 +2973,11 @@ function computeOutcome(daysMap) {
     if (_rcpHasVal(c,'HLVI')) { nd.sha = false; }
     if (_rcpHasVal(c,'GNTB')) { nd.tb = false; }
     if (_rcpHasVal(c,'GAVI')) { nd.ai = false; }
+    if (_enfToRcp(c)) { nd.enforcement = ''; nd.enfInHours = ''; }  // enf RCP'ye gidiyor
     return nd;
   };
-  const _dRCP = (dd) => ({ arrival:'', departure:'', cd:!!dd.cd, cdVal:dd.cdVal, sha:!!dd.sha, tb:!!dd.tb, tbQty:dd.tbQty, ai:!!dd.ai, samplings:getSamplings(dd) });
+  const _dRCP = (dd, enfToRcp) => ({ arrival:'', departure:'', cd:!!dd.cd, cdVal:dd.cdVal, sha:!!dd.sha, tb:!!dd.tb, tbQty:dd.tbQty, ai:!!dd.ai, samplings:getSamplings(dd),
+    enforcement: enfToRcp ? dd.enforcement : '', enfInHours: enfToRcp ? dd.enfInHours : '' });
   DAYS.forEach(day => {
     const d = M[day];
     if (!d || !d.plant) return;
@@ -2960,6 +3000,11 @@ function computeOutcome(daysMap) {
         // Normal OV satırı oluşturulmaz, sadece RCP section'a düşer.
         const isRcpOnly = (ovCodes.RCP_ONLY === true) ||
                           (!ovCodes.arr && !ovCodes.dep && ovCodes.RCP != null && ovCodes.RCP > 0);
+        // RSL penceresi boş (Arrival/Departure girilmemiş veya 00:00-00:00) → bu
+        // plant/status RSL'de GÖRÜNMEZ; yalnızca RCP_GROUP doluysa RCP'de çıkar.
+        // Böylece "sadece RCP" istenen statuslerde hayalet RSL satırı oluşmaz.
+        const _emptyT = (t) => (t == null || t === '' || t === '00:00');
+        const _noRSLWin = _emptyT(ovCodes.arr) && _emptyT(ovCodes.dep);
         if (isRcpOnly) {
           if (hasUserTimes && d.arrival && d.departure) {
             const rcpHrs = round25(timeToH(d.departure) - timeToH(d.arrival));
@@ -2976,6 +3021,8 @@ function computeOutcome(daysMap) {
             }
           }
           // Salt-RCP plant için ana OV satırı OLUŞTURULMAZ — sadece RCP section'a düşer
+        } else if (_noRSLWin) {
+          // RSL penceresi yok → RSL satırı oluşturulmaz; RCP_GROUP varsa aşağıda RCP işlenir.
         } else {
           const ovSorStr = `${ovCodes.arr}-${ovCodes.dep}`;
 
@@ -3014,7 +3061,11 @@ function computeOutcome(daysMap) {
           } else {
             // Normal OV: mevcut davranış
             const ovActArr = (d.arrival && timeToH(d.arrival) > timeToH(ovCodes.arr)) ? d.arrival : ovCodes.arr;
-            const ovActDep = d.departure || ovCodes.dep;
+            let ovActDep = d.departure || ovCodes.dep;
+            // RCP penceresi varsa: RSL kendi penceresinin bitişinde durur; fazla süre
+            // RCP'ye aittir, RSL'de tekrar sayılmaz (çift sayım engeli).
+            const _ovRcpWin = !!(ovCodes.RCP_GROUP && ovCodes.RCP_GROUP.arr && ovCodes.RCP_GROUP.dep);
+            if (_ovRcpWin && ovCodes.dep && timeToH(ovActDep) > timeToH(ovCodes.dep)) ovActDep = ovCodes.dep;
             const computed = calcCodes(ovCodes, _dRSL(d, ovCodes), ovSorStr, ovActDep, false, ovActArr);
             result.ov[day] = { plant:d.plant, status:statusType, codes:ovCodes, arr:ovActArr, dep:ovActDep, sorStr:ovSorStr, _rcp:(ovCodes.RCP||null), ...computed };
           }
@@ -3028,6 +3079,9 @@ function computeOutcome(daysMap) {
       // RCP_ONLY işaretli veya (arr ve dep boş + RCP>0) ise sadece RCP göster
       const isRcpOnlyMHI = (mhiCodes.RCP_ONLY === true) ||
                            (!mhiCodes.arr && !mhiCodes.dep && mhiCodes.RCP != null && mhiCodes.RCP > 0);
+      // RSL penceresi boş → MHI RSL satırı oluşturulmaz; yalnızca RCP_GROUP işlenir.
+      const _emptyTM = (t) => (t == null || t === '' || t === '00:00');
+      const _noRSLWinM = _emptyTM(mhiCodes.arr) && _emptyTM(mhiCodes.dep);
       if (isRcpOnlyMHI) {
         if (hasUserTimes && d.arrival && d.departure) {
           const rcpHrs = round25(timeToH(d.departure) - timeToH(d.arrival));
@@ -3044,6 +3098,8 @@ function computeOutcome(daysMap) {
           }
         }
         // Salt-RCP MHI plant için ana MHI satırı OLUŞTURULMAZ
+      } else if (_noRSLWinM) {
+        // RSL penceresi yok → MHI RSL satırı oluşturulmaz; RCP_GROUP varsa aşağıda işlenir.
       } else {
         const mhiSorStr = `${mhiCodes.arr}-${mhiCodes.dep}`;
 
@@ -3080,7 +3136,10 @@ function computeOutcome(daysMap) {
       } else {
         // Normal MHI
         const mhiActArr = (d.arrival && timeToH(d.arrival) > timeToH(mhiCodes.arr)) ? d.arrival : mhiCodes.arr;
-        const mhiActDep = d.departure || mhiCodes.dep;
+        let mhiActDep = d.departure || mhiCodes.dep;
+        // RCP penceresi varsa RSL kendi penceresinin bitişinde durur (çift sayım engeli).
+        const _mhiRcpWin = !!(mhiCodes.RCP_GROUP && mhiCodes.RCP_GROUP.arr && mhiCodes.RCP_GROUP.dep);
+        if (_mhiRcpWin && mhiCodes.dep && timeToH(mhiActDep) > timeToH(mhiCodes.dep)) mhiActDep = mhiCodes.dep;
         const computed = calcCodes(mhiCodes, _dRSL(d, mhiCodes), mhiSorStr, mhiActDep, true, mhiActArr);
         result.mhi[day] = { plant:d.plant, status:statusType, codes:mhiCodes, arr:mhiActArr, dep:mhiActDep, sorStr:mhiSorStr, ...computed };
       }
@@ -3100,19 +3159,18 @@ function computeOutcome(daysMap) {
       // RCP segmenti: koşullu aktiviteler, DEĞERİ RCP_GROUP'ta girilmiş olanlar için
       // Schedule tiki ile aktive olur (_dRCP). Değeri olmayan kod tiklense bile RCP'de
       // çıkmaz (calcCodes 'codes[k] ?? null'). Absorber/sabit kodlar her zamanki gibi.
-      const _rcpDay = _dRCP(d);
       const _ovC = lookupOV(day, d.plant, statusType);
       if (_ovC && _ovC.RCP_GROUP && _ovC.RCP_GROUP.arr && _ovC.RCP_GROUP.dep) {
         const rg = { ..._ovC.RCP_GROUP };
         const rsor = `${rg.arr}-${rg.dep}`;
-        const computed = calcCodes(rg, _rcpDay, rsor, rg.dep, false, rg.arr);
+        const computed = calcCodes(rg, _dRCP(d, _enfToRcp(_ovC)), rsor, rg.dep, false, rg.arr);
         result.ovRcp[day] = { plant:d.plant, status:statusType, codes:rg, arr:rg.arr, dep:rg.dep, sorStr:rsor, ...computed };
       }
       const _mhiC = lookupMHI(day, d.plant, statusType);
       if (_mhiC && _mhiC.RCP_GROUP && _mhiC.RCP_GROUP.arr && _mhiC.RCP_GROUP.dep) {
         const rg = { ..._mhiC.RCP_GROUP };
         const rsor = `${rg.arr}-${rg.dep}`;
-        const computed = calcCodes(rg, _rcpDay, rsor, rg.dep, true, rg.arr);
+        const computed = calcCodes(rg, _dRCP(d, _enfToRcp(_mhiC)), rsor, rg.dep, true, rg.arr);
         result.mhiRcp[day] = { plant:d.plant, status:statusType, codes:rg, arr:rg.arr, dep:rg.dep, sorStr:rsor, ...computed };
       }
     }
@@ -3243,8 +3301,8 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
         // OV Only + MHI timesheet uyarısı (sadece ovGrid, codes satırı)
         if (isCodesRow && containerId === 'ovGrid' && e && e.status === 'OV Only' && lookupMHI(day, e.plant, e.status)) {
           const warn = document.createElement('div');
-          warn.style.cssText = 'color:#dc2626;font-size:10px;font-weight:600;font-style:italic;margin-top:6px;line-height:1.3';
-          warn.textContent = '⚠ Don\u2019t forget MHI timesheet';
+          warn.className = 'mhi-warn';
+          warn.innerHTML = '\u26a0 Don\u2019t forget MHI timesheet &mdash; go down <span style="font-size:14px">\u2193</span>';
           cell.appendChild(warn);
         }
         container.appendChild(cell);
@@ -3318,6 +3376,102 @@ function renderOutcomeSection(containerId, sectionData, sectionData2) {
       });
     }
   }
+}
+
+// RSL + RCP tek grid: aynı statüsün RSL ve RCP blokları ALT ALTA, statünün yanında
+// RSL/RCP etiketiyle. Sıra arrival'a göre — erken başlayan (örn önce yapılan RCP) ÜSTTE.
+function renderCombinedOutcome(containerId, rsl1, rsl2, rcp1, rcp2) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  container.style.gridTemplateColumns = `70px repeat(${DAYS.length}, minmax(120px, 1fr))`;
+  renderOGHeader(container);
+
+  const ROWS = [
+    ['Status', (e) => e ? `${plantLabel(e.plant)} ${e.status}` : '', 'var(--accent2)', '600'],
+    ['SOR', (e) => e?.sorStr || '', 'var(--text-muted)', '700'],
+    ['Time', (e) => (e && !e._empty && e.arr && e.dep) ? `${e.arr}-${e.effectiveDep || e.dep}` : '', 'var(--accent)', '700'],
+    ['Codes', (e) => (e && !e._empty) ? formatCodes(e) : '', '#d97706', '700']
+  ];
+  const rowBgMap = { 0:'rgba(74,222,128,0.16)', 1:'rgba(234,179,8,0.13)', 2:'rgba(20,184,166,0.12)', 3:'rgba(120,130,145,0.12)' };
+  const stylizeIUWT = (match) => `<span style="font-size:10px;font-style:italic;color:#dc2626">${match}</span>`;
+  const isReal = (e) => !!(e && !e._rcpOnly);
+  const _arrH = (e) => { if (!e) return Infinity; const a = e.arr || sorArrTime(e.sorStr || ''); const h = timeToH(a); return (h == null) ? Infinity : h; };
+  const tagPill = (tag) => {
+    const bg = (tag === 'RCP') ? '#dc2626' : 'var(--accent2)';
+    return `<span style="display:inline-block;background:${bg};color:#fff;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;letter-spacing:1px;margin-left:7px;vertical-align:middle">${tag}</span>`;
+  };
+
+  // Her slot için: HER GÜN kendi segmentlerini (RSL/RCP) arrival'a göre sıralar ve
+  // YUKARIDAN paketler (gün başına bağımsız). Böylece bir günde sadece RSL varsa üstte
+  // kalır; başka günde RCP erkense o günün üstü RCP olur — günler aynı hizada olmak
+  // zorunda değil. maxLen = en çok segmenti olan günün segment sayısı.
+  const buildSlot = (rsl, rcp) => {
+    const perDay = {}; let maxLen = 0;
+    DAYS.forEach(day => {
+      const segs = [];
+      if (rsl && isReal(rsl[day])) segs.push({ tag:'RSL', e:rsl[day] });
+      if (rcp && isReal(rcp[day])) segs.push({ tag:'RCP', e:rcp[day] });
+      segs.sort((a,b) => _arrH(a.e) - _arrH(b.e));   // erken arrival üstte
+      perDay[day] = segs;
+      if (segs.length > maxLen) maxLen = segs.length;
+    });
+    return { perDay, maxLen };
+  };
+
+  const slots = [ buildSlot(rsl1, rcp1), buildSlot(rsl2, rcp2) ];
+  const totalBlocks = slots.reduce((a, s) => a + s.maxLen, 0);
+  if (!totalBlocks) return;
+
+  let ordinal = 0;
+  slots.forEach(slot => {
+    for (let k = 0; k < slot.maxLen; k++) {
+      const isSecond = ordinal > 0;
+      ROWS.forEach(([label, fn, color, weight], rowIdx) => {
+        const rowBg = rowBgMap[rowIdx] || '';
+        const isCodesRow = (rowIdx === 3);
+        const isStatusRow = (rowIdx === 0);
+        const sepTop = (isSecond && rowIdx === 0) ? '2px solid rgba(100,116,139,0.55)' : '';
+
+        const lc = document.createElement('div'); lc.className='og-cell og-row-label'; lc.textContent=label;
+        if (rowBg) lc.style.background = rowBg;
+        if (sepTop) lc.style.borderTop = sepTop;
+        container.appendChild(lc);
+
+        DAYS.forEach(day => {
+          const seg = slot.perDay[day][k];     // bu gün bu blokta segment var mı
+          const e = seg ? seg.e : null;
+          const cell = document.createElement('div'); cell.className='og-cell og-value';
+          cell.style.color=color; cell.style.fontWeight=weight; cell.style.fontSize='15px'; cell.style.whiteSpace='normal'; cell.style.lineHeight='1.6';
+          if (rowBg) cell.style.background = rowBg;
+          if (sepTop) cell.style.borderTop = sepTop;
+
+          const v = e ? (fn(e) || '') : '';
+          if (v && isStatusRow) {
+            cell.innerHTML = `${v}${tagPill(seg.tag)}`;
+          } else if (v) {
+            cell.innerHTML = v.split('\n').map(line => {
+              if (!isCodesRow) return line;
+              if (/^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/.test(line.trim())) return `<span style="color:var(--accent)">${line}</span>`;
+              return line
+                .replace(/\(if late start\)/g, stylizeIUWT('(if late start)'))
+                .replace(/\(if early finish\)/g, stylizeIUWT('(if early finish)'));
+            }).join('<br>');
+          } else {
+            cell.textContent = '';
+          }
+
+          if (isCodesRow && containerId === 'ovGrid' && e && e.status === 'OV Only' && lookupMHI(day, e.plant, e.status)) {
+            const warn = document.createElement('div');
+            warn.className = 'mhi-warn';
+            warn.innerHTML = '⚠ Don’t forget MHI timesheet &mdash; go down <span style="font-size:14px">↓</span>';
+            cell.appendChild(warn);
+          }
+          container.appendChild(cell);
+        });
+      });
+      ordinal++;
+    }
+  });
 }
 
 function renderEnfSection(containerId, sectionData) {
@@ -3431,17 +3585,14 @@ function renderOutcome() {
   dedupBreakAcrossSlots(out1.mhi, out2.mhi);
 
   document.getElementById('totalsStrip').innerHTML = '';
-  // OV ve MHI grid: 1. ve 2. slot aynı hücrede '+' ile birleşik render edilir
-  renderOutcomeSection('ovGrid',  out1.ov,  out2.ov);
-  renderOutcomeSection('mhiGrid', out1.mhi, out2.mhi);
-  // RCP GRUBU (ikinci grup) — OV/MHI ile aynı tam-kod render'ı, kendi penceresiyle
-  renderOutcomeSection('rcpGrid',    out1.ovRcp,  out2.ovRcp);
-  renderOutcomeSection('mhiRcpGrid', out1.mhiRcp, out2.mhiRcp);
-  const _hasData = (o) => o && Object.keys(o).length > 0;
+  // OV ve MHI grid: RSL + RCP TEK grid'de alt alta; statünün yanında RSL/RCP etiketi,
+  // arrival'a göre erken olan üstte. Ayrı RCP bölümleri kullanılmıyor.
+  renderCombinedOutcome('ovGrid',  out1.ov,  out2.ov,  out1.ovRcp,  out2.ovRcp);
+  renderCombinedOutcome('mhiGrid', out1.mhi, out2.mhi, out1.mhiRcp, out2.mhiRcp);
   const _ovr = document.getElementById('rcpSection');
-  if (_ovr) _ovr.style.display = (_hasData(out1.ovRcp) || _hasData(out2.ovRcp)) ? '' : 'none';
+  if (_ovr) _ovr.style.display = 'none';
   const _mhir = document.getElementById('mhiRcpSection');
-  if (_mhir) _mhir.style.display = (_hasData(out1.mhiRcp) || _hasData(out2.mhiRcp)) ? '' : 'none';
+  if (_mhir) _mhir.style.display = 'none';
   const outEnf = {};
   // Hem 1. hem 2. slot enforcement'larını birleştir (out hours > 0 olanlar)
   [out1.enf, out2.enf].forEach(src => {
@@ -3884,7 +4035,7 @@ function renderOVCodesTable() {
   tbody.innerHTML = '';
   // Başlığı dinamik kur: üst grup satırı (RSL | RCP) + detay başlık satırı
   const fixedHdr = ['Day','Region','Plant','Status'];
-  const rslHdr = ['Arrival','Departure','Main Absorb','BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','RCP','RCP-Only', ...EXTRA_CODES];
+  const rslHdr = ['Arrival','Departure','Main Absorb','BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA','RCP','RCP-Only', ...EXTRA_CODES, 'Enf→'];
   const rcpHdr = ['Arrival','Departure','Main Absorb','BREAK','GBPS','GSRM','GPAS','GWAG','GAVI','INSP','HLVI','GNTB','GFSA', ...EXTRA_CODES];
   const FRZ = ['frz frz1','frz frz2','frz frz3','frz frz4'];
   const groupRow = '<tr>'
@@ -3912,7 +4063,7 @@ function renderOVCodesTable() {
       <td class="frz frz1">${daySelect(row.day, f('day'))}</td>
       <td class="frz frz2">${regionSelect(row.region, f('region'))}</td>
       <td class="frz frz3"><input style="width:55px;font-size:11px;padding:4px" value="${row.plant}" onchange="${f('plant')}"></td>
-      <td class="frz frz4"><input style="width:100px;font-size:11px;padding:4px" value="${row.status}" onchange="${f('status')}"></td>
+      <td class="frz frz4"><div style="display:flex;align-items:center;gap:4px"><input style="width:72px;font-size:11px;padding:4px" value="${row.status}" onchange="${f('status')}"><button onclick="deleteOVRow(${i})" title="Delete this row" style="font-size:11px;padding:2px 6px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer;line-height:1.1">✕</button></div></td>
       <td>${codeTimeSelect(row.arr, 'OV', i, 'arr')}</td>
       <td>${codeTimeSelect(row.dep, 'OV', i, 'dep')}</td>
       <td>${mainAbsorbSelect(row.MAIN_ABSORB || '', [...OV_ABSORB_FIELDS, ...EXTRA_CODES], f('MAIN_ABSORB'))}${_absHintHTML(row,'OV',i)}</td>
@@ -3924,13 +4075,14 @@ function renderOVCodesTable() {
       <td>${rcpInput(row.RCP, row.RCP_CODE, 'OV', i)}</td>
       <td style="text-align:center"><input type="checkbox" ${row.RCP_ONLY ? 'checked' : ''} onchange="updateOVCode(${i},'RCP_ONLY',this.checked)" title="Bu plant için SOR saati yok; RCP saati kullanıcının girdiği aralıktan alınır" style="cursor:pointer;width:18px;height:18px;accent-color:var(--accent)"></td>
       ${extraTds}
+      <td style="text-align:center">${enfGroupSelect('OV', i, row.ENF_GROUP)}</td>
       ${_rcpGroupCells(row,'OV',i)}
       <td><button onclick="deleteOVRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
   const addTr = document.createElement('tr');
-  const ovColspan = 31 + 2 * EXTRA_CODES.length;
+  const ovColspan = 32 + 2 * EXTRA_CODES.length;
   addTr.innerHTML = `<td colspan="${ovColspan}" style="padding:8px"><button onclick="addOVRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
   tbody.appendChild(addTr);
 }
@@ -3959,7 +4111,7 @@ function renderMHICodesTable() {
   const tbody = document.getElementById('mhiCodesBody');
   tbody.innerHTML = '';
   const fixedHdr = ['Day','Region','Plant','Status'];
-  const rslHdr = ['Arrival','Departure','Main Absorb','BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA','RCP','RCP-Only', ...EXTRA_CODES];
+  const rslHdr = ['Arrival','Departure','Main Absorb','BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA','RCP','RCP-Only', ...EXTRA_CODES, 'Enf→'];
   const rcpHdr = ['Arrival','Departure','Main Absorb','BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA', ...EXTRA_CODES];
   const FRZ = ['frz frz1','frz frz2','frz frz3','frz frz4'];
   const groupRow = '<tr>'
@@ -3986,7 +4138,7 @@ function renderMHICodesTable() {
       <td class="frz frz1">${daySelect(row.day, f('day'))}</td>
       <td class="frz frz2">${regionSelect(row.region, f('region'))}</td>
       <td class="frz frz3"><input style="width:55px;font-size:11px;padding:4px" value="${row.plant}" onchange="${f('plant')}"></td>
-      <td class="frz frz4"><input style="width:100px;font-size:11px;padding:4px" value="${row.status}" onchange="${f('status')}"></td>
+      <td class="frz frz4"><div style="display:flex;align-items:center;gap:4px"><input style="width:72px;font-size:11px;padding:4px" value="${row.status}" onchange="${f('status')}"><button onclick="deleteMHIRow(${i})" title="Delete this row" style="font-size:11px;padding:2px 6px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer;line-height:1.1">✕</button></div></td>
       <td>${codeTimeSelect(row.arr, 'MHI', i, 'arr')}</td>
       <td>${codeTimeSelect(row.dep, 'MHI', i, 'dep')}</td>
       <td>${mainAbsorbSelect(row.MAIN_ABSORB || '', [...MHI_ABSORB_FIELDS, ...EXTRA_CODES], f('MAIN_ABSORB'))}${_absHintHTML(row,'MHI',i)}</td>
@@ -3997,13 +4149,14 @@ function renderMHICodesTable() {
       <td>${rcpInput(row.RCP, row.RCP_CODE, 'MHI', i)}</td>
       <td style="text-align:center"><input type="checkbox" ${row.RCP_ONLY ? 'checked' : ''} onchange="updateMHICode(${i},'RCP_ONLY',this.checked)" title="Bu plant için SOR saati yok; RCP saati kullanıcının girdiği aralıktan alınır" style="cursor:pointer;width:18px;height:18px;accent-color:var(--accent)"></td>
       ${extraTds}
+      <td style="text-align:center">${enfGroupSelect('MHI', i, row.ENF_GROUP)}</td>
       ${_rcpGroupCells(row,'MHI',i)}
       <td><button onclick="deleteMHIRow(${i})" style="font-size:10px;padding:3px 8px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;cursor:pointer">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
   const addTr = document.createElement('tr');
-  const mhiColspan = 25 + 2 * EXTRA_CODES.length;
+  const mhiColspan = 26 + 2 * EXTRA_CODES.length;
   addTr.innerHTML = `<td colspan="${mhiColspan}" style="padding:8px"><button onclick="addMHIRow()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border:1px solid var(--accent2);color:var(--accent2);background:transparent;border-radius:4px;cursor:pointer">+ Add Row</button></td>`;
   tbody.appendChild(addTr);
 }
@@ -4015,14 +4168,23 @@ function getMHIRowsMutable() { if (!_mhiRows) _mhiRows = getMHIRows(); return _m
 function updateOVCode(i, field, val) {
   const rows = getOVRowsMutable();
   if (field === 'RCP_ONLY') { rows[i][field] = !!val; return; }
-  rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep','MAIN_ABSORB','RCP_CODE'].includes(field) ? val : parseFloat(val));
+  rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep','MAIN_ABSORB','RCP_CODE','ENF_GROUP'].includes(field) ? val : parseFloat(val));
   _refreshAbsHint('OV', i);
 }
 function updateMHICode(i, field, val) {
   const rows = getMHIRowsMutable();
   if (field === 'RCP_ONLY') { rows[i][field] = !!val; return; }
-  rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep','MAIN_ABSORB','RCP_CODE'].includes(field) ? val : parseFloat(val));
+  rows[i][field] = val==='' ? null : (['day','region','plant','status','arr','dep','MAIN_ABSORB','RCP_CODE','ENF_GROUP'].includes(field) ? val : parseFloat(val));
   _refreshAbsHint('MHI', i);
+}
+
+// Enforcement in-hours (IENF/NENF) yönlendirme seçici — RSL (varsayılan) / RCP.
+function enfGroupSelect(kind, i, val) {
+  const v = (val === 'RCP') ? 'RCP' : 'RSL';
+  const fn = kind === 'OV' ? `updateOVCode(${i},'ENF_GROUP',this.value)` : `updateMHICode(${i},'ENF_GROUP',this.value)`;
+  return `<select onchange="${fn}" title="Enforcement in-hours (IENF/NENF) hangi segmente işlensin" style="width:60px;font-size:11px;padding:3px">`
+    + `<option value="RSL" ${v==='RSL'?'selected':''}>RSL</option>`
+    + `<option value="RCP" ${v==='RCP'?'selected':''}>RCP</option></select>`;
 }
 // Time dropdown updates: merge h/m parts. field = 'arr' or 'dep', part = 'h' or 'm'
 function _mergeTimePart(current, part, value) {
@@ -4084,6 +4246,9 @@ function rowsToCodeObj(rows) {
     // RCP_ONLY: bu plant sadece RCP olarak görev görür; arrival-departure aralığı
     // RCP-GSRM olarak hesaplanır, başka kod hesaplanmaz.
     if (r.RCP_ONLY) entry.RCP_ONLY = true;
+    // Enforcement in-hours (IENF/NENF) hangi segmente işlensin: 'RCP' ise RCP'ye,
+    // yoksa (varsayılan) RSL'e. Sadece RCP seçiliyse sakla.
+    if (r.ENF_GROUP === 'RCP') entry.ENF_GROUP = 'RCP';
     // Drop-Down'dan eklenen ekstra kodları da kopyala (örn 'GNED')
     EXTRA_CODES.forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     // RCP grubu (ikinci grup) - doluysa RCP_GROUP alt-nesnesi olarak sakla
@@ -4115,6 +4280,7 @@ function rowsToMHIObj(rows) {
     ['BREAK','GBPS','GSRM','GPAS','INSP','GNTB','GFSA','RCP'].forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     if (r.RCP_CODE) entry.RCP_CODE = r.RCP_CODE;
     if (r.RCP_ONLY) entry.RCP_ONLY = true;
+    if (r.ENF_GROUP === 'RCP') entry.ENF_GROUP = 'RCP';
     // Drop-Down'dan eklenen ekstra kodları da kopyala (örn 'GNED')
     EXTRA_CODES.forEach(k => { entry[k] = (r[k]!==null&&r[k]!==undefined&&r[k]!=='') ? r[k] : null; });
     // RCP grubu (ikinci grup) - doluysa RCP_GROUP alt-nesnesi olarak sakla
@@ -4747,7 +4913,10 @@ function renderSORTableForPlant(plant, region) {
         // RCP veri-odaklı: kodda RCP > 0 varsa not göster. RCP_CODE varsa onu kullan.
         const rcpVal = (ovCodes.RCP != null && ovCodes.RCP > 0) ? ovCodes.RCP : null;
         const rcpCodeKey = (ovCodes.RCP_CODE && rcpVal != null) ? ovCodes.RCP_CODE : 'GSRM';
-        if (!seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', grp:'RSL', sor: sorStr, codeItems, mainAbsorb, rcpNote: rcpVal, rcpCode: rcpCodeKey, trichNote: (plant==='8145' && status==='OV Afternoon') }); }
+        // RSL penceresi boşsa (Arrival/Departure girilmemiş veya 00:00-00:00) RSL kartı
+        // gösterilmez — bu status yalnızca RCP'de görünür.
+        const _ovHasWin = !!(ovCodes.arr && ovCodes.dep && !(ovCodes.arr==='00:00' && ovCodes.dep==='00:00'));
+        if (_ovHasWin && !seen.has('OV_'+status)) { seen.add('OV_'+status); rows.push({ day, status, type:'OV', grp:'RSL', sor: sorStr, codeItems, mainAbsorb, rcpNote: rcpVal, rcpCode: rcpCodeKey, trichNote: (plant==='8145' && status==='OV Afternoon') }); }
         const _rg = ovCodes.RCP_GROUP;
         if (_rg && _rg.arr && _rg.dep && !seen.has('OVRCP_'+status)) {
           seen.add('OVRCP_'+status);
@@ -4773,7 +4942,8 @@ function renderSORTableForPlant(plant, region) {
         // RCP veri-odaklı: MHI kodunda RCP > 0 varsa not göster. RCP_CODE varsa onu kullan.
         const rcpVal = (mhiCodes.RCP != null && mhiCodes.RCP > 0) ? mhiCodes.RCP : null;
         const rcpCodeKey = (mhiCodes.RCP_CODE && rcpVal != null) ? mhiCodes.RCP_CODE : 'GSRM';
-        if (!seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', grp:'RSL', sor: sorStr, codeItems, mainAbsorb, rcpNote: rcpVal, rcpCode: rcpCodeKey, trichNote: false }); }
+        const _mhiHasWin = !!(mhiCodes.arr && mhiCodes.dep && !(mhiCodes.arr==='00:00' && mhiCodes.dep==='00:00'));
+        if (_mhiHasWin && !seen.has('MHI_'+status)) { seen.add('MHI_'+status); rows.push({ day, status, type:'MHI', grp:'RSL', sor: sorStr, codeItems, mainAbsorb, rcpNote: rcpVal, rcpCode: rcpCodeKey, trichNote: false }); }
         const _rgM = mhiCodes.RCP_GROUP;
         if (_rgM && _rgM.arr && _rgM.dep && !seen.has('MHIRCP_'+status)) {
           seen.add('MHIRCP_'+status);
@@ -5321,7 +5491,7 @@ function resetToEmbeddedCodes() {
 // Export ettiğin codes.json'un içeriği buraya yazılır; index.html'i yeniden
 // yükleyince herkes güncel kodları görür. En güncel JSON'u gömmek için bu
 // satırı değiştirmen yeterli.
-const EMBEDDED_CODES = {"version":2,"rev":2,"exportedAt":"2026-11-20T18:15:51.574Z","REGIONS":["Cluster27","Cluster26"],"PLANT_REGIONS":{"2172":"Cluster27","2690":"Cluster27","2900":"Cluster27","4015":"Cluster27","4057":"Cluster27","4067":"Cluster27","4133":"Cluster27","4138":"Cluster27","4392":"Cluster27","8061":"Cluster26","8072":"Cluster27","8090":"Cluster27","8119":"Cluster26","8145":"Cluster27","8165":"Cluster27","8201":"Cluster26","8249":"Cluster26"},"EXTRA_CODES":["GNED","GFSA/GPAS"],"SOR_DISPLAY_DAYS":{"2172":{"OV|Inside OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"OV|Lairage OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"2690":{"OV|OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"2900":{"OV|OV Only":["WEDNESDAY"]},"4015":{"OV|OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"4133":{"OV|OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"4138":{"OV|OV Only":["TUESDAY","THURSDAY"],"MHI|OV Only":["TUESDAY","THURSDAY"]},"4392":{"OV|OV Only":["TUESDAY","WEDNESDAY"],"MHI|OV Only":["TUESDAY","WEDNESDAY"]},"8061":{"OV|Morning OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"OV|Lairage OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"8072":{"OV|OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"OV|TB OV":["MONDAY","TUESDAY","THURSDAY"]},"8119":{"OV|OV":["TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"8145":{"OV|OV":["WEDNESDAY"],"OV|Afternoon OV":["MONDAY"],"OV|Morning OV":["MONDAY"],"MHI|MHI":["MONDAY"]},"8165":{"OV|OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"8201":{"OV|OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"OV|OV (Horse)":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"8249":{"OV|OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]}},"SCHEDULE_WEEKEND":{"2172":{"OV|Inside OV":["SATURDAY","SUNDAY"],"OV|Lairage OV":["SATURDAY","SUNDAY"],"MHI|MHI":["SATURDAY","SUNDAY"]},"2690":{"OV|OV":["SATURDAY","SUNDAY"],"MHI|MHI":["SATURDAY","SUNDAY"]},"4015":{"OV|OV":["SATURDAY","SUNDAY"],"MHI|MHI":["SATURDAY","SUNDAY"]},"4133":{"OV|OV":["SATURDAY","SUNDAY"],"MHI|MHI":["SATURDAY","SUNDAY"]},"8061":{"OV|Morning OV":["SATURDAY"]},"8072":{"OV|OV":["SATURDAY","SUNDAY"]},"8119":{"OV|OV":["SATURDAY","SUNDAY"],"MHI|MHI":["SATURDAY","SUNDAY"]},"8165":{"OV|OV":["SATURDAY","SUNDAY"],"MHI|MHI":["SATURDAY","SUNDAY"]},"8201":{"OV|OV":["SATURDAY","SUNDAY"],"OV|OV (Horse)":["SATURDAY","SUNDAY"]},"8249":{"OV|OV":["SATURDAY","SUNDAY"],"MHI|MHI":["SATURDAY","SUNDAY"]}},"REGION_DISPLAY":{"Cluster27":"KAROLINA","Cluster26":"MEHMET"},"PLANT_DISPLAY":{"2172":"DOGUKAN","2690":"TABAN","2900":"CEREN","4015":"ROBERTO","4133":"JAIME","4138":"ALP","4392":"BERK","8061":"AYCAN","8072":"KAAN","8119":"ANIL","8145":"CHARLOTTE","8165":"MAISSA","8201":"DANIELA","8249":"AYSEGUL"},"OV_CODES":{"2172":{"Inside OV":{"arr":"08:00","dep":"18:00","MAIN_ABSORB":"HLVI","BREAK":0.5,"GBPS":0.5,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":9,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"Lairage OV":{"arr":"06:30","dep":"17:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.5,"GSRM":null,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":9.5,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"2690":{"MONDAY_OV":{"arr":"07:00","dep":"16:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":7.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_OV":{"arr":"07:00","dep":"16:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":7.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_OV":{"arr":"07:00","dep":"16:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":7.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"2900":{"OV Only":{"arr":"07:00","dep":"15:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":7.5,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4015":{"OV":{"arr":"07:00","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.5,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":0.5,"INSP":10,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4133":{"OV":{"arr":"05:30","dep":"15:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":9,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_OV":{"arr":"05:30","dep":"16:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":10,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_OV":{"arr":"05:30","dep":"16:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":10,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4138":{"TUESDAY_OV Only":{"arr":"07:00","dep":"10:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":0.25,"GSRM":0.25,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":2.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_OV Only":{"arr":"07:00","dep":"10:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":3,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4392":{"TUESDAY_OV Only":{"arr":"07:30","dep":"11:00","MAIN_ABSORB":"INSP","ALWAYS_ACTIVE":["BREAK"],"BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":2.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_OV Only":{"arr":"07:30","dep":"11:00","MAIN_ABSORB":"INSP","ALWAYS_ACTIVE":["BREAK"],"BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":2.25,"HLVI":null,"GNTB":null,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8061":{"Morning OV":{"arr":"12:45","dep":"14:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":1.25,"HLVI":null,"GNTB":null,"GFSA":0.25,"RCP":null,"RCP_CODE":"INSP","GNED":null,"GFSA/GPAS":null,"RCP_GROUP":{"BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":null,"GAVI":null,"INSP":null,"HLVI":7,"GNTB":0.25,"GFSA":0.25,"GNED":null,"GFSA/GPAS":null,"MAIN_ABSORB":"HLVI","arr":"05:15","dep":"12:45"}},"SATURDAY_Morning OV":{"arr":"06:00","dep":"11:30","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":null,"GNTB":null,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null,"RCP_GROUP":{"BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":null,"GAVI":null,"INSP":null,"HLVI":5,"GNTB":0.25,"GFSA":0.25,"GNED":null,"GFSA/GPAS":null,"MAIN_ABSORB":"HLVI","arr":"06:00","dep":"11:00"}},"Afternoon OV":{"arr":"13:30","dep":"14:30","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":1,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"RCP_CODE":"INSP","GNED":null,"GFSA/GPAS":null,"RCP_GROUP":{"BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":null,"GAVI":null,"INSP":null,"HLVI":7.5,"GNTB":0.25,"GFSA":0.25,"GNED":null,"GFSA/GPAS":null,"MAIN_ABSORB":"HLVI","arr":"14:30","dep":"22:30"}},"Lairage OV":{"arr":"05:30","dep":"17:45","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.5,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":11.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8072":{"OV":{"arr":"07:00","dep":"15:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.5,"GSRM":null,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":6.75,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_OV":{"arr":"06:30","dep":"14:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":6.75,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MONDAY_TB OV":{"arr":"09:00","dep":"16:00","MAIN_ABSORB":"GNTB","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":0.5,"GNTB":7.5,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_TB OV":{"arr":"10:00","dep":"16:00","MAIN_ABSORB":"GNTB","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":0.5,"GNTB":7.5,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_TB OV":{"arr":"09:00","dep":"16:00","MAIN_ABSORB":"GNTB","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":0.5,"GNTB":7.5,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8119":{"TUESDAY_OV":{"arr":"06:30","dep":"18:15","MAIN_ABSORB":"INSP","ALWAYS_ACTIVE":["HLVI"],"BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":9.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_OV":{"arr":"07:30","dep":"17:45","MAIN_ABSORB":"INSP","ALWAYS_ACTIVE":["HLVI"],"BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":7.75,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_OV":{"arr":"08:00","dep":"17:45","MAIN_ABSORB":"INSP","ALWAYS_ACTIVE":["HLVI"],"BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":7.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_OV":{"arr":"06:30","dep":"18:15","MAIN_ABSORB":"INSP","ALWAYS_ACTIVE":["HLVI"],"BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":9.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8145":{"WEDNESDAY_OV":{"arr":"08:00","dep":"15:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":5.5,"HLVI":0.5,"GNTB":0.25,"GFSA":0.5,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MONDAY_Afternoon OV":{"arr":"15:30","dep":"18:30","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":3,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MONDAY_Morning OV":{"arr":"07:30","dep":"15:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":7.5,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8165":{"MONDAY_OV":{"arr":"06:45","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":9,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_OV":{"arr":"06:45","dep":"17:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":8,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_OV":{"arr":"06:45","dep":"17:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":8,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_OV":{"arr":"06:45","dep":"16:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":7,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_OV":{"arr":"06:45","dep":"13:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":4,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8201":{"MONDAY_OV":{"arr":"06:30","dep":"16:45","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":null,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":9,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"OV":{"arr":"06:30","dep":"16:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":8.5,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_OV":{"arr":"06:30","dep":"14:45","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":6.5,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MONDAY_OV (Horse)":{"arr":"10:00","dep":"16:30","MAIN_ABSORB":"GNED","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":6,"GFSA/GPAS":null},"TUESDAY_OV (Horse)":{"arr":"10:00","dep":"15:00","MAIN_ABSORB":"GNED","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":5,"GFSA/GPAS":null}},"8249":{"MONDAY_OV":{"arr":"06:30","dep":"16:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":8.75,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_OV":{"arr":"06:00","dep":"16:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.5,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":9,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_OV":{"arr":"06:00","dep":"15:45","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":8,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_OV":{"arr":"06:00","dep":"15:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":8.25,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_OV":{"arr":"06:00","dep":"14:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":6.5,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}}},"MHI_CODES":{"2172":{"MHI":{"arr":"07:00","dep":"17:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":9.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"2690":{"MONDAY_MHI":{"arr":"07:00","dep":"11:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":3.75,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_MHI":{"arr":"07:00","dep":"11:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":3.75,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4015":{"MHI":{"arr":"07:30","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":10,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4133":{"MHI":{"arr":"06:00","dep":"15:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":8.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_MHI":{"arr":"06:00","dep":"16:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":9.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_MHI":{"arr":"06:00","dep":"16:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":9.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4138":{"TUESDAY_OV Only":{"arr":"10:00","dep":"17:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":6.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_OV Only":{"arr":"10:00","dep":"17:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":6.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4392":{"TUESDAY_OV Only":{"arr":"11:00","dep":"14:30","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":3.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_OV Only":{"arr":"11:00","dep":"14:30","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":3.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8061":{"MHI":{"arr":"06:15","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":11.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8072":{"MHI 1":{"arr":"07:15","dep":"14:45","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":6.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_MHI 1":{"arr":"10:00","dep":"16:00","MAIN_ABSORB":"GNTB","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":null,"GNTB":7.5,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_MHI 1":{"arr":"07:00","dep":"14:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":6.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MONDAY_MHI 2":{"arr":"10:30","dep":"15:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":4.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_MHI 2":{"arr":"10:30","dep":"15:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":4.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_MHI 2":{"arr":"10:30","dep":"15:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":4.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_MHI 2":{"arr":"09:00","dep":"16:00","MAIN_ABSORB":"GNTB","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":null,"GNTB":7.5,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8119":{"TUESDAY_MHI":{"arr":"07:00","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":0.25,"INSP":10,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_MHI":{"arr":"08:00","dep":"17:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":0.25,"INSP":8.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_MHI":{"arr":"08:30","dep":"17:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":0.25,"INSP":8,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_MHI":{"arr":"07:00","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":0.25,"INSP":10,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8145":{"MONDAY_MHI":{"arr":"08:30","dep":"12:00","MAIN_ABSORB":"INSP","ALWAYS_ACTIVE":["BREAK"],"BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":3,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8165":{"MONDAY_MHI":{"arr":"07:00","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":9.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_MHI":{"arr":"07:00","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":9.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_MHI":{"arr":"07:00","dep":"17:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":8.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_MHI":{"arr":"07:00","dep":"16:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":7.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_MHI":{"arr":"07:00","dep":"13:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":4.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MHI":{"arr":"07:00","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":9.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8201":{"MONDAY_MHI 1":{"arr":"06:45","dep":"16:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":null,"GPAS":0.25,"INSP":8.75,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MHI 1":{"arr":"06:45","dep":"16:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":0.25,"INSP":8.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_MHI 1":{"arr":"06:45","dep":"14:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":0.5,"INSP":5.75,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MONDAY_MHI 2":{"arr":"11:00","dep":"16:30","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":0.25,"GSRM":null,"GPAS":null,"INSP":5.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_MHI 2":{"arr":"09:45","dep":"14:45","MAIN_ABSORB":"GFSA/GPAS","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":null,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":5}},"8249":{"MONDAY_MHI":{"arr":"06:45","dep":"16:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":8.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_MHI":{"arr":"06:15","dep":"16:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":9,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_MHI":{"arr":"06:15","dep":"15:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":0.25,"INSP":8.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_MHI":{"arr":"06:15","dep":"15:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":8,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_MHI":{"arr":"06:15","dep":"14:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":0.25,"INSP":6.75,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}}},"DISPLAY_NAMES_ON":true};
+const EMBEDDED_CODES = {"version":2,"rev":1,"exportedAt":"2026-11-20T19:36:29.905Z","REGIONS":["Cluster27","Cluster26"],"PLANT_REGIONS":{"2172":"Cluster27","2690":"Cluster27","2900":"Cluster27","4015":"Cluster27","4057":"Cluster27","4067":"Cluster27","4133":"Cluster27","4138":"Cluster27","4392":"Cluster27","8061":"Cluster26","8072":"Cluster27","8090":"Cluster27","8119":"Cluster26","8145":"Cluster27","8165":"Cluster27","8201":"Cluster26","8249":"Cluster26"},"EXTRA_CODES":["GNED","GFSA/GPAS"],"SOR_DISPLAY_DAYS":{"2172":{"OV|Inside OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"OV|Lairage OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"2690":{"OV|OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"2900":{"OV|OV Only":["WEDNESDAY"]},"4015":{"OV|OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"4133":{"OV|OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"4138":{"OV|OV Only":["TUESDAY","THURSDAY"],"MHI|OV Only":["TUESDAY","THURSDAY"]},"4392":{"OV|OV Only":["TUESDAY","WEDNESDAY"],"MHI|OV Only":["TUESDAY","WEDNESDAY"]},"8061":{"OV|Morning OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"OV|Lairage OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"8072":{"OV|OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"OV|TB OV":["MONDAY","TUESDAY","THURSDAY"]},"8119":{"OV|OV":["TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"8145":{"OV|OV":["WEDNESDAY"],"OV|Afternoon OV":["MONDAY"],"OV|Morning OV":["MONDAY"],"MHI|MHI":["MONDAY"]},"8165":{"OV|OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"8201":{"OV|OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"OV|OV (Horse)":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]},"8249":{"OV|OV":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"MHI|MHI":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]}},"SCHEDULE_WEEKEND":{"2172":{"OV|Inside OV":["SATURDAY","SUNDAY"],"OV|Lairage OV":["SATURDAY","SUNDAY"],"MHI|MHI":["SATURDAY","SUNDAY"]},"2690":{"OV|OV":["SATURDAY","SUNDAY"],"MHI|MHI":["SATURDAY","SUNDAY"]},"4015":{"OV|OV":["SATURDAY","SUNDAY"],"MHI|MHI":["SATURDAY","SUNDAY"]},"4133":{"OV|OV":["SATURDAY","SUNDAY"],"MHI|MHI":["SATURDAY","SUNDAY"]},"8061":{"OV|Morning OV":["SATURDAY"]},"8072":{"OV|OV":["SATURDAY","SUNDAY"]},"8119":{"OV|OV":["SATURDAY","SUNDAY"],"MHI|MHI":["SATURDAY","SUNDAY"]},"8165":{"OV|OV":["SATURDAY","SUNDAY"],"MHI|MHI":["SATURDAY","SUNDAY"]},"8201":{"OV|OV":["SATURDAY","SUNDAY"],"OV|OV (Horse)":["SATURDAY","SUNDAY"]},"8249":{"OV|OV":["SATURDAY","SUNDAY"],"MHI|MHI":["SATURDAY","SUNDAY"]}},"REGION_DISPLAY":{"Cluster27":"KAROLINA","Cluster26":"MEHMET"},"PLANT_DISPLAY":{"2172":"DOGUKAN","2690":"TABAN","2900":"CEREN","4015":"ROBERTO","4133":"JAIME","4138":"ALP","4392":"BERK","8061":"AYCAN","8072":"KAAN","8119":"ANIL","8145":"CHARLOTTE","8165":"MAISSA","8201":"DANIELA","8249":"AYSEGUL"},"OV_CODES":{"2172":{"Inside OV":{"arr":"08:00","dep":"18:00","MAIN_ABSORB":"HLVI","BREAK":0.5,"GBPS":0.5,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":9,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"Lairage OV":{"arr":"06:30","dep":"17:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.5,"GSRM":null,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":9.5,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"2690":{"MONDAY_OV":{"arr":"07:00","dep":"16:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":7.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_OV":{"arr":"07:00","dep":"16:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":7.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_OV":{"arr":"07:00","dep":"16:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":7.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"2900":{"OV Only":{"arr":"07:00","dep":"15:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":7.5,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4015":{"OV":{"arr":"07:00","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.5,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":0.5,"INSP":10,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4133":{"OV":{"arr":"05:30","dep":"15:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":9,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_OV":{"arr":"05:30","dep":"16:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":10,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_OV":{"arr":"05:30","dep":"16:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":10,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4138":{"TUESDAY_OV Only":{"arr":"07:00","dep":"10:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":0.25,"GSRM":0.25,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":2.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_OV Only":{"arr":"07:00","dep":"10:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":3,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4392":{"TUESDAY_OV Only":{"arr":"07:30","dep":"11:00","MAIN_ABSORB":"INSP","ALWAYS_ACTIVE":["BREAK"],"BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":2.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_OV Only":{"arr":"07:30","dep":"11:00","MAIN_ABSORB":"INSP","ALWAYS_ACTIVE":["BREAK"],"BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":2.25,"HLVI":null,"GNTB":null,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8061":{"Morning OV":{"arr":"12:45","dep":"14:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":null,"GAVI":null,"INSP":1.25,"HLVI":null,"GNTB":null,"GFSA":null,"RCP":null,"RCP_CODE":"INSP","ENF_GROUP":"RCP","GNED":null,"GFSA/GPAS":null,"RCP_GROUP":{"BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":7,"GNTB":0.25,"GFSA":0.25,"GNED":null,"GFSA/GPAS":null,"MAIN_ABSORB":"HLVI","arr":"05:15","dep":"12:45"}},"SATURDAY_Morning OV":{"arr":"00:00","dep":"00:00","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":null,"GAVI":null,"INSP":null,"HLVI":null,"GNTB":null,"GFSA":null,"RCP":null,"ENF_GROUP":"RCP","GNED":null,"GFSA/GPAS":null,"RCP_GROUP":{"BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":5,"GNTB":0.25,"GFSA":0.25,"GNED":null,"GFSA/GPAS":null,"MAIN_ABSORB":"HLVI","arr":"06:00","dep":"11:00"}},"Afternoon OV":{"arr":"13:30","dep":"14:30","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":null,"GAVI":null,"INSP":1,"HLVI":null,"GNTB":0.25,"GFSA":null,"RCP":null,"RCP_CODE":"INSP","ENF_GROUP":"RCP","GNED":null,"GFSA/GPAS":null,"RCP_GROUP":{"BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":7.5,"GNTB":0.25,"GFSA":0.25,"GNED":null,"GFSA/GPAS":null,"MAIN_ABSORB":"HLVI","arr":"14:30","dep":"22:30"}},"Lairage OV":{"arr":"05:30","dep":"17:45","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.5,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":11.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8072":{"OV":{"arr":"07:00","dep":"15:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.5,"GSRM":null,"GPAS":0.25,"GWAG":0.75,"GAVI":null,"INSP":6.75,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_OV":{"arr":"06:30","dep":"14:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":6.75,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MONDAY_TB OV":{"arr":"09:00","dep":"16:00","MAIN_ABSORB":"GNTB","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":0.5,"GNTB":7.5,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_TB OV":{"arr":"10:00","dep":"16:00","MAIN_ABSORB":"GNTB","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":0.5,"GNTB":7.5,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_TB OV":{"arr":"09:00","dep":"16:00","MAIN_ABSORB":"GNTB","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":0.5,"GNTB":7.5,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8119":{"TUESDAY_OV":{"arr":"06:30","dep":"18:15","MAIN_ABSORB":"INSP","ALWAYS_ACTIVE":["HLVI"],"BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":9.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_OV":{"arr":"07:30","dep":"17:45","MAIN_ABSORB":"INSP","ALWAYS_ACTIVE":["HLVI"],"BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":7.75,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_OV":{"arr":"08:00","dep":"17:45","MAIN_ABSORB":"INSP","ALWAYS_ACTIVE":["HLVI"],"BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":7.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_OV":{"arr":"06:30","dep":"18:15","MAIN_ABSORB":"INSP","ALWAYS_ACTIVE":["HLVI"],"BREAK":0.5,"GBPS":0.5,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":9.25,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8145":{"WEDNESDAY_OV":{"arr":"08:00","dep":"15:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":5.5,"HLVI":0.5,"GNTB":0.25,"GFSA":0.5,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MONDAY_Afternoon OV":{"arr":"15:30","dep":"18:30","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":3,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MONDAY_Morning OV":{"arr":"07:30","dep":"15:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":7.5,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8165":{"MONDAY_OV":{"arr":"06:45","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":9,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_OV":{"arr":"06:45","dep":"17:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":8,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_OV":{"arr":"06:45","dep":"17:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":8,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_OV":{"arr":"06:45","dep":"16:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":7,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_OV":{"arr":"06:45","dep":"13:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":1,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":4,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8201":{"MONDAY_OV":{"arr":"06:30","dep":"16:45","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":null,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":9,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"OV":{"arr":"06:30","dep":"16:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":8.5,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_OV":{"arr":"06:30","dep":"14:45","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":6.5,"HLVI":0.5,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MONDAY_OV (Horse)":{"arr":"10:00","dep":"16:30","MAIN_ABSORB":"GNED","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":6,"GFSA/GPAS":null},"TUESDAY_OV (Horse)":{"arr":"10:00","dep":"15:00","MAIN_ABSORB":"GNED","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":null,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":5,"GFSA/GPAS":null}},"8249":{"MONDAY_OV":{"arr":"06:30","dep":"16:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":8.75,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_OV":{"arr":"06:00","dep":"16:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.5,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":9,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_OV":{"arr":"06:00","dep":"15:45","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":8,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_OV":{"arr":"06:00","dep":"15:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":null,"GWAG":0.75,"GAVI":null,"INSP":8.25,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_OV":{"arr":"06:00","dep":"14:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.5,"GPAS":0.5,"GWAG":0.75,"GAVI":null,"INSP":6.5,"HLVI":null,"GNTB":0.25,"GFSA":0.25,"RCP":null,"GNED":null,"GFSA/GPAS":null}}},"MHI_CODES":{"2172":{"MHI":{"arr":"07:00","dep":"17:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":9.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"2690":{"MONDAY_MHI":{"arr":"07:00","dep":"11:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":3.75,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_MHI":{"arr":"07:00","dep":"11:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":3.75,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4015":{"MHI":{"arr":"07:30","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":10,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4133":{"MHI":{"arr":"06:00","dep":"15:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":8.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_MHI":{"arr":"06:00","dep":"16:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":9.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_MHI":{"arr":"06:00","dep":"16:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":9.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4138":{"TUESDAY_OV Only":{"arr":"10:00","dep":"17:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":6.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_OV Only":{"arr":"10:00","dep":"17:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":6.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"4392":{"TUESDAY_OV Only":{"arr":"11:00","dep":"14:30","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":3.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_OV Only":{"arr":"11:00","dep":"14:30","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":3.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8061":{"MHI":{"arr":"06:15","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":11.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8072":{"MHI 1":{"arr":"07:15","dep":"14:45","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.5,"GPAS":null,"INSP":6.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_MHI 1":{"arr":"10:00","dep":"16:00","MAIN_ABSORB":"GNTB","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":null,"GNTB":7.5,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_MHI 1":{"arr":"07:00","dep":"14:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":6.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MONDAY_MHI 2":{"arr":"10:30","dep":"15:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":4.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_MHI 2":{"arr":"10:30","dep":"15:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":4.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_MHI 2":{"arr":"10:30","dep":"15:00","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":4.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_MHI 2":{"arr":"09:00","dep":"16:00","MAIN_ABSORB":"GNTB","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":null,"GNTB":7.5,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8119":{"TUESDAY_MHI":{"arr":"07:00","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":0.25,"INSP":10,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_MHI":{"arr":"08:00","dep":"17:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":0.25,"INSP":8.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_MHI":{"arr":"08:30","dep":"17:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":0.25,"INSP":8,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_MHI":{"arr":"07:00","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":0.25,"INSP":10,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8145":{"MONDAY_MHI":{"arr":"08:30","dep":"12:00","MAIN_ABSORB":"INSP","ALWAYS_ACTIVE":["BREAK"],"BREAK":0.5,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":3,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8165":{"MONDAY_MHI":{"arr":"07:00","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":9.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_MHI":{"arr":"07:00","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":9.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_MHI":{"arr":"07:00","dep":"17:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":8.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_MHI":{"arr":"07:00","dep":"16:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":7.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_MHI":{"arr":"07:00","dep":"13:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":4.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MHI":{"arr":"07:00","dep":"18:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.75,"GPAS":null,"INSP":9.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}},"8201":{"MONDAY_MHI 1":{"arr":"06:45","dep":"16:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":null,"GPAS":0.25,"INSP":8.75,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MHI 1":{"arr":"06:45","dep":"16:15","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":0.25,"INSP":8.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_MHI 1":{"arr":"06:45","dep":"14:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":0.25,"GSRM":0.25,"GPAS":0.5,"INSP":5.75,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"MONDAY_MHI 2":{"arr":"11:00","dep":"16:30","MAIN_ABSORB":"INSP","BREAK":null,"GBPS":0.25,"GSRM":null,"GPAS":null,"INSP":5.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_MHI 2":{"arr":"09:45","dep":"14:45","MAIN_ABSORB":"GFSA/GPAS","BREAK":null,"GBPS":null,"GSRM":null,"GPAS":null,"INSP":null,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":5}},"8249":{"MONDAY_MHI":{"arr":"06:45","dep":"16:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":8.5,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"TUESDAY_MHI":{"arr":"06:15","dep":"16:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":9,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"WEDNESDAY_MHI":{"arr":"06:15","dep":"15:30","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":0.25,"INSP":8.25,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"THURSDAY_MHI":{"arr":"06:15","dep":"15:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":null,"INSP":8,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null},"FRIDAY_MHI":{"arr":"06:15","dep":"14:00","MAIN_ABSORB":"INSP","BREAK":0.5,"GBPS":null,"GSRM":0.25,"GPAS":0.25,"INSP":6.75,"GNTB":null,"GFSA":null,"RCP":null,"GNED":null,"GFSA/GPAS":null}}},"DISPLAY_NAMES_ON":true};
 
 // Sayfa açılırken codes.json'u dene; yoksa localStorage'a, o da yoksa gömülü default'a düş.
 async function loadCodesFromFile() {
